@@ -1,0 +1,47 @@
+# ========= OS junk =========
+.DS_Store
+Thumbs.db
+
+# ========= Obsidian =========
+.obsidian/workspace
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache/
+.obsidian/index.db
+.obsidian/graph.json
+.obsidian/hotkeys.json
+
+# .obsidian/plugins/
+# .obsidian/themes/
+# .obsidian/snippets/
+
+# ========= Python/venv =========
+.smart-env/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# ========= local databases / vector stores / caches =========
+.smtcmp_json_db/
+.smtcmp_vector_db/
+*.tar.gz
+*.zip
+*.7z
+
+# ========= logs / temp =========
+*.log
+*.tmp
+*.swp
+*.bak
+
+# ========= secrets =========
+.env
+*.key
+*.pem
+# vector databases / semantic index
+.smtcmp_vector_db.tar.gz
+.smtcmp_vector_db/
+# Obsidian plugin data that may contain secrets
+.obsidian/plugins/smart-composer/
+
