@@ -1,0 +1,301 @@
+{
+  "main": {
+    "id": "f232c08bc73643b8",
+    "type": "split",
+    "children": [
+      {
+        "id": "7d662a8af4935449",
+        "type": "tabs",
+        "dimension": 21.280276816609,
+        "children": [
+          {
+            "id": "be3d47446058a3d5",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "模型/工具与平台/睁闭眼模型训练方案.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "睁闭眼模型训练方案 的大纲"
+            }
+          }
+        ]
+      },
+      {
+        "id": "068cbf467f2605f6",
+        "type": "tabs",
+        "dimension": 78.719723183391,
+        "children": [
+          {
+            "id": "ba5db1f3a38704dd",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "模型/工具与平台/睁闭眼模型训练方案.md",
+                "mode": "source",
+                "source": false,
+                "backlinks": true,
+                "backlinkOpts": {
+                  "collapseAll": false,
+                  "extraContext": false,
+                  "sortOrder": "alphabetical",
+                  "showSearch": false,
+                  "searchQuery": "",
+                  "backlinkCollapsed": false,
+                  "unlinkedCollapsed": true
+                }
+              },
+              "icon": "lucide-file",
+              "title": "睁闭眼模型训练方案"
+            }
+          },
+          {
+            "id": "a23190dcaeeb72d4",
+            "type": "leaf",
+            "state": {
+              "type": "release-notes",
+              "state": {
+                "currentVersion": "1.12.4"
+              },
+              "icon": "lucide-book-up",
+              "title": "版本说明 1.12.4"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "e78368fba7edf5e7",
+    "type": "split",
+    "children": [
+      {
+        "id": "66ad7724e57ae007",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f12576312d7ab00c",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "deebd6e2ef492f5d",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "3eda85c28f1a1e59",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 335.5
+  },
+  "right": {
+    "id": "5b50881e442569fd",
+    "type": "split",
+    "children": [
+      {
+        "id": "6825c66afba1411d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "a29db562080d8ecc",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "通信技术/车载系统通信.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": false
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for 车载系统通信"
+            }
+          },
+          {
+            "id": "78b7c03ce185752d",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "通信技术/车载系统通信.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from 车载系统通信"
+            }
+          },
+          {
+            "id": "c063160ee1d07f0b",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "59c324b12123486e",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "MOT算法/多传感器融合与跟踪大纲.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "多传感器融合与跟踪大纲 的大纲"
+            }
+          },
+          {
+            "id": "4c3097a3d0c848d7",
+            "type": "leaf",
+            "state": {
+              "type": "smtcmp-chat-view",
+              "state": {},
+              "icon": "lucide-ghost",
+              "title": "smtcmp-chat-view"
+            }
+          },
+          {
+            "id": "9aed4e11f26cd9dc",
+            "type": "leaf",
+            "state": {
+              "type": "smart-connections-view",
+              "state": {},
+              "icon": "lucide-ghost",
+              "title": "smart-connections-view"
+            }
+          },
+          {
+            "id": "ff59ff812f6c9c53",
+            "type": "leaf",
+            "state": {
+              "type": "copilot-chat-view",
+              "state": {},
+              "icon": "lucide-ghost",
+              "title": "copilot-chat-view"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false,
+      "bases:新建数据库": false,
+      "smart-composer:Open smart composer": false,
+      "smart-connections:Open: Smart Chat": false,
+      "smart-connections:Smart Connections: Open connections view": false,
+      "smart-connections:Smart Connections: Open random connection": true,
+      "copilot:Open Copilot Chat": false
+    }
+  },
+  "active": "ba5db1f3a38704dd",
+  "lastOpenFiles": [
+    "DMS/DMS_SDK.md",
+    "DMS/疲劳驾驶监测后处理.md",
+    "DMS/时序平滑算法.md",
+    "DMS/疲劳驾驶监测标准后处理流程.md",
+    "DMS/DMS后处理.md",
+    "DMS/分心行为监测后处理.md",
+    "DMS/FuseAlgorithm 模块接口.md",
+    "DMS/Images/Pasted image 20251010131644.png",
+    "模型/工具与平台/睁闭眼模型训练方案.md",
+    "多模态大模型/LLM.md",
+    "多模态大模型",
+    "模型/工具与平台/地平线UCP.md",
+    "模型/模型全流程.md",
+    "Docker/基于基础镜像构建开发镜像.md",
+    "C++/C++.md",
+    "C++/C++ 多线程核心流程与线程池机制.md",
+    "模型/工具与平台/OpenMMLab.md",
+    "C++/模板.md",
+    "C++/成员函数的重载、继承、覆盖和隐藏.md",
+    "C++/奇异模板递归模式.md",
+    "操作系统/Linux命令.md",
+    "库/OpenCV.md",
+    "模型/工具与平台/J6M模型部署流程.md",
+    "模型/方法与流程/模型训练流程.md",
+    "Pasted image 20260204140625.png",
+    "模型/方法与流程/模型量化.md",
+    "模型/方法与流程/云平台训练指南.md",
+    "模型/方法与流程/模型评估与部署指南.md",
+    "模型/公理与规范/评估公理与黄金基线.md",
+    "模型/工具与平台",
+    "模型/方法与流程",
+    "模型/公理与规范",
+    "模型/PTQ流程图.png",
+    "模型",
+    "计算机原理",
+    "通信技术",
+    "库",
+    "Docker",
+    "操作系统",
+    "MOT算法/images/Pasted image 20250914103208.png",
+    "MOT算法/images/Pasted image 20250914101046.png",
+    "Pasted image 20250914000155.png",
+    "MOT算法/images/Pasted image 20250914001711.png",
+    "Pasted image 20250913234944.png",
+    "Pasted image 20250913235743.png"
+  ]
+}

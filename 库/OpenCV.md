@@ -17,30 +17,181 @@ OpenCV 在 C++ 中大致可以分成几层：
 
 ## 2.1 `cv::Mat` —— 核心矩阵 / 图像容器
 
-```
-cv::Mat img;                        // 默认构造
-cv::Mat img(h, w, CV_8UC3);         // 创建空图，3通道8位
-cv::Mat img = cv::imread("xx.jpg"); // 从文件读取
-```
-关键属性：
+`cv::Mat` 本质是：
+
+> **带类型信息的多维张量容器（N-D Tensor + 类型描述）**
+
+---
+
+### 2.1.1 基本创建方式
 
 ```
-int rows = img.rows;         // 高
-int cols = img.cols;         // 宽
-int type = img.type();       // CV_8UC3 / CV_32FC1 等
-int channels = img.channels();
-size_t step = img.step;      // 每行字节数
-uchar* data = img.data;      // 原始像素指针
+cv::Mat img;                          // 默认构造 cv::Mat 
+img(h, w, CV_8UC3);           // 创建二维图像（3通道8位） 
+cv::Mat img = cv::imread("xx.jpg");   // 从文件读取
 ```
-**拷贝语义：**
 
-- 浅拷贝（共享数据）：
+---
+
+### 2.1.2 维度相关属性
+
+```
+int dims = img.dims;      // 张量维度数 
+int rows = img.rows;      // 高（仅当 dims==2 有意义） 
+int cols = img.cols;      // 宽（仅当 dims==2 有意义）
+```    
+
+- 通道数不是维度，3 通道图像仍然是 2 维矩阵
+
+---
+
+### 2.1.3 类型系统
+
+OpenCV 的类型由两部分组成：
+
+`type = depth + channels`
+
+---
+
+#### 2.1.3.1 1️⃣ depth —— 单通道数据精度
+
+`int depth = img.depth();`
+
+表示：
+
+> 每个通道元素的数值类型
+
+常见取值：CV_8U,CV_32F
+
+---
+
+#### 2.1.3.2 2️⃣ channels —— 每个像素的通道数
+
+`int channels = img.channels();`
+
+例如：
+
+- 灰度图：1
     
-    `cv::Mat b = img;       // 只拷贝头，不拷贝像素`
+- RGB 图：3
     
-- 深拷贝（独立一份数据）：
+- RGBA：4
     
-    `cv::Mat b = img.clone(); // 或 img.copyTo(b);`
+
+---
+
+#### 2.1.3.3 3️⃣ type —— depth + channels 的组合编码
+
+`int type = img.type();`
+
+例如：
+
+|类型|含义|
+|---|---|
+|CV_8UC1|单通道8位|
+|CV_8UC3|3通道8位|
+|CV_32FC1|单通道float|
+|CV_32FC3|3通道float|
+
+---
+
+### 2.1.4 元素字节大小计算
+
+```
+size_t elemSize = img.elemSize();   // 单个像素占用字节数 
+size_t elemSize1 = img.elemSize1(); // 单个通道字节数
+```
+
+例如：
+
+`CV_32FC3`
+
+- depth = CV_32F → 4字节
+    
+- channels = 3
+    
+- 每像素占用 4×3=12 字节
+    
+
+---
+
+### 2.1.5 内存布局
+
+```
+size_t step = img.step;   // 每行字节数（可能大于 cols * elemSize） 
+uchar* data = img.data;   // 原始数据指针
+```
+
+### 2.1.6 关键理解
+
+OpenCV 行对齐可能导致：
+
+`step != cols * elemSize`
+
+所以遍历时应使用：
+
+```
+for (int r = 0; r < img.rows; ++r) {
+    uchar* rowPtr = img.ptr(r);
+}
+```
+
+而不是手动计算偏移。
+
+---
+
+### 2.1.7 连续内存判断
+
+`bool continuous = img.isContinuous();`
+
+- 连续 → 可以一次性 memcpy
+    
+- 不连续 → 逐行处理
+    
+
+---
+
+### 2.1.8 拷贝语义（非常重要）
+
+### 2.1.9 浅拷贝（共享底层数据）
+
+`cv::Mat b = img;`
+
+- 只复制 header
+    
+- data 指针共享
+    
+- 引用计数增加
+    
+
+---
+
+### 2.1.10 深拷贝（数据独立）
+
+`cv::Mat b = img.clone(); // 或 img.copyTo(b);`
+
+- 分配新内存
+    
+- 像素数据独立
+    
+
+---
+
+### 2.1.11 总结构图
+```
+Mat
+ ├── dims
+ ├── size[]
+ ├── rows / cols
+ ├── depth      (单通道类型)
+ ├── channels
+ ├── type       (depth + channels)
+ ├── elemSize
+ ├── step
+ ├── data
+ └── refcount
+
+```
 ---
 
 ## 2.2 几何基础类型
