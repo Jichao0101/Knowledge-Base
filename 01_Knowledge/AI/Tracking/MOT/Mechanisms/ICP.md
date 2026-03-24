@@ -1,6 +1,6 @@
-# KDTree
-# DBSCAN
-# 代码实现
+# 1 KDTree
+# 2 DBSCAN
+# 3 代码实现
 ```
 #include <iostream>
 

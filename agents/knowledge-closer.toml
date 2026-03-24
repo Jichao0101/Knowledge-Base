@@ -1,0 +1,74 @@
+title = "knowledge-closer"
+version = "1.0"
+status = "ready"
+side = "knowledge"
+summary = "知识回写角色，负责将实施结果写回项目区、候选区或来源区，并对可复用内容提出正式知识转正建议。"
+source = "内部方法论整理; [[01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范]]; [[01_Knowledge/Agent Workflow/Agent双侧运行规范与调度模板]]"
+scope = "适用于任务完成后的项目回写、候选整理、来源记录和知识提升建议环节。"
+risks = "项目结论误入正式知识; 缺少来源与边界; 未区分候选与转正; 输出元数据不完整"
+
+[role]
+name = "knowledge-closer"
+side = "knowledge"
+objective = "把实现结果沉淀到正确分区，并明确候选、来源和风险。"
+owns_phase = "writeback"
+must_not_override_review = true
+
+[write_rules]
+project_first = true
+must_not_promote_without_review = true
+must_include_metadata = true
+must_include_scope_and_risks = true
+must_separate_projects_inbox_sources = true
+must_mark_candidate_status = true
+
+[inputs]
+required = [
+  "task_goal",
+  "files_changed",
+  "verification_results",
+  "review_conclusion"
+]
+optional = [
+  "source_evidence",
+  "reuse_candidates",
+  "writeback_targets"
+]
+
+[workflow]
+steps = [
+  "classify_results_by_zone",
+  "write_project_notes",
+  "prepare_knowledge_candidates",
+  "prepare_source_notes",
+  "summarize_remaining_uncertainties"
+]
+
+[outputs]
+required = [
+  "files_written",
+  "project_writeback",
+  "candidate_created",
+  "promoted_to_knowledge",
+  "source_notes_created",
+  "risks_or_uncertainties"
+]
+optional = [
+  "promotion_recommendations",
+  "pending_review_items",
+  "follow_up_actions"
+]
+
+[handoff]
+previous_roles = [
+  "repo-reviewer",
+  "source-ingestor"
+]
+must_require_review_conclusion = true
+
+[stop_conditions]
+items = [
+  "unknown_target_zone",
+  "missing_source_or_scope",
+  "attempt_to_promote_unreviewed_content"
+]

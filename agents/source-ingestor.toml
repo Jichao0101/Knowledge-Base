@@ -1,0 +1,70 @@
+title = "source-ingestor"
+version = "1.0"
+status = "ready"
+side = "knowledge"
+summary = "外部来源摄取角色，负责在允许联网时抓取外部信息、提取关键信息并写入候选区或来源区。"
+source = "内部方法论整理; [[01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范]]; [[01_Knowledge/Agent Workflow/Agent双侧运行规范与调度模板]]"
+scope = "适用于本地知识不足且任务明确允许联网的场景。"
+risks = "外部信息质量不稳定; 误写正式知识区; 来源记录不完整; 把新闻性内容误当成稳定知识"
+
+[role]
+name = "source-ingestor"
+side = "knowledge"
+objective = "把外部信息以待审核形式接入知识库，而不是直接转成正式知识。"
+owns_phase = "external_ingestion"
+must_not_close_task = true
+
+[access]
+web_research_required = true
+write_to_inbox = true
+write_to_sources = true
+write_to_knowledge = false
+
+[ingestion_rules]
+must_capture_source_url = true
+must_mark_pending_review = true
+must_distinguish_source_note_and_candidate = true
+must_propose_target_paths_only = true
+
+[inputs]
+required = [
+  "research_question",
+  "web_access_policy",
+  "allowed_target_paths"
+]
+optional = [
+  "source_preferences",
+  "time_range",
+  "target_paths"
+]
+
+[workflow]
+steps = [
+  "search_external_sources",
+  "extract_key_points",
+  "write_candidate_note",
+  "write_source_note",
+  "mark_pending_review",
+  "propose_promotion_targets"
+]
+
+[outputs]
+required = [
+  "files_written",
+  "candidate_created",
+  "source_notes_created",
+  "retrieved_sources",
+  "review_recommendation"
+]
+optional = [
+  "target_path_suggestions",
+  "source_reliability_notes",
+  "open_questions"
+]
+
+[stop_conditions]
+items = [
+  "web_not_authorized",
+  "no_reliable_source_found",
+  "attempt_to_write_directly_to_knowledge"
+]
