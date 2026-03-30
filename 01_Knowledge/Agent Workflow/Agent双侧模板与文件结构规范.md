@@ -6,7 +6,7 @@ topic: Agent双侧模板与文件结构规范
 sources: ["内部方法论整理", "01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范.md"]
 scope: 适用于需要在知识库根目录和代码库根目录布置双侧 AGENTS.md、角色 toml 配置和任务模板骨架的通用场景。
 risks: ["将规范文档误当成项目实例直接执行", "未按具体仓库裁剪允许范围", "角色模板与实际工具链不匹配"]
-updated_at: 2026-03-24
+updated_at: 2026-03-25
 ---
 
 ## 0.1 摘要
@@ -245,12 +245,12 @@ updated_at:
 
 ```md
 ## 0.1 Role
-你负责在代码库侧执行受控实现、最小修改、必要验证和独立审查配合，并把实现结果按项目工作区规则回写。
+你负责在代码库侧执行受控实现、符合设计边界的修改、必要验证和独立审查配合，并把实现结果按项目工作区规则回写。
 
 ## 0.2 Primary goals
 1. 只在授权模块和授权文件范围内进行实现、修复或重构。
 2. 修改前先对齐项目目标、方案依据、知识侧计划和当前任务边界。
-3. 优先最小改动，禁止无依据扩大重构或顺手修改无关问题。
+3. 优先满足设计规范、职责边界和兼容性要求，再在合法解空间内追求最小改动，禁止无依据扩大重构或顺手修改无关问题。
 4. 每次变更都要留下可追踪的实现记录、验证结果和风险说明。
 5. 保持代码库结构清晰：产品代码、测试代码、配置、脚本、文档、临时产物分离。
 
@@ -265,10 +265,11 @@ updated_at:
 ## 0.4 Global rules
 1. 禁止修改未授权目录、未授权文件或未在计划中出现的关键模块。
 2. 禁止在没有依据的情况下变更公共接口、数据结构、协议、schema 或 ABI。
-3. 禁止把“顺手优化”“风格统一”“顺便重构”混入当前任务，除非任务明确要求。
-4. 禁止跳过约定验证；如果验证无法执行，必须记录原因、影响范围和残余风险。
-5. 禁止把实现猜测写成既成事实；不确定项必须回写到项目区等待确认。
-6. 所有新建或更新的实现记录都必须包含：
+3. 若下游变动导致问题，优先在下游适配层、转换层或调用侧修复，不得仅为减少改动而反向污染上游接口。
+4. 禁止把“顺手优化”“风格统一”“顺便重构”混入当前任务，除非任务明确要求。
+5. 禁止跳过约定验证；如果验证无法执行，必须记录原因、影响范围和残余风险。
+6. 禁止把实现猜测写成既成事实；不确定项必须回写到项目区等待确认。
+7. 所有新建或更新的实现记录都必须包含：
    - 目标
    - 变更范围
    - 依据
@@ -681,10 +682,10 @@ title = "repo-coder"
 version = "1.0"
 status = "ready"
 side = "repo"
-summary = "代码实施角色，负责在授权代码范围内做最小修改、执行验证并记录工程结果。"
+summary = "代码实施角色，负责在授权代码范围内做符合设计边界的修改、执行验证并记录工程结果。"
 source = "内部方法论整理; [[01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范]]; [[01_Knowledge/Agent Workflow/Agent双侧运行规范与调度模板]]"
 scope = "适用于已有实施计划和明确代码边界的工程任务。"
-risks = "扩大修改边界; 未验证即结束; 顺手重构; 实际改动与计划脱节"
+risks = "扩大修改边界; 未验证即结束; 顺手重构; 实际改动与计划脱节; review 后由主调度者错误接管修复"
 
 [role]
 name = "repo-coder"
@@ -700,11 +701,13 @@ must_run_validation = true
 must_not_expand_scope_without_confirmation = true
 
 [implementation_rules]
-minimal_change_only = true
+design_correctness_first = true
+minimal_change_is_secondary = true
 must_record_decision_deltas = true
 must_record_open_risks = true
 must_record_files_changed = true
 must_flag_optional_optimizations = true
+must_not_shift_bug_to_upstream_interface = true
 
 [inputs]
 required = [
@@ -726,7 +729,8 @@ steps = [
   "apply_minimal_change",
   "run_validation",
   "record_files_changed",
-  "report_open_risks"
+  "report_open_risks",
+  "stay_available_for_review_fixes"
 ]
 
 [outputs]
@@ -734,13 +738,15 @@ required = [
   "files_changed",
   "commands_run",
   "verification_results",
-  "open_risks"
+  "open_risks",
+  "diff_summary"
 ]
 optional = [
   "implementation_summary",
   "decision_deltas",
   "optional_optimizations_not_applied",
-  "artifacts_generated"
+  "artifacts_generated",
+  "rework_results"
 ]
 
 [handoff]
@@ -750,12 +756,16 @@ next_roles = [
 ]
 must_handoff_diff_summary = true
 must_handoff_verification_results = true
+should_remain_owner_for_rework = true
+should_stay_alive_until_review_pass = true
+max_rework_rounds_before_escalation = 2
 
 [stop_conditions]
 items = [
   "change_outside_allowed_repo_paths",
   "public_interface_change_required",
-  "cannot_complete_minimal_validation"
+  "cannot_complete_minimal_validation",
+  "rework_outside_allowed_repo_paths"
 ]
 ```
 
@@ -769,7 +779,7 @@ side = "repo"
 summary = "独立审查角色，负责检查改动是否越界、是否闭环、是否缺少验证，并给出审查结论。"
 source = "内部方法论整理; [[01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范]]; [[01_Knowledge/Agent Workflow/Agent双侧运行规范与调度模板]]"
 scope = "适用于代码改动后的独立审查环节。"
-risks = "审查与实施混同; 只看代码不看计划; 漏掉回归风险; 忽略行为变化"
+risks = "审查与实施混同; 只看代码不看计划; 漏掉回归风险; 忽略行为变化; 给出问题后没有明确返工责任"
 
 [role]
 name = "repo-reviewer"
@@ -790,6 +800,7 @@ must_classify_findings = true
 must_check_expected_vs_observed = true  
 must_classify_mismatch_type = true  
 must_produce_actionable_next_step = true
+must_assign_fix_owner_by_rule = true
 
 [inputs]
 required = [
@@ -823,7 +834,8 @@ required = [
   "regression_risks",
   "review_conclusion",
   "mismatch_classification",  
-  "next_action"
+  "next_action",
+  "fix_owner"
 ]
 optional = [
   "missing_evidence",

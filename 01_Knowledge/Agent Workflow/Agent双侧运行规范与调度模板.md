@@ -6,7 +6,7 @@ topic: Agent双侧运行规范与调度模板
 sources: ["内部方法论整理", "01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范.md", "01_Knowledge/Agent Workflow/Agent双侧模板与文件结构规范.md"]
 scope: 适用于需要将双侧闭环规则包装成可运行流程，包括任务入口、状态推进、调度 prompt、角色输入输出契约与回写要求的场景。
 risks: ["运行规范过重导致单次任务负担过大", "项目特例被误提升为通用步骤", "角色契约与实际执行工具不一致"]
-updated_at: 2026-03-24
+updated_at: 2026-03-25
 ---
 
 ## 0.1 摘要
@@ -61,6 +61,7 @@ updated_at: 2026-03-24
 	- functional_bug  
 	- design_mismatch
 - `controlled_optimization`
+- `functional_audit`
 
 ### 0.3.2 进入条件
 
@@ -86,8 +87,9 @@ updated_at: 2026-03-24
 5. `execution_approved`
 6. `implementation_done`
 7. `review_done`
-8. `writeback_done`
-9. `closed`
+8. `rework_needed`（条件态）
+9. `writeback_done`
+10. `closed`
 
 ### 0.4.1 状态说明
 
@@ -119,11 +121,15 @@ updated_at: 2026-03-24
 
 完成独立审查，确认是否存在越界、缺少验证或风险未闭环。
 
-#### 0.4.1.8 `writeback_done`
+#### 0.4.1.8 `rework_needed`
+
+reviewer 已给出需要代码修改的发现，任务返回实施环节，等待原 `repo-coder` 返工并重新验证。
+
+#### 0.4.1.9 `writeback_done`
 
 结果已按分区规则写回项目区、候选区或来源区。
 
-#### 0.4.1.9 `closed`
+#### 0.4.1.10 `closed`
 
 形成最终摘要与残留风险列表。
 
@@ -139,6 +145,7 @@ updated_at: 2026-03-24
 4. `knowledge-closer`
 
 其中 `repo-reviewer` 应作为独立审查阶段单独存在，不应默认继承 `repo-coder` 的完整上下文。
+若 `repo-reviewer` 判定需要代码修改，默认应返回原 `repo-coder` 返工，审查通过后再进入 `knowledge-closer`。
 
 ### 0.5.2 可选分支
 
@@ -154,6 +161,12 @@ updated_at: 2026-03-24
 4. `repo-coder`
 5. `repo-reviewer`
 6. `knowledge-closer`
+
+若第 5 步给出需修改代码的 blocker / major 发现，则插入：
+
+6. 原 `repo-coder` 返工并重新验证
+7. `repo-reviewer` 独立重审
+8. `knowledge-closer`
 
 ### 0.5.3 reviewer 独立性要求
 
@@ -176,6 +189,38 @@ updated_at: 2026-03-24
 - `necessary_code_context`
 
 若无法构造上述最小交接包，应视为审查前置条件不足，而不是让 reviewer 继承全量执行上下文。
+
+### 0.5.5 review 后返工责任
+
+默认规则：
+
+1. reviewer 负责判定，不负责修改。
+2. 若审查结论要求代码变更，返工责任默认归原 `repo-coder`。
+3. 主 agent 负责调度、裁剪审查结论、维持状态机，不直接吸收返工实现。
+4. 只有当原 coder 不可恢复、连续返工不收敛或返工已超出授权范围时，才切换修复责任人或回到 planner。
+
+推荐原因：
+
+- 原 coder 拥有最完整的实现局部上下文和已执行验证信息
+- 返工继续由原 coder 执行，能减少主 agent 重新建模和重复试错
+- reviewer 仍保持独立，因为它只输出发现，不参与修改
+- 主 agent 保持调度角色，更容易审计责任流向
+
+推荐返工交接包：
+
+- `review_conclusion`
+- `findings`
+- `finding_severity`
+- `next_action`
+- `affected_files`
+- `verification_gaps`
+
+循环控制要求：
+
+- 默认保留原 coder 会话直到审查通过或明确终止
+- 每轮返工后必须重新执行受影响验证
+- 每轮返工后必须再次使用独立 reviewer
+- 连续返工超过 2 轮时，默认升级为重新规划或人工确认
 
 ---
 
@@ -221,12 +266,14 @@ updated_at: 2026-03-24
 - 实施结果
 - 执行过的验证
 - 未解决技术风险
+- 对审查发现的返工结果
 
 停止条件：
 
 - 需修改禁止目录
 - 需做接口级变更
 - 无法完成最小验证
+- reviewer 发现需要返工但返工内容已超出当前授权范围
 
 ### 0.6.3 repo-reviewer
 
@@ -245,6 +292,7 @@ updated_at: 2026-03-24
 - 越界判断
 - 回归风险
 - 审查结论
+- 下一步动作建议
 
 停止条件：
 
@@ -309,6 +357,7 @@ updated_at: 2026-03-24
 - 是否需要确认
 - 输出要求
 - reviewer 是否独立调度以及 reviewer 的输入边界
+- review 未通过时由谁返工以及返工轮次上限
 
 一个不合格的调度 prompt 往往会：
 
@@ -362,13 +411,17 @@ updated_at: 2026-03-24
 - 无法验证核心改动
 - 外部信息未经审核却拟入正式知识区
 - 发现任务目标本身矛盾]
+  
+强制约束：  
+1. 主代理仅负责 orchestration，不得直接修改代码、输出 patch、生成可落库实现
 
 调度顺序：
 1. 先调用 knowledge-planner，输出任务类型、已读取范围、实施计划、验证计划、建议回写路径。
 2. 如本地知识不足且允许联网，再调用 source-ingestor，结果只写候选区或来源区。
 3. 再调用 repo-coder，仅在授权范围内实施修改并执行最小验证。
 4. 再调用 repo-reviewer，使用独立 reviewer 实例，仅接收任务目标、验收标准、计划、diff、验证结果和必要代码上下文，独立检查越界风险、验证覆盖和行为变化。
-5. 最后调用 knowledge-closer，按分区规则回写结果。
+5. 若 repo-reviewer 给出需改代码的 blocker / major 发现，则将裁剪后的审查结论返回原 repo-coder 返工、重新验证，并再次调用独立 reviewer。
+6. 仅在 review 通过后调用 knowledge-closer，按分区规则回写结果。
 
 输出要求：
 - files_read
@@ -380,7 +433,99 @@ updated_at: 2026-03-24
 - risks_or_uncertainties
 ```
 
-### 0.9.2 缺陷修复型
+### 0.9.2 功能审核型
+
+```text
+按 Agent 双侧运行规范执行本次功能审核任务。
+
+技术基准：
+- [[01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范]]
+- [[01_Knowledge/Agent Workflow/Agent双侧运行规范与调度模板]]
+
+任务目标：
+[填写要审核的功能或能力]
+
+审核对象：
+[功能模块 / 接口 / 状态机 / 页面行为 / 算法行为]
+
+规范输入：
+[填写技术规范、设计要求、验收标准、接口契约、时序约束、边界条件]
+
+实现输入：
+[填写代码路径 / diff / 可执行产物 / 测试结果 / 日志 / trace / 截图]
+
+审核类型：
+functional_audit
+
+允许范围：
+- 知识库读取：[填写路径]
+- 项目区读写：[填写路径]
+- 代码库读取：[填写路径]
+- 代码库修改：默认禁止
+
+联网策略：
+[允许 / 禁止 / 条件允许]
+
+确认策略：
+以下场景强制确认：
+- 首次定义允许访问范围
+- 审核过程中发现规范本身存在冲突或缺失
+- 需要将审核结论提升为 `01_Knowledge/`
+- 审核任务拟转化为代码修复任务
+- 需要补充运行证据或新增测试才能继续判定
+
+以下场景必须停止：
+- 未明确允许范围
+- 无法获得最低限度规范输入
+- 无法获得足够实现证据
+- 外部信息未经审核却拟入正式知识区
+- 审核结论依赖 coder/planner 的主观解释而非证据
+
+要求：
+- 以技术规范和实现证据为主要输入
+- 不以 planner/coder 的自然语言产出为审核依据
+- 优先判断功能符合度，而非实现风格优劣
+- 必须区分：
+  - 已满足
+  - 未满足
+  - 证据不足
+  - 规范不清
+- 默认不修改代码
+- 若发现问题，仅输出问题分级、影响范围和建议后续动作
+
+调度顺序：
+1. 先调用 knowledge-planner 的轻量模式，仅完成：
+   - 规范来源确认
+   - 允许范围确认
+   - 验收条目整理
+2. 如本地规范不足且允许联网，再调用 source-ingestor，结果只写候选区或来源区。
+3. 调用 repo-reviewer 或 functional-reviewer 独立实例，仅接收：
+   - 任务目标
+   - 规范输入
+   - 验收条目
+   - 代码/运行证据
+   - 必要上下文
+4. reviewer 独立检查：
+   - 功能是否满足规范
+   - 行为是否与验收标准一致
+   - 边界条件和异常路径是否覆盖
+   - 是否存在证据不足或规范冲突
+5. 若审核不通过，不直接修代码；输出是否建议转入 bug_fix / controlled_optimization / redesign 任务。
+6. 若审核通过且需要沉淀，再调用 knowledge-closer 回写审核记录、候选结论和未决事项。
+
+输出要求：
+- files_read
+- audit_scope
+- acceptance_items
+- compliance_matrix
+- evidence_used
+- review_conclusion
+- suggested_followup
+- writeback_targets
+- risks_or_uncertainties
+```
+
+### 0.9.3 缺陷修复型
 
 ```text
 按 Agent 双侧运行规范执行本次缺陷修复任务。  
@@ -421,7 +566,7 @@ bug_fix
 - 涉及公共接口变化  
 - 涉及 schema / ABI / 数据结构兼容性变化  
 - 涉及批量重构或删除逻辑  
-- 修复方案明显偏离“最小修复”  
+- 修复方案需要改变既有设计契约、模块职责或上游公共接口  
 - 需要将 failure mode 提升为 `01_Knowledge/`  
   
 以下场景必须停止：  
@@ -431,9 +576,11 @@ bug_fix
 - 发现问题根因需要越界修改  
 - 外部信息未经审核却拟入正式知识区  
   
-要求：  
+要求：
+- 主代理仅负责 orchestration，不得直接修改代码、输出 patch、生成可落库实现  
 - 优先根因闭环  
-- 优先最小修复  
+- 优先满足设计规范、职责边界和兼容性要求  
+- 在满足上述约束后，再追求最小修复  
 - 不做方案外重构  
 - 必须区分“预期行为”和“实际行为”  
 - 必须说明修复是否真正闭合设计失配  
@@ -441,13 +588,14 @@ bug_fix
 调度顺序：  
 1. knowledge-planner 输出任务类型、已读取范围、根因假设、最小验证路径、修复计划、建议回写路径。  
 2. 如本地知识不足且允许联网，再调用 source-ingestor，结果只写候选区或来源区。  
-3. repo-coder 仅在授权范围内实施最小修复，并执行最小必要验证与相关回归验证。  
+3. spawn repo-coder 仅在授权范围内实施符合设计边界的修复，并执行最小必要验证与相关回归验证。  
 4. repo-reviewer 使用独立 reviewer 实例，仅接收任务目标、预期行为、实际行为、验收标准、实施计划、diff、验证结果和必要代码上下文，独立检查：  
 - 根因是否闭环  
 - 改动是否越界  
 - 验证是否覆盖行为失配  
 - 是否仍存在回归风险  
-5. knowledge-closer 回写调试记录、修复结论、failure mode 候选和未闭环事项。  
+5. 若 repo-reviewer 判定仍需代码修复，则将审查结论与缺口返回原 repo-coder 做边界内返工，重新验证后再次独立审查。  
+6. 仅在 review 通过后，knowledge-closer 回写调试记录、修复结论、failure mode 候选和未闭环事项。  
   
 输出要求：  
 - files_read  
@@ -460,7 +608,7 @@ bug_fix
 - risks_or_uncertainties
 ```
 
-### 0.9.3 受控优化型
+### 0.9.4 受控优化型
 
 ```text
 按 Agent 双侧运行规范执行本次受控优化任务。
@@ -516,6 +664,7 @@ controlled_optimization
 - 外部信息未经审核却拟入正式知识区
 
 要求：
+- 主代理仅负责 orchestration，不得直接修改代码、输出 patch、生成可落库实现
 - 明确优化依据
 - 明确不做事项
 - 禁止演化为大规模重构
@@ -525,13 +674,14 @@ controlled_optimization
 调度顺序：
 1. knowledge-planner 输出优化依据、风险边界、非目标项、验证计划和回写建议。
 2. 如本地知识不足且允许联网，再调用 source-ingestor，结果只写候选区或来源区。
-3. repo-coder 仅在授权范围内实施边界内优化，并完成收益验证与语义回归验证。
+3. spawn repo-coder 仅在授权范围内实施边界内优化，并完成收益验证与语义回归验证。
 4. repo-reviewer 使用独立 reviewer 实例，仅接收任务目标、目标指标、非目标项、实施计划、diff、验证结果和必要代码上下文，独立检查：
    - 是否越界
    - 是否改变核心语义
    - 优化收益是否有证据
    - 是否引入新的回归风险
-5. knowledge-closer 回写项目优化记录、可复用候选和未闭环事项。
+5. 若 repo-reviewer 判定优化仍需返工，则将审查结论返回原 repo-coder，完成边界内修正与重新验证后再次独立审查。
+6. 仅在 review 通过后，knowledge-closer 回写项目优化记录、可复用候选和未闭环事项。
 
 输出要求：
 - files_read
