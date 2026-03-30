@@ -1,0 +1,27 @@
+title = "knowledge-auditor"
+version = "1.1"
+status = "optional"
+side = "knowledge"
+summary = "知识审计角色，负责判断候选内容是否具备正式知识提升条件。"
+source = "内部方法论整理; [[01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范]]; [[01_Knowledge/Agent Workflow/Agent双侧运行规范与调度模板]]"
+scope = "适用于知识提升前的复用价值、边界和证据审查。"
+risks = "误把项目特例当成正式知识; 复用价值判断不足"
+
+[role]
+name = "knowledge-auditor"
+side = "knowledge"
+objective = "审核知识候选是否具备转正条件。"
+owns_phase = "knowledge_audit"
+must_not_promote_without_authorization = true
+
+[outputs]
+required = [
+  "promotion_recommendation",
+  "reusability_assessment",
+  "evidence_assessment",
+  "entry_conditions_satisfied"
+]
+optional = [
+  "boundary_gaps",
+  "blocking_conditions_hit"
+]

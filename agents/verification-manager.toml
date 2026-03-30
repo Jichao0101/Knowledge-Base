@@ -1,0 +1,29 @@
+title = "verification-manager"
+version = "1.1"
+status = "optional"
+side = "knowledge"
+summary = "验证编排角色，负责把 verification_tier 落成 required / optional / unavailable 验证集合。"
+source = "内部方法论整理; [[01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范]]; [[01_Knowledge/Agent Workflow/Agent双侧运行规范与调度模板]]"
+scope = "适用于高风险或验证矩阵复杂任务。"
+risks = "验证要求过重; 与 reviewer 结论混淆"
+
+[role]
+name = "verification-manager"
+side = "knowledge"
+objective = "把验证等级转化为可执行验证矩阵。"
+owns_phase = "verification_planning"
+must_not_edit_code = true
+must_not_replace_reviewer = true
+
+[outputs]
+required = [
+  "verification_tier",
+  "required_checks",
+  "optional_checks",
+  "unavailable_checks",
+  "blocker_assessment"
+]
+optional = [
+  "entry_conditions_satisfied",
+  "blocking_conditions_hit"
+]

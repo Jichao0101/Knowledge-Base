@@ -1,0 +1,28 @@
+title = "failure-analyst"
+version = "1.1"
+status = "optional"
+side = "knowledge"
+summary = "故障分析角色，负责在复杂 primary_type = bug_fix 任务中补充根因假设、故障模式和最小验证路径。"
+source = "内部方法论整理; [[01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范]]; [[01_Knowledge/Agent Workflow/Agent双侧运行规范与调度模板]]"
+scope = "适用于复杂 primary_type = bug_fix 或多轮返工不收敛任务。"
+risks = "根因推断过度; 与 planner 职责重叠"
+
+[role]
+name = "failure-analyst"
+side = "knowledge"
+objective = "补充故障模式分析并压缩根因搜索空间。"
+owns_phase = "failure_analysis"
+must_not_edit_code = true
+
+[outputs]
+required = [
+  "root_cause_hypotheses",
+  "failure_modes",
+  "minimal_validation_path",
+  "entry_conditions_satisfied"
+]
+optional = [
+  "evidence_priority",
+  "replan_recommendation",
+  "blocking_conditions_hit"
+]

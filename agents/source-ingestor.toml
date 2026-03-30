@@ -1,5 +1,5 @@
 title = "source-ingestor"
-version = "1.0"
+version = "1.1"
 status = "ready"
 side = "knowledge"
 summary = "外部来源摄取角色，负责在允许联网时抓取外部信息、提取关键信息并写入候选区或来源区。"
@@ -54,12 +54,14 @@ required = [
   "candidate_created",
   "source_notes_created",
   "retrieved_sources",
-  "review_recommendation"
+  "review_recommendation",
+  "entry_conditions_satisfied"
 ]
 optional = [
   "target_path_suggestions",
   "source_reliability_notes",
-  "open_questions"
+  "open_questions",
+  "blocking_conditions_hit"
 ]
 
 [stop_conditions]

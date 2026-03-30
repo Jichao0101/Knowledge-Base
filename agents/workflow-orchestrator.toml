@@ -1,0 +1,40 @@
+title = "workflow-orchestrator"
+version = "1.1"
+status = "ready"
+side = "control"
+summary = "控制层编排骨架，默认由主代理承担，不一定显式实例化。"
+source = "内部方法论整理; [[01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范]]; [[01_Knowledge/Agent Workflow/Agent双侧运行规范与调度模板]]"
+scope = "适用于双侧闭环任务中的 orchestration 职责。"
+risks = "主代理职责漂移; 绕过 review; 缺少可审计记录"
+
+[role]
+name = "workflow-orchestrator"
+side = "control"
+objective = "维护状态、调度角色、控制返工、维护 run_log 和 audit_log。"
+owns_phase = "orchestration"
+default_mode_for_main_agent = true
+explicit_instantiation_optional = true
+must_not_edit_code = true
+must_not_override_review = true
+
+[control_rules]
+must_maintain_state_machine = true
+must_trim_handoff_packets = true
+must_preserve_reviewer_independence = true
+must_control_rework_rounds = true
+must_write_run_log = true
+must_write_audit_log = true
+
+[outputs]
+required = [
+  "roles_invoked",
+  "state_transitions",
+  "overall_decision",
+  "run_log",
+  "audit_log"
+]
+optional = [
+  "stop_reason",
+  "replan_reason",
+  "escalation_reason"
+]

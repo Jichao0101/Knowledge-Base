@@ -1,4 +1,3 @@
-
 ## 0.1 Role
 你负责协助维护一个基于 Obsidian 的工程知识库，并在项目实现过程中使用受限知识检索、受控网络采集、审核后入库的流程工作。
 
@@ -21,24 +20,26 @@
 3. 项目相关的临时方案、调试记录、假设和实验结果优先写入 `02_Projects/`。
 4. 原始网页信息、外部摘录和参考材料优先写入 `04_Sources/` 或 `03_Inbox/`。
 5. 如果一个结论没有明确来源、适用边界和复用价值，则不要写入正式知识区。
-6. 所有新建或更新的知识条目都必须包含：
-   - 标题
-   - 摘要
-   - 来源
-   - 适用范围
-   - 不适用范围或风险
-   - 状态（draft / pending_review / verified）
+6. 双侧闭环任务中，主代理默认承担 `workflow-orchestrator` 职责：维护状态、决定角色顺序、控制 reviewer 独立性、控制返工轮次、维护 `run_log / audit_log`。
+7. 主代理不得直接替代执行层角色改代码、做质量裁决、绕过 review 进入 writeback、把未审内容直接提升为正式知识。
+8. 所有新建或更新的知识条目都必须包含：标题、摘要、来源、适用范围、不适用范围或风险、状态（`draft / pending_review / verified`）。
 
 ## 0.5 Default workflow
 每次任务默认按以下步骤执行：
 
-### 0.5.1 Step 1: identify task type
-先判断任务属于以下哪类：
-- `project_implementation`
-- `background_retrieval`
-- `web_research`
-- `knowledge_refactor`
-- `knowledge_promotion`
+### 0.5.1 Step 1: identify task profile
+先识别正式任务表达：
+- `primary_type`: `implementation / bug_fix / audit / optimization / knowledge_task`
+- `task_modifiers`: 按需组合 `requires_web / read_only / code_change_allowed / writeback_required / review_required / promotion_review / functional_scope`
+
+常见组合示例：
+- 背景检索：`knowledge_task` + `read_only`
+- 联网研究：`knowledge_task` + `requires_web` + `read_only`
+- 项目实现：`implementation` + `code_change_allowed` + `review_required`
+- 缺陷修复：`bug_fix` + `code_change_allowed` + `review_required`
+- 受控优化：`optimization` + `code_change_allowed` + `review_required`
+- 功能审核：`audit` + `functional_scope` + `read_only`
+- 知识提升：`knowledge_task` + `promotion_review` + `writeback_required`
 
 ### 0.5.2 Step 2: retrieve local context
 先从本地知识库中检索相关内容，顺序如下：
@@ -52,7 +53,20 @@
 只在允许目录范围内读取背景信息。
 不要读取未授权目录，不要基于未读取内容做推断。
 
-### 0.5.4 Step 4: external information ingestion
+### 0.5.4 Step 4: plan and gate
+形成最小 `plan_state`，至少包含：
+- `primary_type`
+- `task_modifiers`
+- `allowed_paths`
+- `implementation_plan`
+- `verification_tier`
+- `verification_plan`
+- `non_goals`
+- `open_uncertainties`
+
+若缺少上述关键项，不进入后续执行或回写。
+
+### 0.5.5 Step 5: external information ingestion
 当本地知识不足且任务明确允许联网时：
 1. 从网络检索信息
 2. 提取关键信息
@@ -60,7 +74,7 @@
 4. 标记为 `pending_review`
 5. 给出建议目标路径，但不要直接写入正式知识区
 
-### 0.5.5 Step 5: review gate
+### 0.5.6 Step 6: review gate
 只有在任务明确要求“审核并入库”且候选内容满足以下条件时，才允许写入 `01_Knowledge/`：
 - 来源可靠
 - 与目标主题强相关
@@ -69,7 +83,7 @@
 - 内容不是纯新闻或营销说法
 - 已给出引用来源
 
-### 0.5.6 Step 6: finalize
+### 0.5.7 Step 7: finalize
 完成任务后，输出：
 1. 读取了哪些目录
 2. 新建或更新了哪些文件
@@ -116,11 +130,16 @@
 ---
 type: web_candidate
 status: pending_review
+unit_type:
 topic:
 subtopic:
 source_title:
 source_url:
 retrieved_at:
+source_task:
+evidence: []
+reusable_why:
+not_applicable:
 target_paths: []
 relevance:
 
@@ -130,11 +149,14 @@ relevance:
 ---
 type: knowledge
 status: verified
+unit_type:
 domain:
 topic:
 sources: []
 scope:
 risks:
+source_task:
+evidence: []
 updated_at:
 
 ---
@@ -146,12 +168,14 @@ updated_at:
 3. 摘要不是逐句复制，而是结构化总结
 4. 已写明适用边界和风险
 5. 文件路径与知识主题一致
+6. 候选属于以下沉淀单元之一：`failure_mode / design_pattern / workflow_pattern / verification_pattern / integration_constraint / decision_heuristic`
 
 ## 0.9 Output format
 每次任务结束时，使用以下结构输出：
 
 ### 0.9.1 Summary
-- task_type:
+- primary_type:
+- task_modifiers:
 - allowed_paths:
 - files_read:
 - files_written:
@@ -163,3 +187,9 @@ updated_at:
 
 ### 0.9.3 Risks / uncertainties
 - ...
+
+### 0.9.4 Runtime log
+- verification_tier:
+- roles_invoked:
+- rework_rounds:
+- stop_reason:

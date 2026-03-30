@@ -1,5 +1,5 @@
 title = "knowledge-closer"
-version = "1.0"
+version = "1.1"
 status = "ready"
 side = "knowledge"
 summary = "知识回写角色，负责将实施结果写回项目区、候选区或来源区，并对可复用内容提出正式知识转正建议。"
@@ -51,12 +51,16 @@ required = [
   "candidate_created",
   "promoted_to_knowledge",
   "source_notes_created",
-  "risks_or_uncertainties"
+  "pending_review_items",
+  "risks_or_uncertainties",
+  "entry_conditions_satisfied"
 ]
 optional = [
   "promotion_recommendations",
-  "pending_review_items",
-  "follow_up_actions"
+  "follow_up_actions",
+  "blocking_conditions_hit",
+  "run_log",
+  "audit_log"
 ]
 
 [handoff]

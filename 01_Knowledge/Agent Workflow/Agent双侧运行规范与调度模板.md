@@ -5,36 +5,24 @@ domain: 工程工作流
 topic: Agent双侧运行规范与调度模板
 sources: ["内部方法论整理", "01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范.md", "01_Knowledge/Agent Workflow/Agent双侧模板与文件结构规范.md"]
 scope: 适用于需要将双侧闭环规则包装成可运行流程，包括任务入口、状态推进、调度 prompt、角色输入输出契约与回写要求的场景。
-risks: ["运行规范过重导致单次任务负担过大", "项目特例被误提升为通用步骤", "角色契约与实际执行工具不一致"]
-updated_at: 2026-03-25
+risks: ["运行规范过重导致单次任务负担过大", "项目特例被误提升为通用步骤", "角色契约与实际执行工具不一致", "扩展角色加入后模板不同步导致制度与运行脱节"]
+updated_at: 2026-03-30
 ---
 
 ## 0.1 摘要
 
-本文档定义 Agent 双侧闭环的运行规范，用于指导任务如何进入系统、按什么状态推进、何时确认、如何调度角色、如何回写结果。
-
-技术基准：
-
-- [[01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范]]
-- [[01_Knowledge/Agent Workflow/Agent双侧模板与文件结构规范]]
-
-本文档回答的是“系统怎么跑起来”，而不是“文件怎么放置”。
+本文档定义双侧闭环的运行层，回答“系统怎么跑起来”。  
+它承接任务入口、状态门禁、角色调度、返工升级、日志记录和 prompt 模板。
 
 ---
 
 ## 0.2 方案评价
 
-在现有“上位规范 + 文件结构规范”之外，再补一层运行规范是必要的，原因如下：
+三层文档的分工如下：
 
-1. 仅有原则，缺少任务入口、状态机和确认点，执行时仍会依赖临场发挥。
-2. 仅有文件模板，无法说明角色应该按什么顺序协作、何时停止、何时回写。
-3. 调度 prompt 模板本质上属于运行层，不属于文件结构层，也不应塞回上位规范。
-
-因此推荐的三层文档体系是：
-
-- 上位规范：定义原则、边界、职责
-- 运行规范：定义状态推进、调度方式、角色契约、输出格式
-- 文件结构规范：定义根目录文件树与模板骨架
+- 上位规范：制度、边界、门槛
+- 运行规范：状态机、调度、返工、模板
+- 文件结构规范：文件树、骨架、字段
 
 ---
 
@@ -43,25 +31,30 @@ updated_at: 2026-03-25
 每个任务在进入系统时，至少要明确以下输入对象：
 
 - `task_goal`：本轮目标
-- `task_type`：任务类型
+- `primary_type`：主类型
+- `task_modifiers`：修饰属性集合
 - `allowed_paths`：允许读取与写入的目录
 - `repo_scope`：代码库允许修改范围
 - `confirmation_policy`：哪些步骤需要确认
 - `output_contract`：需要交付哪些结果
+- `verification_tier`：本轮要求的验证等级
 
-### 0.3.1 标准任务类型
+### 0.3.1 标准任务表达
 
-- `project_implementation`
-- `background_retrieval`
-- `web_research`
-- `knowledge_refactor`
-- `knowledge_promotion`
-- `bug_fix`
-	- runtime_bug  
-	- functional_bug  
-	- design_mismatch
-- `controlled_optimization`
-- `functional_audit`
+正式入口统一使用“主类型 + 修饰属性”：
+
+- `primary_type`: `implementation / bug_fix / audit / optimization / knowledge_task`
+- `task_modifiers`: `requires_web / read_only / code_change_allowed / writeback_required / review_required / promotion_review / functional_scope / failure_investigation`
+
+常见组合：
+
+- 背景检索：`knowledge_task` + `read_only`
+- 联网研究：`knowledge_task` + `requires_web` + `read_only`
+- 项目实现：`implementation` + `code_change_allowed` + `review_required`
+- 缺陷修复：`bug_fix` + `code_change_allowed` + `review_required`
+- 受控优化：`optimization` + `code_change_allowed` + `review_required`
+- 功能审核：`audit` + `functional_scope` + `read_only`
+- 知识提升：`knowledge_task` + `promotion_review` + `writeback_required`
 
 ### 0.3.2 进入条件
 
@@ -71,6 +64,7 @@ updated_at: 2026-03-25
 - 已给出知识库允许访问范围
 - 若涉及代码修改，已给出代码库修改范围
 - 若允许联网，已明确联网权限
+- 已给出或可推导 `verification_tier`
 
 若上述条件缺失，应先补全条件，而不是直接执行。
 
@@ -109,6 +103,25 @@ updated_at: 2026-03-25
 
 输出实施计划、验证计划、回写路径和不确定项。
 
+进入条件：
+
+- 已有 `primary_type`
+- 已有 `task_modifiers`
+- 已有 `allowed_paths`
+- 若涉及代码，已有 `repo_scope`
+- 已有 `implementation_plan`
+- 已有 `verification_plan`
+- 已有 `non_goals`
+- 已有 `open_uncertainties`
+- 已有 `verification_tier`
+
+阻断条件：
+
+- 允许范围不清
+- 任务语义混杂
+- 非目标项缺失
+- 验证集合未区分 `required / optional / unavailable`
+
 #### 0.4.1.5 `execution_approved`
 
 若任务要求确认，则在此节点停下；若无需确认，可继续执行。
@@ -117,9 +130,42 @@ updated_at: 2026-03-25
 
 代码修改、知识整理或外部信息采集已完成。
 
+进入条件：
+
+- 已记录 `files_changed` 或明确无代码改动
+- 已记录 `commands_run`
+- 已记录 `verification_results`
+- 已记录 `decision_deltas`
+- 已记录 `open_risks`
+- 如存在，已记录 `optional_optimizations`
+
+阻断条件：
+
+- 验证结果缺失
+- 实施偏差未记录
+- 风险未展开
+- 变更已触发 `scope_creep_trigger`
+
 #### 0.4.1.7 `review_done`
 
 完成独立审查，确认是否存在越界、缺少验证或风险未闭环。
+
+进入条件：
+
+- 已记录 `findings`
+- 已记录 `finding_severity`
+- 已记录 `scope_assessment`
+- 已记录 `regression_risks`
+- 已记录 `review_conclusion`
+- 已记录 `next_action`
+- 已记录 `fix_owner`
+
+阻断条件：
+
+- 关键验证缺失
+- 审查输入未裁剪
+- reviewer 独立性破坏
+- 只有结论没有证据
 
 #### 0.4.1.8 `rework_needed`
 
@@ -129,48 +175,78 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 
 结果已按分区规则写回项目区、候选区或来源区。
 
+进入条件：
+
+- 已记录 `files_written`
+- 已记录 `target_zone`
+- 已记录 `candidate_created / promoted_to_knowledge / source_notes_created`
+- 已记录 `pending_items`
+- 已记录 `residual_risks`
+
+阻断条件：
+
+- 未通过 review
+- 写回分区不明
+- 未审内容拟写入正式知识区
+- 缺少来源与边界
+
 #### 0.4.1.10 `closed`
 
 形成最终摘要与残留风险列表。
 
 ---
 
-## 0.5 标准调度顺序
+## 0.5 主代理调度契约与子代理调用顺序
 
-### 0.5.1 默认顺序
+### 0.5.1 主代理调度契约
+
+在双侧闭环任务中，Codex 主代理默认承担 `workflow-orchestrator` 职责。
+
+主代理负责：
+
+- 接收任务
+- 识别 `primary_type`
+- 识别 `task_modifiers`
+- 检查进入条件
+- 维护状态对象
+- 决定是否调用子代理
+- 裁剪子代理输入
+- 控制 reviewer 独立性
+- 控制返工轮次
+- 决定 `stop / confirm / replan / escalate / close`
+- 汇总最终输出
+- 维护 `run_log / audit_log`
+
+主代理默认不得：
+
+- 直接修改代码
+- 直接替代 reviewer 做质量裁决
+- 绕过 review 直接进入 knowledge writeback
+- 把未审内容直接写入正式知识区
+
+### 0.5.2 主代理对子代理的默认调用顺序
+
+以下顺序描述的是主代理在 orchestration 模式下对子代理的默认调用顺序。  
+`workflow-orchestrator` 默认由主代理承担，不作为普通子代理列入调用链。
+
+默认子代理顺序：
 
 1. `knowledge-planner`
-2. `repo-coder` 或其他执行角色
+2. `repo-coder`
 3. `repo-reviewer`
 4. `knowledge-closer`
 
-其中 `repo-reviewer` 应作为独立审查阶段单独存在，不应默认继承 `repo-coder` 的完整上下文。
-若 `repo-reviewer` 判定需要代码修改，默认应返回原 `repo-coder` 返工，审查通过后再进入 `knowledge-closer`。
+条件分支：
 
-### 0.5.2 可选分支
-
-若本地知识不足且任务允许联网，可在 planner 之后插入：
-
-- `source-ingestor`
-
-插入顺序为：
-
-1. `knowledge-planner`
-2. `source-ingestor`
-3. `knowledge-planner` 重新收敛计划
-4. `repo-coder`
-5. `repo-reviewer`
-6. `knowledge-closer`
-
-若第 5 步给出需修改代码的 blocker / major 发现，则插入：
-
-6. 原 `repo-coder` 返工并重新验证
-7. `repo-reviewer` 独立重审
-8. `knowledge-closer`
+- 若本地知识不足且允许联网：插入 `source-ingestor`，并在其后重新经过 `knowledge-planner` 收敛计划
+- 若 `primary_type = bug_fix` 且根因复杂：可插入 `failure-analyst`
+- 若为高风险任务或验证矩阵复杂：可插入 `verification-manager`
+- 若为功能符合度审核：可使用 `functional-reviewer` 替代或补充 `repo-reviewer`
+- 若任务涉及正式知识提升审查：可插入 `knowledge-auditor`
 
 ### 0.5.3 reviewer 独立性要求
 
-为降低上下文污染，`repo-reviewer` 的调度应满足：
+为降低上下文污染，`repo-reviewer` 或 `functional-reviewer` 的调度应满足：
 
 1. 使用独立的 reviewer 实例或独立会话阶段。
 2. 输入尽量裁剪为任务目标、验收标准、实施计划、diff、验证结果和必要代码上下文。
@@ -187,6 +263,7 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 - `diff_summary`
 - `verification_results`
 - `necessary_code_context`
+- `verification_tier`
 
 若无法构造上述最小交接包，应视为审查前置条件不足，而不是让 reviewer 继承全量执行上下文。
 
@@ -196,15 +273,8 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 
 1. reviewer 负责判定，不负责修改。
 2. 若审查结论要求代码变更，返工责任默认归原 `repo-coder`。
-3. 主 agent 负责调度、裁剪审查结论、维持状态机，不直接吸收返工实现。
+3. 主代理负责调度、裁剪审查结论、维持状态机，不直接吸收返工实现。
 4. 只有当原 coder 不可恢复、连续返工不收敛或返工已超出授权范围时，才切换修复责任人或回到 planner。
-
-推荐原因：
-
-- 原 coder 拥有最完整的实现局部上下文和已执行验证信息
-- 返工继续由原 coder 执行，能减少主 agent 重新建模和重复试错
-- reviewer 仍保持独立，因为它只输出发现，不参与修改
-- 主 agent 保持调度角色，更容易审计责任流向
 
 推荐返工交接包：
 
@@ -224,9 +294,107 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 
 ---
 
-## 0.6 角色输入输出契约
+## 0.6 子代理调用矩阵
 
-### 0.6.1 knowledge-planner
+### 0.6.1 `knowledge_task + read_only`
+
+- 主代理职责：确认允许范围、裁剪检索目标、维护轻量状态与输出
+- 必须显式调用的子代理：`knowledge-planner`
+- 条件启用的子代理：`source-ingestor`
+- 可被主代理轻量吸收的职责：最终汇总、轻量 writeback 建议
+
+### 0.6.2 `knowledge_task + requires_web + read_only`
+
+- 主代理职责：确认联网授权、限定候选落区、控制不进入正式知识
+- 必须显式调用的子代理：`knowledge-planner`、`source-ingestor`
+- 条件启用的子代理：`knowledge-auditor`
+- 可被主代理轻量吸收的职责：候选整理摘要
+
+### 0.6.3 `implementation + code_change_allowed + review_required`
+
+- 主代理职责：维护状态机、控制默认链路与返工轮次
+- 必须显式调用的子代理：`knowledge-planner`、`repo-coder`、`repo-reviewer`、`knowledge-closer`
+- 条件启用的子代理：`source-ingestor`、`verification-manager`
+- 可被主代理轻量吸收的职责：轻量确认点判断
+
+### 0.6.4 `bug_fix + code_change_allowed + review_required`
+
+- 主代理职责：确认预期行为、实际行为与根因路径是否充分
+- 必须显式调用的子代理：`knowledge-planner`、`repo-coder`、`repo-reviewer`、`knowledge-closer`
+- 条件启用的子代理：`failure-analyst`、`source-ingestor`、`verification-manager`
+- 可被主代理轻量吸收的职责：返工轮次控制
+
+### 0.6.5 `optimization + code_change_allowed + review_required`
+
+- 主代理职责：控制不演化为结构性重构，维护收益验证门禁
+- 必须显式调用的子代理：`knowledge-planner`、`repo-coder`、`repo-reviewer`、`knowledge-closer`
+- 条件启用的子代理：`verification-manager`、`source-ingestor`
+- 可被主代理轻量吸收的职责：收益对比摘要
+
+### 0.6.6 `audit + functional_scope + read_only`
+
+- 主代理职责：确认规范来源、证据优先级与只读边界
+- 必须显式调用的子代理：`knowledge-planner`、`functional-reviewer`
+- 条件启用的子代理：`source-ingestor`、`knowledge-closer`
+- 可被主代理轻量吸收的职责：验收条目整理
+
+### 0.6.7 `knowledge_task + promotion_review + writeback_required`
+
+- 主代理职责：确认候选来源、边界、风险与证据链
+- 必须显式调用的子代理：`knowledge-closer`
+- 条件启用的子代理：`knowledge-auditor`、`source-ingestor`
+- 可被主代理轻量吸收的职责：候选汇总、转正建议编排
+
+---
+
+## 0.7 verification_tier
+
+### 0.7.1 分级定义
+
+- `V0`：仅要求文档核对、结构检查或知识整理一致性校验
+- `V1`：要求最小功能验证或最小复现验证
+- `V2`：要求受影响范围回归验证，包含相关测试、静态检查或集成验证
+- `V3`：要求高风险多维验证，包含核心行为、回归、兼容性、边界条件或性能证据闭环
+
+### 0.7.2 角色责任
+
+- planner 必须输出 `verification_tier`
+- planner 必须输出 `required / optional / unavailable` 验证集合
+- coder 必须按 tier 执行可执行验证并记录不可执行原因
+- reviewer 必须检查是否按 tier 执行
+
+### 0.7.3 blocker 规则
+
+- `required` 验证缺失：默认构成 blocker
+- `optional` 验证缺失：不自动构成 blocker，但必须记录风险
+- `unavailable` 验证：必须说明原因、影响范围和替代证据
+
+---
+
+## 0.8 scope creep trigger
+
+若满足以下任一条件，主代理必须 `stop / confirm / replan`：
+
+- 修改文件数超过预设上限
+- 新增模块超过预设上限
+- 涉及公共接口签名变更
+- 涉及 schema / ABI / serialization format
+- 涉及跨层调用链变化
+- 新增外部依赖
+- 原定 `primary_type = bug_fix` 演化为 `refactor / redesign`
+- 原定 `primary_type = optimization` 演化为结构性重构
+
+推荐策略：
+
+- 轻微超出且仍在授权边界内：`allow_minor_expansion_with_record`
+- 影响计划与验证门禁：`replan_required`
+- 影响任务语义或授权边界：`stop_and_confirm`
+
+---
+
+## 0.9 角色输入输出契约
+
+### 0.9.1 knowledge-planner
 
 输入：
 
@@ -237,20 +405,22 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 
 输出：
 
-- 任务类型
+- 主类型与修饰属性
 - 已读取文件
 - 实施计划
 - 验证计划
+- `verification_tier`
+- `required / optional / unavailable` 验证集合
 - 回写建议
 - 未解决不确定项
 
 停止条件：
 
 - 未获得允许范围
-- 无法确定任务类型
+- 无法确定 `primary_type` 或 `task_modifiers`
 - 需要联网但未授权
 
-### 0.6.2 repo-coder
+### 0.9.2 repo-coder
 
 输入：
 
@@ -259,6 +429,7 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 - 代码库允许修改范围
 - 验证命令
 - 不做事项
+- `verification_tier`
 
 输出：
 
@@ -267,6 +438,7 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 - 执行过的验证
 - 未解决技术风险
 - 对审查发现的返工结果
+- `scope_creep_triggered`
 
 停止条件：
 
@@ -275,7 +447,7 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 - 无法完成最小验证
 - reviewer 发现需要返工但返工内容已超出当前授权范围
 
-### 0.6.3 repo-reviewer
+### 0.9.3 repo-reviewer
 
 输入：
 
@@ -284,15 +456,20 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 - diff 摘要
 - 验证结果
 - 必要代码上下文
+- `verification_tier`
 
 输出：
 
-- 审查发现
-- 严重级别分类
-- 越界判断
-- 回归风险
-- 审查结论
-- 下一步动作建议
+- `goal_alignment_assessment`
+- `scope_compliance_assessment`
+- `validation_coverage_assessment`
+- `regression_risk_assessment`
+- `behavioral_correctness_assessment`
+- `overall_decision`
+- `findings`
+- `finding_severity`
+- `next_action`
+- `fix_owner`
 
 停止条件：
 
@@ -300,7 +477,99 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 - 修改目标与计划不一致
 - 审查输入未裁剪且无法保证独立性
 
-### 0.6.4 knowledge-closer
+### 0.9.4 functional-reviewer
+
+输入：
+
+- 任务目标
+- 规范输入
+- 验收条目
+- 代码或运行证据
+- 必要上下文
+
+输出：
+
+- `acceptance_items`
+- `compliance_matrix`
+- `evidence_used`
+- `evidence_gaps`
+- `norm_conflicts`
+- `review_conclusion`
+- `suggested_followup`
+
+停止条件：
+
+- 规范输入不足
+- 证据不足以支撑判定
+- 规范冲突未被显式标注
+
+### 0.9.5 verification-manager
+
+输入：
+
+- 任务目标
+- 风险边界
+- 实施计划
+- 已执行验证
+
+输出：
+
+- 验证矩阵
+- tier 对应验证要求
+- 缺失验证分类
+- blocker 判断
+
+停止条件：
+
+- 无法定义验证目标
+- 验证证据无法映射到风险边界
+
+### 0.9.6 failure-analyst
+
+输入：
+
+- 预期行为
+- 实际行为
+- 复现路径
+- 日志与错误证据
+- 相关代码线索
+
+输出：
+
+- 根因假设
+- 证据优先级
+- 最小验证路径
+- 是否需要 replan
+
+停止条件：
+
+- 预期行为未定义
+- 证据不足以形成可检验假设
+
+### 0.9.7 knowledge-auditor
+
+输入：
+
+- 候选条目
+- 来源与证据
+- 适用边界
+- 风险
+- 来源任务
+
+输出：
+
+- 提升建议
+- 复用价值判断
+- 边界补全建议
+- 是否仍应停留在候选区
+
+停止条件：
+
+- 候选缺少来源
+- 边界与风险缺失
+- 无法判断其是否只是项目特例
+
+### 0.9.8 knowledge-closer
 
 输入：
 
@@ -315,6 +584,8 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 - 知识候选
 - 来源记录
 - 未闭环事项
+- `run_log`
+- `audit_log`
 
 停止条件：
 
@@ -323,9 +594,9 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 
 ---
 
-## 0.7 确认点与停止条件
+## 0.10 确认点、停止条件与返工升级
 
-以下场景建议强制确认：
+### 0.10.1 以下场景建议强制确认
 
 - 首次定义允许访问范围
 - 涉及公共接口变化
@@ -335,16 +606,51 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 - 需要将内容提升为 `01_Knowledge/`
 - reviewer 独立性被破坏但仍试图直接给出审查裁决
 
-以下场景必须停止：
+### 0.10.2 以下场景必须停止
 
 - 未明确允许范围
 - 无法验证核心改动
 - 外部信息未经审核却拟入正式知识区
 - 发现任务目标本身矛盾
+- `scope_creep_trigger` 已命中且未确认处理策略
+
+### 0.10.3 返工升级规则
+
+- review 不通过后默认由原 `repo-coder` 返工
+- 可影响返工路径的角色：`repo-reviewer`、`functional-reviewer`、`verification-manager`
+- 连续返工超过 2 轮时，默认升级为 `replan` 或人工确认
+- 当根因假设失效、`scope_creep_trigger` 命中、返工超出授权范围时，应回 `knowledge-planner`，而不是继续原地循环
 
 ---
 
-## 0.8 调度 prompt 设计原则
+## 0.11 run_log / audit_log
+
+运行记录至少应包含以下字段：
+
+- `task_id`
+- `primary_type`
+- `task_modifiers`
+- `verification_tier`
+- `roles_invoked`
+- `rework_rounds`
+- `files_changed_count`
+- `review_findings_count`
+- `blocker_count`
+- `candidate_count`
+- `promotion_count`
+- `final_status`
+- `stop_reason`
+
+建议补充：
+
+- `state_transitions`
+- `entry_conditions_satisfied`
+- `blocking_conditions_hit`
+- `scope_creep_triggered`
+
+---
+
+## 0.12 调度 prompt 设计原则
 
 调度 prompt 只负责实例化本轮任务，不负责重写长期制度。
 
@@ -358,6 +664,9 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 - 输出要求
 - reviewer 是否独立调度以及 reviewer 的输入边界
 - review 未通过时由谁返工以及返工轮次上限
+- `verification_tier`
+- `scope_creep_policy`
+- `extended_roles`
 
 一个不合格的调度 prompt 往往会：
 
@@ -369,9 +678,9 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 
 ---
 
-## 0.9 调度 prompt 模板
+## 0.13 调度 prompt 模板
 
-### 0.9.1 通用型
+### 0.13.1 通用型
 
 ```text
 按 Agent 双侧运行规范执行本次任务。
@@ -383,8 +692,11 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 任务目标：
 [填写目标]
 
-任务类型：
-[填写 task_type]
+主类型：
+[填写 primary_type]
+
+任务修饰属性：
+[填写 task_modifiers]
 
 允许范围：
 - 知识库读取：[填写路径]
@@ -394,36 +706,63 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 联网策略：
 [允许 / 禁止 / 条件允许]
 
+main_agent_mode:
+- orchestration
+
+planner_mode:
+- explicit / lightweight_absorbed
+
+writeback_mode:
+- explicit / recommendation_only
+
+verification_tier:
+- V0 / V1 / V2 / V3
+
+scope_creep_policy:
+- stop_and_confirm / replan_required / allow_minor_expansion_with_record
+
+extended_roles:
+- failure-analyst: enabled / disabled
+- verification-manager: enabled / disabled
+- functional-reviewer: enabled / disabled
+- knowledge-auditor: enabled / disabled
+
 确认策略：
-[以下场景强制确认：
+[填写确认点与停止条件]
 
-- 首次定义允许访问范围
-- 涉及公共接口变化
-- 涉及 schema / ABI / 数据结构兼容性变化
-- 涉及批量重构或删除逻辑
-- 计划与原始需求明显偏离
-- 需要将内容提升为 `01_Knowledge/`
-- reviewer 独立性被破坏但仍试图直接给出审查裁决
+主代理职责：
+- 维护状态机与状态门禁
+- 决定角色调用顺序
+- 裁剪交接包
+- 控制 reviewer 独立性
+- 控制返工轮次
+- 汇总最终输出
 
-以下场景必须停止：
+主代理不得：
+- 直接修改代码
+- 替代 reviewer 做质量裁决
+- 绕过 review 进入 knowledge writeback
+- 把未审内容直接写入正式知识区
 
-- 未明确允许范围
-- 无法验证核心改动
-- 外部信息未经审核却拟入正式知识区
-- 发现任务目标本身矛盾]
-  
-强制约束：  
-1. 主代理仅负责 orchestration，不得直接修改代码、输出 patch、生成可落库实现
+说明：
+以下顺序描述的是主代理在 orchestration 模式下对子代理的默认调用顺序。
+workflow-orchestrator 默认由主代理承担，不作为普通子代理列入调用链。
 
-调度顺序：
-1. 先调用 knowledge-planner，输出任务类型、已读取范围、实施计划、验证计划、建议回写路径。
-2. 如本地知识不足且允许联网，再调用 source-ingestor，结果只写候选区或来源区。
-3. 再调用 repo-coder，仅在授权范围内实施修改并执行最小验证。
-4. 再调用 repo-reviewer，使用独立 reviewer 实例，仅接收任务目标、验收标准、计划、diff、验证结果和必要代码上下文，独立检查越界风险、验证覆盖和行为变化。
-5. 若 repo-reviewer 给出需改代码的 blocker / major 发现，则将裁剪后的审查结论返回原 repo-coder 返工、重新验证，并再次调用独立 reviewer。
-6. 仅在 review 通过后调用 knowledge-closer，按分区规则回写结果。
+子代理调用顺序：
+1. 先调用 knowledge-planner，输出主类型、修饰属性、已读取范围、实施计划、验证计划、verification_tier、验证集合、建议回写路径。
+2. 如本地知识不足且允许联网，再调用 source-ingestor，结果只写候选区或来源区；之后重新经过 knowledge-planner 收敛计划。
+3. 如验证矩阵复杂，再调用 verification-manager 补充 required / optional / unavailable 验证集合。
+4. 再调用 repo-coder，仅在授权范围内实施修改并执行最小验证。
+5. 再调用 repo-reviewer，使用独立 reviewer 实例，仅接收任务目标、验收标准、计划、diff、验证结果和必要代码上下文，独立检查越界风险、验证覆盖和行为变化。
+6. 若 review 不通过，则将裁剪后的审查结论返回原 repo-coder 返工；超过 2 轮、根因失效或 scope creep 触发时，回 planner 或 stop / confirm / escalate。
+7. 仅在 review 通过后调用 knowledge-closer，按分区规则回写结果。
 
 输出要求：
+- roles_invoked
+- state_transitions
+- rework_rounds
+- overall_decision
+- verification_tier
 - files_read
 - files_written
 - implementation_plan
@@ -431,9 +770,10 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 - review_conclusion
 - writeback_targets
 - risks_or_uncertainties
+- run_log / audit_log（如适用）
 ```
 
-### 0.9.2 功能审核型
+### 0.13.2 功能审核型
 
 ```text
 按 Agent 双侧运行规范执行本次功能审核任务。
@@ -454,8 +794,11 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 实现输入：
 [填写代码路径 / diff / 可执行产物 / 测试结果 / 日志 / trace / 截图]
 
-审核类型：
-functional_audit
+主类型：
+audit
+
+任务修饰属性：
+[functional_scope, read_only]
 
 允许范围：
 - 知识库读取：[填写路径]
@@ -466,149 +809,173 @@ functional_audit
 联网策略：
 [允许 / 禁止 / 条件允许]
 
-确认策略：
-以下场景强制确认：
-- 首次定义允许访问范围
-- 审核过程中发现规范本身存在冲突或缺失
-- 需要将审核结论提升为 `01_Knowledge/`
-- 审核任务拟转化为代码修复任务
-- 需要补充运行证据或新增测试才能继续判定
+main_agent_mode:
+- orchestration
 
-以下场景必须停止：
-- 未明确允许范围
-- 无法获得最低限度规范输入
-- 无法获得足够实现证据
-- 外部信息未经审核却拟入正式知识区
-- 审核结论依赖 coder/planner 的主观解释而非证据
+planner_mode:
+- explicit / lightweight_absorbed
 
-要求：
-- 以技术规范和实现证据为主要输入
-- 不以 planner/coder 的自然语言产出为审核依据
-- 优先判断功能符合度，而非实现风格优劣
-- 必须区分：
-  - 已满足
-  - 未满足
-  - 证据不足
-  - 规范不清
-- 默认不修改代码
-- 若发现问题，仅输出问题分级、影响范围和建议后续动作
+writeback_mode:
+- explicit / recommendation_only
 
-调度顺序：
-1. 先调用 knowledge-planner 的轻量模式，仅完成：
-   - 规范来源确认
-   - 允许范围确认
-   - 验收条目整理
+verification_tier:
+- V0 / V1 / V2 / V3
+
+scope_creep_policy:
+- stop_and_confirm / replan_required / allow_minor_expansion_with_record
+
+extended_roles:
+- failure-analyst: disabled
+- verification-manager: disabled
+- functional-reviewer: enabled
+- knowledge-auditor: enabled / disabled
+
+主代理职责：
+- 确认规范来源与允许范围
+- 维护状态对象
+- 控制 reviewer 独立性
+- 汇总审核结论与后续动作
+
+主代理不得：
+- 直接修改代码
+- 用 coder/planner 解释替代证据
+- 绕过 review 直接写入正式知识区
+
+说明：
+以下顺序描述的是主代理在 orchestration 模式下对子代理的默认调用顺序。
+workflow-orchestrator 默认由主代理承担，不作为普通子代理列入调用链。
+
+证据优先级：
+- 行为证据 > 规范文本 > 代码证据 > coder/planner 解释
+
+子代理调用顺序：
+1. 先调用 knowledge-planner 的轻量模式，仅完成规范来源确认、允许范围确认、验收条目整理与 verification_tier 输出。
 2. 如本地规范不足且允许联网，再调用 source-ingestor，结果只写候选区或来源区。
-3. 调用 repo-reviewer 或 functional-reviewer 独立实例，仅接收：
-   - 任务目标
-   - 规范输入
-   - 验收条目
-   - 代码/运行证据
-   - 必要上下文
-4. reviewer 独立检查：
-   - 功能是否满足规范
-   - 行为是否与验收标准一致
-   - 边界条件和异常路径是否覆盖
-   - 是否存在证据不足或规范冲突
-5. 若审核不通过，不直接修代码；输出是否建议转入 bug_fix / controlled_optimization / redesign 任务。
-6. 若审核通过且需要沉淀，再调用 knowledge-closer 回写审核记录、候选结论和未决事项。
+3. 调用 functional-reviewer；如无需独立功能审查，可由 repo-reviewer 轻量兜底。
+4. reviewer 必须输出 acceptance_items、compliance_matrix、evidence_used、evidence_gaps、norm_conflicts、review_conclusion、suggested_followup。
+5. 若审核不通过，不直接修代码；建议转入 `primary_type = bug_fix / optimization` 或 redesign 时，由主代理 stop / confirm / replan。
+6. 若审核通过且需要沉淀，再调用 knowledge-closer；若涉及正式知识提升审查，可插入 knowledge-auditor。
 
 输出要求：
+- roles_invoked
+- state_transitions
+- rework_rounds
+- overall_decision
+- verification_tier
 - files_read
 - audit_scope
 - acceptance_items
 - compliance_matrix
 - evidence_used
+- evidence_gaps
 - review_conclusion
 - suggested_followup
 - writeback_targets
 - risks_or_uncertainties
+- run_log / audit_log（如适用）
 ```
 
-### 0.9.3 缺陷修复型
+### 0.13.3 缺陷修复型
 
 ```text
-按 Agent 双侧运行规范执行本次缺陷修复任务。  
-  
-技术基准：  
-- [[01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范]]  
-- [[01_Knowledge/Agent Workflow/Agent双侧运行规范与调度模板]]  
-  
-任务目标：  
-[填写缺陷目标]  
-  
-缺陷类型：  
-[runtime_bug / functional_bug / design_mismatch]  
-  
-预期行为：  
-[填写设计要求、验收标准或方案约束]  
-  
-实际行为：  
-[填写当前表现、错误输出、偏差现象]  
-  
-已知证据：  
-[日志 / 截图 / 复现输入 / 指标异常 / 相关代码线索]  
-  
-任务类型：  
-bug_fix  
-  
-允许范围：  
-- 知识库读取：[填写路径]  
-- 项目区读写：[填写路径]  
-- 代码库修改：[填写路径]  
-  
-联网策略：  
-[允许 / 禁止 / 条件允许]  
-  
-确认策略：  
-以下场景强制确认：  
-- 首次定义允许访问范围  
-- 涉及公共接口变化  
-- 涉及 schema / ABI / 数据结构兼容性变化  
-- 涉及批量重构或删除逻辑  
-- 修复方案需要改变既有设计契约、模块职责或上游公共接口  
-- 需要将 failure mode 提升为 `01_Knowledge/`  
-  
-以下场景必须停止：  
-- 未明确允许范围  
-- 无法定义预期行为  
-- 无法验证核心改动  
-- 发现问题根因需要越界修改  
-- 外部信息未经审核却拟入正式知识区  
-  
-要求：
-- 主代理仅负责 orchestration，不得直接修改代码、输出 patch、生成可落库实现  
-- 优先根因闭环  
-- 优先满足设计规范、职责边界和兼容性要求  
-- 在满足上述约束后，再追求最小修复  
-- 不做方案外重构  
-- 必须区分“预期行为”和“实际行为”  
-- 必须说明修复是否真正闭合设计失配  
-  
-调度顺序：  
-1. knowledge-planner 输出任务类型、已读取范围、根因假设、最小验证路径、修复计划、建议回写路径。  
-2. 如本地知识不足且允许联网，再调用 source-ingestor，结果只写候选区或来源区。  
-3. spawn repo-coder 仅在授权范围内实施符合设计边界的修复，并执行最小必要验证与相关回归验证。  
-4. repo-reviewer 使用独立 reviewer 实例，仅接收任务目标、预期行为、实际行为、验收标准、实施计划、diff、验证结果和必要代码上下文，独立检查：  
-- 根因是否闭环  
-- 改动是否越界  
-- 验证是否覆盖行为失配  
-- 是否仍存在回归风险  
-5. 若 repo-reviewer 判定仍需代码修复，则将审查结论与缺口返回原 repo-coder 做边界内返工，重新验证后再次独立审查。  
-6. 仅在 review 通过后，knowledge-closer 回写调试记录、修复结论、failure mode 候选和未闭环事项。  
-  
-输出要求：  
-- files_read  
-- files_written  
-- root_cause_hypotheses  
-- implementation_plan  
-- verification_results  
-- review_conclusion  
-- writeback_targets  
+按 Agent 双侧运行规范执行本次缺陷修复任务。
+
+技术基准：
+- [[01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范]]
+- [[01_Knowledge/Agent Workflow/Agent双侧运行规范与调度模板]]
+
+任务目标：
+[填写缺陷目标]
+
+缺陷类型：
+[runtime_bug / functional_bug / design_mismatch]
+
+预期行为：
+[填写设计要求、验收标准或方案约束]
+
+实际行为：
+[填写当前表现、错误输出、偏差现象]
+
+已知证据：
+[日志 / 截图 / 复现输入 / 指标异常 / 相关代码线索]
+
+主类型：
+bug_fix
+
+任务修饰属性：
+[code_change_allowed, review_required]
+
+允许范围：
+- 知识库读取：[填写路径]
+- 项目区读写：[填写路径]
+- 代码库修改：[填写路径]
+
+联网策略：
+[允许 / 禁止 / 条件允许]
+
+main_agent_mode:
+- orchestration
+
+planner_mode:
+- explicit
+
+writeback_mode:
+- explicit / recommendation_only
+
+verification_tier:
+- V1 / V2 / V3
+
+scope_creep_policy:
+- stop_and_confirm / replan_required / allow_minor_expansion_with_record
+
+extended_roles:
+- failure-analyst: enabled / disabled
+- verification-manager: enabled / disabled
+- functional-reviewer: disabled
+- knowledge-auditor: enabled / disabled
+
+主代理职责：
+- 检查预期行为、实际行为、根因假设与最小验证路径
+- 维护返工轮次
+- 决定是否 replan 或 escalate
+
+主代理不得：
+- 直接修改代码
+- 替代 reviewer 做质量裁决
+- 在 review 前进入 writeback
+
+说明：
+以下顺序描述的是主代理在 orchestration 模式下对子代理的默认调用顺序。
+workflow-orchestrator 默认由主代理承担，不作为普通子代理列入调用链。
+
+子代理调用顺序：
+1. knowledge-planner 输出主类型、修饰属性、已读取范围、根因假设、最小验证路径、修复计划、verification_tier、建议回写路径。
+2. 若根因复杂或多轮返工不收敛，可插入 failure-analyst，补充根因假设、证据优先级和最小验证路径。
+3. 如本地知识不足且允许联网，再调用 source-ingestor，结果只写候选区或来源区；之后重新经过 knowledge-planner 收敛计划。
+4. 如验证矩阵复杂，再调用 verification-manager。
+5. 调用 repo-coder，仅在授权范围内实施符合设计边界的修复，并执行最小必要验证与相关回归验证。
+6. 调用 repo-reviewer，仅接收任务目标、预期行为、实际行为、验收标准、实施计划、diff、验证结果和必要代码上下文，独立检查根因是否闭环、改动是否越界、验证是否覆盖行为失配、是否仍存在回归风险。
+7. 若 review 不通过，默认返回原 repo-coder 返工；根因假设失效、scope creep 触发或返工超出授权范围时，回 planner。
+8. 仅在 review 通过后，knowledge-closer 回写调试记录、修复结论、failure_mode 候选和未闭环事项；如涉及正式知识提升审查，可插入 knowledge-auditor。
+
+输出要求：
+- roles_invoked
+- state_transitions
+- rework_rounds
+- overall_decision
+- verification_tier
+- files_read
+- files_written
+- root_cause_hypotheses
+- implementation_plan
+- verification_results
+- review_conclusion
+- writeback_targets
 - risks_or_uncertainties
+- run_log / audit_log（如适用）
 ```
 
-### 0.9.4 受控优化型
+### 0.13.4 受控优化型
 
 ```text
 按 Agent 双侧运行规范执行本次受控优化任务。
@@ -635,8 +1002,11 @@ bug_fix
 非目标项：
 [填写明确不做事项]
 
-任务类型：
-controlled_optimization
+主类型：
+optimization
+
+任务修饰属性：
+[code_change_allowed, review_required]
 
 允许范围：
 - 知识库读取：[填写路径]
@@ -646,44 +1016,56 @@ controlled_optimization
 联网策略：
 [允许 / 禁止 / 条件允许]
 
-确认策略：
-以下场景强制确认：
-- 首次定义允许访问范围
-- 涉及公共接口变化
-- 涉及 schema / ABI / 数据结构兼容性变化
-- 涉及批量重构或删除逻辑
-- 优化方案演化为结构性重构
-- 可能改变核心行为语义
-- 需要将内容提升为 `01_Knowledge/`
+main_agent_mode:
+- orchestration
 
-以下场景必须停止：
-- 未明确允许范围
-- 无法给出优化依据或基线
-- 无法验证优化收益
-- 优化已影响核心语义但未获确认
-- 外部信息未经审核却拟入正式知识区
+planner_mode:
+- explicit
 
-要求：
-- 主代理仅负责 orchestration，不得直接修改代码、输出 patch、生成可落库实现
-- 明确优化依据
-- 明确不做事项
-- 禁止演化为大规模重构
-- 必须验证优化收益
-- 必须验证核心语义未改变
+writeback_mode:
+- explicit / recommendation_only
 
-调度顺序：
-1. knowledge-planner 输出优化依据、风险边界、非目标项、验证计划和回写建议。
-2. 如本地知识不足且允许联网，再调用 source-ingestor，结果只写候选区或来源区。
-3. spawn repo-coder 仅在授权范围内实施边界内优化，并完成收益验证与语义回归验证。
-4. repo-reviewer 使用独立 reviewer 实例，仅接收任务目标、目标指标、非目标项、实施计划、diff、验证结果和必要代码上下文，独立检查：
-   - 是否越界
-   - 是否改变核心语义
-   - 优化收益是否有证据
-   - 是否引入新的回归风险
-5. 若 repo-reviewer 判定优化仍需返工，则将审查结论返回原 repo-coder，完成边界内修正与重新验证后再次独立审查。
-6. 仅在 review 通过后，knowledge-closer 回写项目优化记录、可复用候选和未闭环事项。
+verification_tier:
+- V1 / V2 / V3
+
+scope_creep_policy:
+- stop_and_confirm / replan_required / allow_minor_expansion_with_record
+
+extended_roles:
+- failure-analyst: disabled
+- verification-manager: enabled
+- functional-reviewer: disabled
+- knowledge-auditor: enabled / disabled
+
+主代理职责：
+- 控制 scope creep
+- 检查优化依据、收益验证和语义回归验证
+- 决定是否需要 replan 或 stop_and_confirm
+
+主代理不得：
+- 直接修改代码
+- 替代 reviewer 给出质量裁决
+- 绕过 review 直接沉淀优化结论
+
+说明：
+以下顺序描述的是主代理在 orchestration 模式下对子代理的默认调用顺序。
+workflow-orchestrator 默认由主代理承担，不作为普通子代理列入调用链。
+
+子代理调用顺序：
+1. knowledge-planner 输出优化依据、风险边界、非目标项、验证计划、verification_tier 和回写建议。
+2. 如本地知识不足且允许联网，再调用 source-ingestor，结果只写候选区或来源区；之后重新经过 knowledge-planner 收敛计划。
+3. 调用 verification-manager，补充收益验证、语义回归验证和 tier 对应验证集合。
+4. 调用 repo-coder，仅在授权范围内实施边界内优化，并完成收益验证与语义回归验证。
+5. 调用 repo-reviewer，仅接收任务目标、目标指标、非目标项、实施计划、diff、验证结果和必要代码上下文，独立检查是否越界、是否改变核心语义、优化收益是否有证据、是否引入新的回归风险。
+6. 若 review 不通过，默认返回原 repo-coder；若优化演化为结构性重构或验证不足构成 blocker，则 stop / confirm / replan。
+7. 仅在 review 通过后，knowledge-closer 回写项目优化记录、可复用候选和未闭环事项；如涉及正式知识提升审查，可插入 knowledge-auditor。
 
 输出要求：
+- roles_invoked
+- state_transitions
+- rework_rounds
+- overall_decision
+- verification_tier
 - files_read
 - files_written
 - optimization_basis
@@ -692,34 +1074,36 @@ controlled_optimization
 - review_conclusion
 - writeback_targets
 - risks_or_uncertainties
+- run_log / audit_log（如适用）
 ```
 
 ---
 
-## 0.10 回写输出格式
+## 0.14 回写输出格式
 
 任务结束时，统一输出：
 
-### 0.10.1 Summary
+### 0.14.1 Summary
 
-- task_type:
+- primary_type:
+- task_modifiers:
 - allowed_paths:
 - files_read:
 - files_written:
 
-### 0.10.2 Review status
+### 0.14.2 Review status
 
 - candidate_created:
 - promoted_to_knowledge:
 - source_notes_created:
 
-### 0.10.3 Risks / uncertainties
+### 0.14.3 Risks / uncertainties
 
 - ...
 
 ---
 
-## 0.11 使用建议
+## 0.15 使用建议
 
 建议按以下顺序使用三篇文档：
 
