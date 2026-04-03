@@ -6,7 +6,7 @@ topic: Agent双侧运行规范与调度模板
 sources: ["内部方法论整理", "01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范.md", "01_Knowledge/Agent Workflow/Agent双侧模板与文件结构规范.md"]
 scope: 适用于需要将双侧闭环规则包装成可运行流程，包括任务入口、状态推进、调度 prompt、角色输入输出契约与回写要求的场景。
 risks: ["运行规范过重导致单次任务负担过大", "项目特例被误提升为通用步骤", "角色契约与实际执行工具不一致", "扩展角色加入后模板不同步导致制度与运行脱节"]
-updated_at: 2026-03-30
+updated_at: 2026-04-02
 ---
 
 ## 0.1 摘要
@@ -80,10 +80,12 @@ updated_at: 2026-03-30
 4. `plan_ready`
 5. `execution_approved`
 6. `implementation_done`
-7. `review_done`
-8. `rework_needed`（条件态）
-9. `writeback_done`
-10. `closed`
+7. `knowledge_sync_checked`
+8. `review_done`
+9. `convergence_ready`
+10. `rework_needed`（条件态）
+11. `writeback_done`
+12. `closed`
 
 ### 0.4.1 状态说明
 
@@ -146,7 +148,26 @@ updated_at: 2026-03-30
 - 风险未展开
 - 变更已触发 `scope_creep_trigger`
 
-#### 0.4.1.7 `review_done`
+#### 0.4.1.7 `knowledge_sync_checked`
+
+完成 `knowledge_sync_check`，并输出强制同步决议，确认本轮变化是否要求同步更新 `current / delta / adr / 状态头 / default_entry`。
+
+进入条件：
+
+- 已评估设计、实现、接口、约束或状态机是否发生变化
+- 已输出 `sync_mode: current_rewrite | current_patch | delta_only | adr_only`
+- 已输出 `current_files_must_update`
+- 已输出 `history_files_to_mark`
+- 若 `sync_mode = delta_only`，已输出 `why_delta_only_allowed`
+
+阻断条件：
+
+- 变化已触发文档失配但未给出同步决策
+- 明显只追加 delta 而未判断 current 是否过期
+- 使用 `delta_only` 但未给出举证
+- 需要更新的 current 未列入同步决议
+
+#### 0.4.1.8 `review_done`
 
 完成独立审查，确认是否存在越界、缺少验证或风险未闭环。
 
@@ -167,11 +188,31 @@ updated_at: 2026-03-30
 - reviewer 独立性破坏
 - 只有结论没有证据
 
-#### 0.4.1.8 `rework_needed`
+#### 0.4.1.9 `convergence_ready`
+
+确认 writeback 后当前态可被单次恢复，历史文档不会继续与 current 竞争主入口。
+
+进入条件：
+
+- 已确认 current 是否足以恢复当前主要设计
+- 已确认历史文档完成最小状态标记
+- 已确认默认检索顺序不会优先命中 superseded baseline
+- 已确认 `default_entry` 与 `retrieval_priority` 已校验
+- 已确认 `single_pass_recoverable = true`
+
+阻断条件：
+
+- 仍需依赖 baseline + 多篇 delta 才能恢复当前态
+- 历史文档未做最小状态映射
+- current 缺少关键主题
+- 仍存在应降级但未降级的 baseline / delta
+- default entry 仍指向 baseline 或 delta
+
+#### 0.4.1.10 `rework_needed`
 
 reviewer 已给出需要代码修改的发现，任务返回实施环节，等待原 `repo-coder` 返工并重新验证。
 
-#### 0.4.1.9 `writeback_done`
+#### 0.4.1.11 `writeback_done`
 
 结果已按分区规则写回项目区、候选区或来源区。
 
@@ -182,6 +223,13 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 - 已记录 `candidate_created / promoted_to_knowledge / source_notes_created`
 - 已记录 `pending_items`
 - 已记录 `residual_risks`
+- 已记录 `sync_mode`
+- 已记录 `current_updated`
+- 已记录 `delta_created`
+- 已记录 `delta_merged`
+- 已记录 `baseline_status_checked`
+- 已记录 `default_entry_verified`
+- 已记录 `single_pass_recoverable`
 
 阻断条件：
 
@@ -189,8 +237,13 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 - 写回分区不明
 - 未审内容拟写入正式知识区
 - 缺少来源与边界
+- 需要更新的 current 未更新
+- 新增 delta 但未说明为何允许 `delta_only`
+- 历史文档未标记 `merged_into / supersedes / lifecycle_state`
+- `default_entry` 未校验
+- `single_pass_recoverable = false`
 
-#### 0.4.1.10 `closed`
+#### 0.4.1.12 `closed`
 
 形成最终摘要与残留风险列表。
 
@@ -638,6 +691,13 @@ reviewer 已给出需要代码修改的发现，任务返回实施环节，等�
 - `blocker_count`
 - `candidate_count`
 - `promotion_count`
+- `sync_mode`
+- `current_updated`
+- `delta_created`
+- `delta_merged`
+- `baseline_status_checked`
+- `default_entry_verified`
+- `single_pass_recoverable`
 - `final_status`
 - `stop_reason`
 
@@ -770,6 +830,7 @@ workflow-orchestrator 默认由主代理承担，不作为普通子代理列入�
 - review_conclusion
 - writeback_targets
 - risks_or_uncertainties
+- rule_changes_summary
 - run_log / audit_log（如适用）
 ```
 
@@ -1090,12 +1151,21 @@ workflow-orchestrator 默认由主代理承担，不作为普通子代理列入�
 - allowed_paths:
 - files_read:
 - files_written:
+- sync_mode:
+- current_files_must_update:
+- history_files_to_mark:
+- default_entry_verified:
+- single_pass_recoverable:
 
 ### 0.14.2 Review status
 
 - candidate_created:
 - promoted_to_knowledge:
 - source_notes_created:
+- current_updated:
+- delta_created:
+- delta_merged:
+- baseline_status_checked:
 
 ### 0.14.3 Risks / uncertainties
 
@@ -1110,3 +1180,128 @@ workflow-orchestrator 默认由主代理承担，不作为普通子代理列入�
 1. 先读 [[01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范]]，明确原则和边界。
 2. 读本文档，按运行状态机和调度模板组织任务。
 3. 读 [[01_Knowledge/Agent Workflow/Agent双侧模板与文件结构规范]]，在根目录生成所需文件骨架。
+
+---
+
+## 0.16 文档收敛运行补充
+
+### 0.16.1 适用前提
+
+当任务涉及设计演化、实现状态更新、审核结论收敛、文档体系整理或历史记录压缩时，主代理必须把“文档收敛与状态更新”视为闭环的一部分，而不是可选附加项。
+
+### 0.16.2 计划阶段新增输出
+
+`knowledge-planner` 在 `plan_ready` 前必须补充：
+
+- `document_role_strategy`
+- `current_docs_expected`
+- `spec_source_required`
+- `implementation_input_chain`
+- `default_recovery_bundle`
+- `delta_docs_to_merge`
+- `baseline_docs_to_downgrade`
+- `adr_needed`
+- `retrieval_priority_plan`
+- `current_recoverability_goal`
+- `sync_mode`
+- `why_delta_only_allowed`
+- `current_files_must_update`
+- `history_files_to_mark`
+
+其中 `document_role_strategy` 至少要回答：
+
+- 哪些文档是 `baseline`
+- 哪些文档是 `overview_current / design_current / spec_current / implementation_current / validation_current`
+- 哪些文档是 `delta`
+- 哪些文档应转为 `archive` 或 `superseded`
+- 哪些文档应保持 `default_entry = true`
+
+### 0.16.3 状态机新增检查点
+
+标准状态机在 `implementation_done` 与 `writeback_done` 之间增加显式门禁：
+
+1. `knowledge_sync_checked`
+2. `convergence_ready`
+
+进入 `knowledge_sync_checked` 的前提：
+
+- 已评估代码、设计、接口、约束或状态机是否变化
+- 已判断 `current / adr / delta` 是否需要同步更新
+- 已输出 `sync_mode / current_files_must_update / history_files_to_mark`
+- 若为 `delta_only`，已给出合法举证
+
+进入 `convergence_ready` 的前提：
+
+- 已确认当前态是否可被单次恢复
+- 已确认默认实现输入链是否可由 current 文档独立成立
+- 已确认历史文档是否完成最小状态标记
+- 已确认 default retrieval 不再以历史 baseline 作为主入口
+- 已确认 `default_entry_verified = true`
+- 已确认 `single_pass_recoverable = true`
+
+若这两个门禁未通过，不得进入 `writeback_done`。
+
+### 0.16.4 角色补充职责放置规则
+
+与文档收敛相关的角色补充职责，应写入 [[01_Knowledge/Agent Workflow/Agent双侧模板与文件结构规范]] 中对应角色的 `toml` 模板，而不是写在运行模板里重复定义。
+本文档只保留状态机、门禁、输入输出与调度要求。
+
+### 0.16.5 默认检索顺序
+
+在 orchestration 模式下，主代理组织上下文时默认按以下顺序读取：
+
+1. `overview_current / design_current / spec_current`
+2. `implementation_current / validation_current`
+3. pending delta
+4. adr / decision ledger
+5. merged delta
+6. superseded baseline / archive
+
+若当前目录未形成该顺序，planner 应把“建立 current 入口”列入实施计划。
+
+若同一主题存在 2 份及以上 current 文档而缺少 `overview_current`，planner 不得把该主题判定为已收敛，必须把建立 `overview_current` 列入实施计划。
+
+### 0.16.6 current 可恢复性最低标准
+
+若任务要求文档收敛，则 writeback 前至少满足以下问题可由单次 current 检索回答：
+
+1. 当前模块目标与边界是什么
+2. 当前主流程、状态机或生命周期是什么
+3. 当前对外接口或结果事实源是什么
+4. 当前已知限制与未闭环项是什么
+5. 哪些历史文档只保留为证据，不再代表当前真相
+
+### 0.16.7 默认实现输入链最低标准
+
+若任务要求“按规范实现代码”，则 writeback 或执行前至少满足：
+
+1. `design_current` 能说明目标、边界与设计原则
+2. `spec_current` 能说明必须满足的行为、接口、状态规则与非目标项
+3. `implementation_current` 能说明当前代码事实与修改落点
+4. `validation_current` 能说明当前证据边界与所需验证
+5. coder 不再需要读取 baseline 才能补齐关键实现约束
+
+若主题已存在 `spec_current`，则 `implementation / bug_fix / optimization` 类任务中 coder 不得绕过 `spec_current` 直接基于 baseline 或 delta 实施。
+历史补丁驱动开发应被视为 blocker，而不是可接受捷径。
+
+### 0.16.8 orchestration 任务模板补充
+
+涉及文档收敛的任务，在“实施计划”和“验证计划”中至少增加两段：
+
+- 规范更新阶段：更新角色分层、状态头、收敛规则、knowledge sync 与检索优先级
+- 文档收敛阶段：建立/更新 current，标记 baseline 与 delta 状态，验证 current 可恢复性
+
+输出要求还应补充：
+
+- `document_role_strategy`
+- `implementation_input_chain`
+- `default_recovery_bundle`
+- `spec_source_required`
+- `current_recoverability_assessment`
+- `knowledge_sync_decision`
+- `convergence_decision`
+- `sync_mode`
+- `current_files_must_update`
+- `history_files_to_mark`
+- `default_entry_verified`
+- `single_pass_recoverable`

@@ -1,4 +1,46 @@
-# 1 流程
+---
+type: knowledge
+status: verified
+unit_type: workflow_pattern
+domain: 模型
+topic: J6M模型部署流程
+sources:
+  - 03_Inbox/TCJ6002-J6算法工具链使用流程介绍_对外.md
+scope: 适用于 J6M 平台从模型检查、量化编译到板端性能与精度验证的部署流程梳理。
+risks: 不覆盖 UCP 全量接口细节，也不替代 PTQ/QAT 专题文档；不同 OE 版本的命令、目录和算子约束可能变化。
+source_task: 合并 J6 工具链候选内容到既有部署流程知识
+evidence:
+  - 补充了 OE 环境与交付物认知
+  - 补充了性能验证的静态/动态评测区别
+  - 补充了 PTQ 与 QAT 的选型说明
+updated_at: 2026-03-30
+---
+
+摘要：面向 J6M 平台的模型部署流程总览，补充了 Open Explorer 环境认知、性能验证方法以及 PTQ/QAT 选型说明。
+
+# 1 Open Explorer 与工具链前置认知
+
+## 1.1 运行环境分工
+
+J6 工具链的典型使用环境分为两部分：
+
+- x86 开发机：用于模型检查、模型编译、精度验证、仿真回灌，以及应用工程的交叉编译。
+- aarch64 板端：用于 hbm 模型推理、性能验证、应用部署与运行监测。
+
+这意味着部署链路至少要同时覆盖主机侧产物和板端验证，不能只做编译通过检查。
+
+## 1.2 OE 交付物与目录认知
+
+Open Explorer 交付包通常包含以下几类关键内容：
+
+- `package/host/ai_toolchain`：x86 侧工具链与 whl 包，覆盖 PTQ、QAT、编译相关能力。
+- `package/board/hrt_model_exec`：板端快速推理与性能评测工具，可用于模型信息查看、单帧推理和 perf 测试。
+- `samples/ai_toolchain`：PTQ/QAT 示例工程，可作为最小可运行参考。
+- `samples/ucp_tutorial`：UCP 示例、板端依赖和工具集合，适合工程接入时参考。
+
+如果一个问题同时涉及模型转换、板端性能和应用接入，通常就需要同时查看 `ai_toolchain`、`hrt_model_exec` 和 `ucp_tutorial` 三部分内容。
+
+# 2 流程
 
 完整的模型部署流程应同时包含：  **训练集上的模型转换精度验证**，以及  **测试集上的最终模型精度验证**  
 
@@ -30,17 +72,17 @@
   **独立测试集**上对最终部署模型进行精度验证，以评估模型在真实数据分布下的性能表现
 
 
-# 2 数据预处理
-## 2.1 前处理
+# 3 数据预处理
+## 3.1 前处理
 
 目标是第一层算子输入张量一致
 
 [[输入语义一致性]]
-### 2.1.1 构建采样集
+### 3.1.1 构建采样集
 
 从 train/awake 与 train/sleepy 中按类别均衡随机采样共 N=100（seed 固定），得到 calibration_data_rgb/{id}.jpg
 
-### 2.1.2 构建校准集
+### 3.1.2 构建校准集
 
 对每张 rgb 执行
 
@@ -60,7 +102,7 @@
 
 scale和norm写到yaml文件，由hb_compile修改计算图实现
 
-### 2.1.3 构建运行集（NV12）
+### 3.1.3 构建运行集（NV12）
 
 对每张 rgb 执行
 
@@ -77,7 +119,7 @@ scale和norm写到yaml文件，由hb_compile修改计算图实现
 > [!NOTE] 
 > J6平台会将norm类预处理操作加入到模型graph中并在pyramid核完成加速处理，因此对比calibration操作，runtime数据不需要添加norm操作
 
-## 2.2 数据集结构
+## 3.2 数据集结构
 
 ```
 datasets
@@ -96,7 +138,7 @@ datasets
 
 ```
 
-# 3 onnx模型验证
+# 4 onnx模型验证
 
 将pth模型转换成onnx模型，进行模型验证，以确保其符合计算平台的支持约束
 ```
@@ -109,24 +151,24 @@ hb_compile --model resnet50.onnx \ --march nash-e
 |`--model`|在模型为caffe模型时，取值为Caffe模型的**caffemodel** 文件名称；在模型为onnx模型时，取值为 **ONNX模型** 文件名称。|
 
 在calibration数据集上对onnx模型进行精度评测
-# 4 模型转换
+# 5 模型转换
 
-## 4.1 模型转换流程
+## 5.1 模型转换流程
 
-### 4.1.1 输入数据处理
+### 5.1.1 输入数据处理
 
 `边缘平台格式数据->数据格式转换->原始模型数据格式->数据前处理->模型计算`
 
-### 4.1.2 模型优化编译
+### 5.1.2 模型优化编译
 
 1. 模型解析：caffe模型会转换成onnx模型，产出 original_float_model.onnx
 2. 模型优化：算子优化，产出float32的optimized_float_model.onnx
 3. 模型校准：使用校准数据计算量化参数，产出calibrated_model.onnx 和 ptq_model.onnx
 4. 模型量化：使用ptq_model.onnx 根据前处理配置（包括input_type_rt到input_type_train的色彩转换，mean/scale的处理等）进行模型量化， 产出 quantized_model.bc；如果模型量化过程中存在移除输入/输出端的节点的情况，会产出 quantized_removed_model.bc
 5. 模型编译：将量化模型转换为地平线平台支持的计算指令和数据，产出*.hbm模型
-## 4.2 构建yaml文件
+## 5.2 构建yaml文件
 
-### 4.2.1 hb_config_generator 构建yaml文件
+### 5.2.1 hb_config_generator 构建yaml文件
 
 `hb_config_generator --full-yaml --model model.onnx --march nash-e`
 
@@ -138,7 +180,7 @@ hb_compile --model resnet50.onnx \ --march nash-e
 |`-m, --model`|Caffe或ONNX模型文件。|
 |`-p, --proto`|用于指定Caffe模型prototxt文件。|
 |`--march`|BPU的微架构。使用J6E处理器需设置为 `nash-e` ，使用J6M处理器需设置为 `nash-m` ，使用J6P处理器需设置为 `nash-p`。|
-### 4.2.2 yaml文件示例
+### 5.2.2 yaml文件示例
 
 - input_type_train: 原始浮点模型的输入类型 (rgb, yuv444, bgr, nv12, gray, yuv420, feature map)
 - Input_layout_train:原始浮点模型的输入布局 (NCHW/NHWC)
@@ -286,17 +328,25 @@ compiler_parameters:
   jobs: 8
 ```
 
-## 4.3 hb_compile 转换模型
+## 5.3 hb_compile 转换模型
 
 `hb_compile -c src/translate_model/full_compile_config.yaml`
 
-# 5 模型性能验证
+## 5.4 PTQ 与 QAT 选型补充
 
-## 5.1 静态性能评估
+- PTQ：优先尝试，成本低，主要依赖少量校准数据完成量化；如果经过校准策略、参数配置和精度 debug 后仍不满足要求，再进入 QAT。
+- QAT：适合 PTQ 精度不足的模型，需要在训练图中引入量化相关模块，并完成 calibration、QAT、export、convert、compile 的完整链路验证。
+- 对 J6 来说，PTQ 和 QAT 最终都要回到可部署的 `hbm` 产物，因此选型重点不在“是否能部署”，而在“达到目标精度需要多少训练改造和调优成本”。
+
+# 6 模型性能验证
+
+## 6.1 静态性能评估
 
 hb_compile 会生成 model.html 静态性能评估文件，包含性能评估核心指标 latency (us)，FPS等
 
-## 5.2 动态性能评估
+建议在正式训练或大规模调优前，先使用 `hb_compile --fast-perf` 做一次静态摸底。静态评估的价值在于尽早暴露带宽、算子分布和预估时延风险，避免在板端反复试错后才发现模型结构本身不适合目标帧率。
+
+## 6.2 动态性能评估
 
 将hbm模型拷贝至开发板/userdata下任意路径，使用`hrt_model_exec perf` 工具快捷评估模型的耗时和帧率
 
@@ -308,25 +358,34 @@ hrt_model_exec perf --model_file resnet50_224x224_nv12.hbm --thread_num 1 --fram
 hrt_model_exec perf --model_file resnet50_224x224_nv12.hbm --core_id 0 --thread_num 8 --frame_count 1000 --input_stride="50176,224,1,1;25088,224,2,1"
 ```
 
-# 6 模型精度验证
+动态评测建议同时关注吞吐和单帧时延，不要只看单一指标。
 
-## 6.1 hb_verifier 验证一致性
+## 6.3 `thread_num` 判读原则
+
+- `thread_num=1`：更适合看单帧平均执行时延，结果包含框架调度、BPU 执行以及可能存在的 CPU 算子开销。
+- `thread_num=8`：更适合看吞吐率（FPS），此时 BPU 会尽量被打满，但单请求 latency 往往会因为排队而变大。
+
+如果需要进一步拆分执行耗时，可结合 profile 日志或板端监控工具查看 BPU 占用和调度开销。
+
+# 7 模型精度验证
+
+## 7.1 hb_verifier 验证一致性
 
 hb_verifier 支持 ONNX模型与HBIR模型、HBIR模型与HBIR模型之间的余弦相似度对比， HBIR与HBM模型之间的输出一致性对比
 
-### 6.1.1 对比onnx模型与qbc模型的余弦相似度
+### 7.1.1 对比onnx模型与qbc模型的余弦相似度
 
 ```
 hb_verifier -m optimized_float_model.onnx,quantized_model.bc -i calibration_data_npy/awake_s0001.npy
 ```
 
-### 6.1.2 对比qbc模型与hbm模型的输出一致性
+### 7.1.2 对比qbc模型与hbm模型的输出一致性
 
 ```
 hb_verifier  -m quantized_model.bc,model.hbm -i runtime_data_npy/awake_s0001.y.npy,runtime_data_npy/awake_s0001.uv.npy
 ```
 
-## 6.2 精度评测
+## 7.2 精度评测
 
 | 格式   | Confusion Matrix [TP,FP,TN,FN] | Precision | Recall | Accuracy | Note                                  |
 | ---- | ------------------------------ | --------- | ------ | -------- | ------------------------------------- |
@@ -334,11 +393,11 @@ hb_verifier  -m quantized_model.bc,model.hbm -i runtime_data_npy/awake_s0001.y.n
 | onnx | [45, 7, 44, 4]                 | 0.8654    | 0.9184 | 0.89     |                                       |
 | bc   | [46, 6, 45, 3]                 | 0.8846    | 0.9388 | 0.91     |                                       |
 | hbm  | [46, 6, 45, 3]                 | 0.8846    | 0.9388 | 0.91     |                                       |
-# 7 测试集精度验证
+# 8 测试集精度验证
 
 在完成模型转换精度验证，并确认各阶段模型精度差异满足要求后，仍需在**独立测试集**上对最终部署模型进行精度验证，以评估模型在真实数据分布下的性能表现。
 
-## 7.1 验证目的
+## 8.1 验证目的
 
 测试集精度验证的目标在于：
 
@@ -351,7 +410,7 @@ hb_verifier  -m quantized_model.bc,model.hbm -i runtime_data_npy/awake_s0001.y.n
 
 该阶段不用于定位模型转换问题，而用于评估模型的**最终可用性**。
 
-## 7.2 测试数据集要求
+## 8.2 测试数据集要求
 
 - 测试集需与训练集、校准集严格隔离
     
@@ -362,7 +421,7 @@ hb_verifier  -m quantized_model.bc,model.hbm -i runtime_data_npy/awake_s0001.y.n
 
 测试集仅用于精度评估，不参与任何形式的模型训练、校准或参数调整。
 
-## 7.3 验证模型形态
+## 8.3 验证模型形态
 
 测试集精度验证建议至少覆盖以下模型形态：
 
@@ -373,7 +432,7 @@ hb_verifier  -m quantized_model.bc,model.hbm -i runtime_data_npy/awake_s0001.y.n
 
 如有需要，可补充 onnx / bc 模型的对比结果，但不作为主要结论依据。
 
-## 7.4 精度判定原则
+## 8.4 精度判定原则
 
 - 对比 pth 与 hbm 在测试集上的精度差异
     

@@ -6,7 +6,7 @@ topic: Agent驱动知识库与代码库协同闭环规范
 sources: ["内部方法论整理"]
 scope: 适用于使用 Agent 连接知识库与代码库，在受控知识检索、方案设计、代码实现、验证和回写沉淀之间形成闭环的通用工程协作流程
 risks: ["项目特例误沉淀为正式知识", "代码优化越过需求边界", "知识库与代码库规则不一致导致越权修改", "外部信息未经审核直接进入正式知识区", "主代理 orchestration 职责不清导致角色漂移"]
-updated_at: 2026-03-30
+updated_at: 2026-04-02
 ---
 
 ## 0.1 摘要
@@ -1069,6 +1069,197 @@ Agent 可以实现方案中未明确列出的优化项，但必须满足以下�
 - 验证等级确认
 - reviewer 独立性判断
 - 候选与正式知识的分离
+
+---
+
+# 9.1 文档收敛与当前态治理
+
+双侧闭环不仅要记录“发生过什么”，还要维护“现在系统是什么”。
+
+## 9.1.1 文档角色分层
+
+项目区与知识区中的设计/实现文档必须按以下角色分层：
+
+- `baseline`：历史起点文档，记录最初方案或初始设计，只保留历史起点职责
+- `current`：当前有效状态文档的总称，必须通过 `current_kind` 区分 `overview / design / spec / implementation / validation / interface`
+- `delta`：增量问题、修复、优化、审核与验证记录，只负责记录变化与证据
+- `adr` / `decision_ledger`：关键设计决策、接口取舍、边界变化的决策文档
+- `archive`：明确退出主检索路径的历史文档
+
+默认回写策略必须为“更新 `current` 并压缩历史”，而不是“新增 `delta` 记录变化”。
+除非满足本章定义的 `delta_only` 例外条件，否则不得只写 `delta` 而不更新相关 `current`。
+
+## 9.1.2 状态标记与结构化字段
+
+文档除原有 `status` 外，必须增加或等价表达以下结构化字段：
+
+- `doc_role`：`baseline / current / delta / adr / archive`
+- `truth_role`：`current / history / evidence`
+- `lifecycle_state`
+- `default_entry`
+- `sync_required_when`
+- `retrieval_priority`
+- `supersedes`
+- `merged_into`
+- `current_replacement`
+- `related_code`
+- `scope`
+
+其中 `lifecycle_state` 的允许值为：
+
+- `active`
+- `partially_active`
+- `superseded`
+- `pending_merge`
+- `merged`
+- `archived`
+
+并应满足以下硬约束：
+
+- `current` 默认使用 `active`，退出默认入口时改为 `partially_active` 或 `superseded`
+- `delta` 只允许使用 `pending_merge` 或 `merged`，禁止长期 `active delta`
+- `baseline` 只允许使用 `partially_active / superseded / archived`
+- `archive` 只允许使用 `archived`
+- `default_entry = true` 的文档必须同时具备 `retrieval_priority = current`
+- `baseline / delta / archive` 默认 `default_entry = false`
+
+## 9.1.3 current 真相源原则
+
+- `current` 文档回答“现在系统是什么”，而不是“曾经如何演化”
+- `design_current` 负责描述当前设计真相，但不默认承担全部实现级硬约束
+- `spec_current` 负责承接当前实现规范；若实现仍需依赖 baseline 或历史 delta 才能补齐关键约束，则视为收敛失败
+- `implementation_current` 与 `validation_current` 分别承接“代码当前事实”和“证据当前事实”，避免把现状、规范和证据混写在一份 current 中
+- 若同一持续演化主题存在 2 份及以上 `current` 文档，则必须存在 `overview_current`
+- `overview_current` 必须声明：
+  - 默认恢复顺序
+  - 默认实现输入链
+  - 历史文档角色分层
+  - `default_recovery_bundle`
+- 若当前态必须依赖 baseline 或 2 篇及以上 delta 才能恢复，则视为文档系统未收敛，`single_pass_recoverable = false`
+
+## 9.1.3.1 默认实现输入链
+
+若任务目标是“按照规范实现代码”，默认实现输入链必须为：
+
+1. `design_current`
+2. `spec_current`
+3. `implementation_current`
+4. `validation_current`
+
+其中：
+
+- `design_current` 提供设计边界与目标
+- `spec_current` 提供必须满足的行为约束、接口契约、状态规则和非目标项
+- `implementation_current` 提供当前代码事实，帮助识别应改哪里
+- `validation_current` 提供当前证据边界，帮助确定验证计划
+
+`baseline` 与 `delta` 不得作为 `implementation / bug_fix / optimization` 类任务的默认实现入口，只能在追溯来源、证据或历史决策时按需回读。
+若主题已存在 `spec_current`，coder 不得绕过 `spec_current` 直接基于 baseline 或 delta 实施。
+
+## 9.1.4 强制收敛规则与 `delta_only` 例外
+
+默认情况下，以下变化必须同步更新 `current`：
+
+- 当前设计事实发生变化
+- 当前规范事实发生变化
+- 当前实现事实发生变化
+- 当前验证边界发生变化
+- 默认恢复顺序发生变化
+- 默认实现入口发生变化
+- 当前推荐做法、当前有效限制或当前风险表达发生变化
+
+`delta_only` 只在同时满足以下条件时允许：
+
+- 变更仅提供纯审计证据、纯运行记录或纯历史链路补充
+- 不改变设计事实、规范事实、实现事实、验证边界
+- 不改变默认恢复顺序、默认实现入口和 `default_recovery_bundle`
+- 现有 current 已能单次恢复当前态
+- 已显式记录 `why_delta_only_allowed`
+
+若不满足上述任一条件，则 `delta_only` 不成立，必须改为 `current_patch`、`current_rewrite` 或 `adr_only`。
+
+## 9.1.5 delta 生命周期与数量门禁
+
+`delta` 的生命周期必须遵守以下规则：
+
+- 新增 delta 时，`lifecycle_state` 必须为 `pending_merge`
+- delta 内容被吸收到 current 或 adr 后，必须改为 `merged`
+- 不允许长期保留 `active delta`
+
+数量门禁：
+
+- 同一主题新增第 2 篇 `pending_merge` delta 时，下一轮 writeback 必须优先执行压缩，不得继续只追加记录
+- 同一主题已有 3 篇 delta 时，禁止新增第 4 篇 delta，必须先重写或重整 current
+- 若 reviewer 或 knowledge-auditor 判定 delta 已污染当前态检索，则即使数量未到阈值，也必须优先压缩
+
+## 9.1.6 baseline / adr / archive 规则
+
+- `baseline` 只保留原始设计 / 实现起点，不接受滚动式正文续写
+- `baseline` 只能更新 frontmatter、替代关系、状态说明和引用入口说明
+- `baseline` 不得继续承载 implementation / bug_fix / optimization 类任务的默认入口
+- `adr / decision_ledger` 用于承接仍需独立保留的决策，而不是替代 current 承担当前态说明
+- `archive` 只承担审计价值，不参与默认检索和默认实现输入链
+
+## 9.1.7 knowledge_sync_check 强制决议
+
+当以下对象发生变化时，闭环必须显式执行 `knowledge_sync_check`：
+
+- 代码实现策略
+- 状态机或生命周期
+- 对外接口或导出契约
+- 行为约束、容错规则、模块边界
+- 关键设计决策
+- 默认恢复顺序
+- 默认实现输入链
+
+`knowledge_sync_check` 不得只写“已检查”，必须显式产出：
+
+- `sync_mode: current_rewrite | current_patch | delta_only | adr_only`
+- `why_delta_only_allowed`
+- `current_files_must_update`
+- `history_files_to_mark`
+
+检查问题至少包括：
+
+1. 是否必须同步更新 `current`
+2. 是否必须新增或更新 `adr / decision_ledger`
+3. 既有 `delta` 是否应转为 `merged`
+4. baseline 或旧 current 是否应改为 `superseded`
+5. `default_entry` 与 `retrieval_priority` 是否需要调整
+
+若答案不明确，不得默认跳过知识同步。
+
+## 9.1.8 检索优先级、single-pass recoverability 与回写门禁
+
+默认检索优先级从高到低必须为：
+
+1. `overview_current / design_current / spec_current`
+2. `implementation_current / validation_current`
+3. `pending_merge delta`
+4. `adr / decision_ledger`
+5. `merged delta`
+6. `superseded baseline / archive`
+
+若检索系统或人工入口不能表达上述优先级，必须至少通过文件命名、目录组织和状态头提示降低历史文档误命中概率。
+
+`single_pass_recoverable` 的最低判定标准为：
+
+- 当前模块目标与边界可由 current 单次恢复
+- 当前主流程、状态机或生命周期可由 current 单次恢复
+- 当前接口或结果事实源可由 current 单次恢复
+- 当前已知限制与未闭环项可由 current 单次恢复
+- 历史文档与 current 的替代/合并关系可由状态头单次判定
+
+对项目区和知识区的 writeback，除原有来源/审查门槛外，还必须同时满足：
+
+- 默认回写策略已执行为“更新 current 并压缩历史”，或已给出合法 `delta_only` 举证
+- `single_pass_recoverable = true`
+- 默认实现输入链已经从 baseline/delta 切换到 `design_current + spec_current`
+- 需要更新的 current 已更新
+- 历史文档已补齐 `merged_into / supersedes / lifecycle_state`
+- `default_entry` 已校验
+
+未通过上述检查时，writeback 只算记录完成，不算闭环完成。
 
 ---
 

@@ -1,0 +1,162 @@
+---
+title: Tracking Overview Current
+summary: Tracking 当前态总入口，汇总模块目标、文档角色分层、默认恢复顺序、默认实现输入链与 default_recovery_bundle，避免再依赖 baseline 或全量 delta 恢复当前设计与实施约束。
+status: verified
+doc_role: current
+truth_role: current
+current_kind: overview
+lifecycle_state: active
+default_entry: true
+sync_required_when:
+  - 默认恢复顺序变化
+  - 默认实现输入链变化
+  - current 文档角色分层变化
+  - default_recovery_bundle 变化
+retrieval_priority: current
+supersedes:
+  - 02_Projects/DMS/04_Tracking/座舱乘员多目标跟踪方案.md
+  - 02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
+merged_into: []
+current_replacement: []
+related_code:
+  - /home/jichao/dms/include/utils/track.h
+  - /home/jichao/dms/source/utils/track.cpp
+  - /home/jichao/dms/include/models/atomic_result.h
+  - /home/jichao/dms/source/fuse_algos/fuse_algorithm.cpp
+sources:
+  - 02_Projects/DMS/04_Tracking/座舱乘员多目标跟踪方案.md
+  - 02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
+  - 02_Projects/DMS/04_Tracking/多目标跟踪实现闭环记录-2026-03-24.md
+  - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复闭环记录-2026-03-25.md
+  - 02_Projects/DMS/04_Tracking/多目标跟踪生命周期与手部关联设计失配修复闭环记录-2026-03-25.md
+  - 02_Projects/DMS/04_Tracking/多目标跟踪功能审核记录-2026-03-27.md
+  - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复未闭环记录-2026-03-27.md
+  - 02_Projects/DMS/04_Tracking/多目标跟踪手部连续性优化闭环记录-2026-03-31.md
+  - /home/jichao/dms/include/utils/track.h
+  - /home/jichao/dms/source/utils/track.cpp
+  - /home/jichao/dms/include/models/atomic_result.h
+  - /home/jichao/dms/source/models/handpose_model.cpp
+  - /home/jichao/dms/source/models/humanpose_model.cpp
+  - /home/jichao/dms/source/fuse_algos/fuse_algorithm.cpp
+scope: 适用于恢复当前 Tracking 模块的整体目标、边界、入口文档与当前真相源，不展开全部历史过程。
+risks:
+  - 当前态判断基于本次允许范围内的代码静态读取与既有项目记录，没有补做新的编译或运行回放。
+  - 对“效果性目标”如 ID 连续性，只能记录当前机制与证据边界，不能把静态机制等同于最终效果验收。
+updated_at: 2026-04-03
+---
+
+## 0.1 Current Scope
+
+本组 current 文档回答“现在的 Tracking 系统是什么”。默认恢复顺序为：
+
+- 唯一默认入口：[[02_Projects/DMS/04_Tracking/tracking_overview_current]]
+
+1. [[02_Projects/DMS/04_Tracking/tracking_overview_current]]
+2. [[02_Projects/DMS/04_Tracking/tracking_design_current]]
+3. [[02_Projects/DMS/04_Tracking/tracking_spec_current]]
+4. [[02_Projects/DMS/04_Tracking/tracking_implementation_current]]
+5. [[02_Projects/DMS/04_Tracking/tracking_validation_current]]
+
+若任务目标是“按规范实现代码”，默认实现输入链为：
+
+1. [[02_Projects/DMS/04_Tracking/tracking_design_current]]
+2. [[02_Projects/DMS/04_Tracking/tracking_spec_current]]
+3. [[02_Projects/DMS/04_Tracking/tracking_implementation_current]]
+4. [[02_Projects/DMS/04_Tracking/tracking_validation_current]]
+
+[[02_Projects/DMS/04_Tracking/tracking_interfaces_current]] 保留为接口补充证据，不再作为默认实现输入链必读文档。
+
+## 0.2 Default Recovery Bundle
+
+默认恢复 bundle 为：
+
+default_recovery_bundle:
+1. [[02_Projects/DMS/04_Tracking/tracking_overview_current]]
+2. [[02_Projects/DMS/04_Tracking/tracking_design_current]]
+3. [[02_Projects/DMS/04_Tracking/tracking_spec_current]]
+4. [[02_Projects/DMS/04_Tracking/tracking_implementation_current]]
+5. [[02_Projects/DMS/04_Tracking/tracking_validation_current]]
+6. 少量代码路径：
+   - `/home/jichao/dms/include/utils/track.h`
+   - `/home/jichao/dms/source/utils/track.cpp`
+   - `/home/jichao/dms/include/models/atomic_result.h`
+   - `/home/jichao/dms/source/fuse_algos/fuse_algorithm.cpp`
+
+## 0.3 Current Truth
+
+- Tracking 当前目标仍是为 DMS 提供稳定的 body / face / left_hand / right_hand 跟踪结果，服务于疲劳、分心、脱手等下游能力。
+- 当前实现的事实源在代码侧以 `AtomicResult` 的四类 map 和 `DmsTrack::Update -> updateBodyTracks -> updateFaceTracks -> updateHandTracks` 为核心。
+- 当前文档入口已经从 baseline + 多篇 delta，切换为本组 current 文档；历史记录保留为证据和决策来源，不再承担默认当前态入口职责。
+- 当前实现输入链也已从历史补丁式恢复，切换为 `design_current + spec_current + implementation_current + validation_current`。
+
+## 0.4 Current Boundaries
+
+- 本模块负责：检测结果关联、轨迹生命周期、人员类型稳定判定、face/hand 与 body 的关联和输出。
+- 本模块不负责：新增检测器能力、运行时效果验收、下游业务判决逻辑。
+- 当前仍存在的开放问题集中在验证与输出唯一性边界，而不是主框架缺失。
+
+## 0.5 Current Document Roles
+
+- baseline：
+  - [[02_Projects/DMS/04_Tracking/座舱乘员多目标跟踪方案]]
+  - [[02_Projects/DMS/04_Tracking/座舱多目标跟踪实现]]
+- current：
+  - [[02_Projects/DMS/04_Tracking/tracking_overview_current]]
+  - [[02_Projects/DMS/04_Tracking/tracking_design_current]]
+  - [[02_Projects/DMS/04_Tracking/tracking_spec_current]]
+  - [[02_Projects/DMS/04_Tracking/tracking_implementation_current]]
+  - [[02_Projects/DMS/04_Tracking/tracking_validation_current]]
+- evidence/reference only：
+  - [[02_Projects/DMS/04_Tracking/tracking_interfaces_current]]
+- merged delta：
+  - 2026-03-24 实现闭环
+  - 2026-03-25 两篇设计失配修复闭环
+  - 2026-03-27 功能审核
+  - 2026-03-31 手部连续性优化闭环
+- superseded delta：
+  - 2026-03-27 设计失配修复未闭环记录
+
+## 0.6 Current Recovery Rule
+
+若只为理解当前 Tracking 状态，默认不再需要按时间顺序重放全部历史文档。只有在以下情况才回读 delta：
+
+- 需要看某个设计修复的证据链
+- 需要追溯某个开放问题何时暴露
+- 需要核对 current 文档中的历史映射
+
+若只为按规范实施代码，默认也不再需要回读 baseline；只有在需要追溯原始设计动机时才回读 [[02_Projects/DMS/04_Tracking/座舱乘员多目标跟踪方案]]。
+
+## 0.7 Known Gaps
+
+- 当前未新增本轮编译或运行时回放验证，验证结论以既有记录和代码静态读取为主。
+- face / left_hand / right_hand 的区域级最终唯一输出，仍不能被当前代码静态证据完全证明为已闭合。
+- ID 连续性仍缺少运行时证据。
+
+## 0.8 Historical Mapping
+
+- 初始设计目标与分层来自 [[02_Projects/DMS/04_Tracking/座舱乘员多目标跟踪方案]]。
+- 早期实现说明来自 [[02_Projects/DMS/04_Tracking/座舱多目标跟踪实现]]。
+- 当前设计、实现规范、代码事实与验证状态已拆分到 design/spec/implementation/validation 四份 current 文档。
+
+## 0.9 Current Sync Rule
+
+- must_update_when:
+  - 默认恢复顺序变化
+  - 默认实现输入链变化
+  - 当前真相源文档集合变化
+  - `tracking_interfaces_current` 的入口地位变化
+- absorbs_history_from:
+  - `座舱乘员多目标跟踪方案.md`
+  - `座舱多目标跟踪实现.md`
+  - `多目标跟踪实现闭环记录-2026-03-24.md`
+  - `多目标跟踪设计失配修复闭环记录-2026-03-25.md`
+  - `多目标跟踪生命周期与手部关联设计失配修复闭环记录-2026-03-25.md`
+  - `多目标跟踪功能审核记录-2026-03-27.md`
+  - `多目标跟踪设计失配修复未闭环记录-2026-03-27.md`
+  - `多目标跟踪手部连续性优化闭环记录-2026-03-31.md`
+- evidence_only_docs:
+  - `tracking_interfaces_current.md`
+- not_a_default_entry_anymore:
+  - `座舱乘员多目标跟踪方案.md`
+  - `座舱多目标跟踪实现.md`
+  - `tracking_interfaces_current.md`

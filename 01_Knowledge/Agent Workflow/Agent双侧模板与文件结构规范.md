@@ -6,7 +6,7 @@ topic: Agent双侧模板与文件结构规范
 sources: ["内部方法论整理", "01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范.md"]
 scope: 适用于需要在知识库根目录和代码库根目录布置双侧 AGENTS.md、角色 toml 配置和任务模板骨架的通用场景。
 risks: ["将规范文档误当成项目实例直接执行", "未按具体仓库裁剪允许范围", "角色模板与实际工具链不匹配", "把运行状态机错误塞入文件结构规范"]
-updated_at: 2026-03-30
+updated_at: 2026-04-02
 ---
 
 ## 0.1 摘要
@@ -128,7 +128,9 @@ repo-root/
 3. 项目相关的临时方案、调试记录、假设和实验结果优先写入 `02_Projects/`。
 4. 原始网页信息、外部摘录和参考材料优先写入 `04_Sources/` 或 `03_Inbox/`。
 5. 如果一个结论没有明确来源、适用边界和复用价值，则不要写入正式知识区。
-6. 所有新建或更新的知识条目都必须包含：
+6. 默认回写策略必须是“更新 `current` 并压缩历史”，而不是“新增 `delta` 记录变化”。
+7. 默认禁止只写 `delta` 而不更新 `current`；若必须 `delta_only`，必须显式给出举证理由。
+8. 所有新建或更新的知识条目都必须包含：
    - 标题
    - 摘要
    - 来源
@@ -156,7 +158,27 @@ repo-root/
 只在允许目录范围内读取背景信息。
 不要读取未授权目录，不要基于未读取内容做推断。
 
-### 0.5.4 Step 4: external information ingestion
+### 0.5.4 Step 4: plan and sync gate
+形成最小 `plan_state`，至少包含：
+- `primary_type`
+- `task_modifiers`
+- `allowed_paths`
+- `implementation_plan`
+- `verification_tier`
+- `verification_plan`
+- `non_goals`
+- `open_uncertainties`
+- `sync_mode`
+- `current_files_must_update`
+- `history_files_to_mark`
+
+若任务涉及项目文档收敛，还必须判断：
+- 是否必须更新 `current`
+- 是否允许 `delta_only`
+- 是否需要调整 `default_entry`
+- 是否满足 `single_pass_recoverable`
+
+### 0.5.5 Step 5: external information ingestion
 当本地知识不足且任务明确允许联网时：
 1. 从网络检索信息
 2. 提取关键信息
@@ -164,7 +186,15 @@ repo-root/
 4. 标记为 `pending_review`
 5. 给出建议目标路径，但不要直接写入正式知识区
 
-### 0.5.5 Step 5: review gate
+### 0.5.6 Step 6: convergence gate
+若任务涉及持续演化主题的文档更新，必须额外满足：
+1. 若主题存在两份及以上 current 文档，则必须有 `overview_current`
+2. 若主题已有 `spec_current`，代码类任务不得绕过它直接基于 baseline 或 delta 实施
+3. baseline 不得继续作为默认入口
+4. 若 `single_pass_recoverable = false`，不得判定为闭环完成
+5. 若新增 delta 且未给出 `why_delta_only_allowed`，不得判定为闭环完成
+
+### 0.5.7 Step 7: review gate
 只有在任务明确要求“审核并入库”且候选内容满足以下条件时，才允许写入 `01_Knowledge/`：
 - 来源可靠
 - 与目标主题强相关
@@ -173,13 +203,15 @@ repo-root/
 - 内容不是纯新闻或营销说法
 - 已给出引用来源
 
-### 0.5.6 Step 6: finalize
+### 0.5.8 Step 8: finalize
 完成任务后，输出：
 1. 读取了哪些目录
 2. 新建或更新了哪些文件
 3. 哪些内容进入候选区
 4. 哪些内容建议审核后转正
-5. 未解决的不确定项
+5. `sync_mode / current_files_must_update / history_files_to_mark`
+6. `default_entry_verified / single_pass_recoverable`
+7. 未解决的不确定项
 ```
 
 ---
@@ -235,6 +267,13 @@ task_id:
 primary_type:
 task_modifiers: []
 verification_tier:
+sync_mode:
+current_updated: false
+delta_created: false
+delta_merged: false
+baseline_status_checked: false
+default_entry_verified: false
+single_pass_recoverable: false
 roles_invoked: []
 rework_rounds: 0
 files_changed_count: 0
@@ -275,6 +314,13 @@ primary_type:
 task_modifiers: []
 audited_objects: []
 verification_tier:
+sync_mode:
+current_updated: false
+delta_created: false
+delta_merged: false
+baseline_status_checked: false
+default_entry_verified: false
+single_pass_recoverable: false
 roles_invoked: []
 review_findings_count: 0
 blocker_count: 0
@@ -375,6 +421,15 @@ must_produce_validation_plan = true
 must_produce_writeback_targets = true
 must_record_uncertainties = true
 must_output_verification_tier = true
+must_classify_document_roles_when_needed = true
+must_plan_current_recoverability_when_needed = true
+must_define_retrieval_priority_when_needed = true
+must_identify_spec_source_when_needed = true
+must_define_implementation_input_chain_when_needed = true
+must_output_sync_mode_when_applicable = true
+must_justify_delta_only_when_applicable = true
+must_identify_current_files_to_update = true
+must_identify_history_files_to_mark = true
 
 [outputs]
 required = [
@@ -387,12 +442,25 @@ required = [
   "verification_tier",
   "writeback_targets",
   "risks_or_uncertainties",
+  "sync_mode",
+  "current_files_must_update",
+  "history_files_to_mark",
   "entry_conditions_satisfied"
 ]
 optional = [
   "knowledge_basis",
   "repo_constraints",
   "confirmation_points",
+  "document_role_strategy",
+  "current_docs_expected",
+  "spec_source_required",
+  "implementation_input_chain",
+  "delta_docs_to_merge",
+  "baseline_docs_to_downgrade",
+  "adr_needed",
+  "retrieval_priority_plan",
+  "current_recoverability_goal",
+  "why_delta_only_allowed",
   "non_goals",
   "blocking_conditions_hit"
 ]
@@ -424,6 +492,13 @@ must_include_metadata = true
 must_include_scope_and_risks = true
 must_separate_projects_inbox_sources = true
 must_mark_candidate_status = true
+must_update_current_or_status_heads_when_needed = true
+must_not_leave_current_unreconstructed_when_required = true
+must_record_merge_or_supersede_relations = true
+must_output_sync_mode = true
+must_verify_default_entry = true
+must_verify_single_pass_recoverability = true
+must_justify_delta_only_when_used = true
 
 [outputs]
 required = [
@@ -434,10 +509,25 @@ required = [
   "source_notes_created",
   "pending_review_items",
   "risks_or_uncertainties",
+  "sync_mode",
+  "current_updated",
+  "delta_created",
+  "delta_merged",
+  "baseline_status_checked",
+  "default_entry_verified",
+  "single_pass_recoverable",
   "entry_conditions_satisfied"
 ]
 optional = [
   "promotion_recommendations",
+  "knowledge_sync_decision",
+  "convergence_decision",
+  "current_recoverability_assessment",
+  "docs_promoted_or_merged",
+  "baseline_downgraded",
+  "delta_marked_merged",
+  "why_delta_only_allowed",
+  "history_files_to_mark",
   "follow_up_actions",
   "blocking_conditions_hit"
 ]
@@ -508,6 +598,10 @@ required = [
   "blocker_assessment"
 ]
 optional = [
+  "spec_update_verification_matrix",
+  "knowledge_sync_checks",
+  "current_recoverability_checks",
+  "historical_state_mapping_checks",
   "entry_conditions_satisfied",
   "blocking_conditions_hit"
 ]
@@ -565,6 +659,11 @@ objective = "审核知识候选是否具备转正条件。"
 owns_phase = "knowledge_audit"
 must_not_promote_without_authorization = true
 
+[audit_rules]
+must_check_reusability_boundary = true
+must_check_current_sync_when_applicable = true
+must_check_history_mapping_when_applicable = true
+
 [outputs]
 required = [
   "promotion_recommendation",
@@ -574,6 +673,8 @@ required = [
 ]
 optional = [
   "boundary_gaps",
+  "current_sync_assessment",
+  "history_mapping_assessment",
   "blocking_conditions_hit"
 ]
 ```
@@ -660,6 +761,9 @@ must_classify_findings = true
 must_produce_actionable_next_step = true
 must_assign_fix_owner_by_rule = true
 must_output_layered_assessment = true
+must_check_current_sync_when_applicable = true
+must_check_history_mapping_when_applicable = true
+must_check_current_recoverability_when_applicable = true
 
 [outputs]
 required = [
@@ -680,6 +784,9 @@ optional = [
   "missing_evidence",
   "follow_up_checks",
   "merge_readiness",
+  "current_sync_assessment",
+  "history_mapping_assessment",
+  "current_recoverability_assessment",
   "scope_creep_triggered",
   "blocking_conditions_hit"
 ]
@@ -704,6 +811,11 @@ objective = "基于规范和行为证据做功能符合度审查。"
 owns_phase = "functional_review"
 must_not_edit_code = true
 
+[review_rules]
+must_check_acceptance_items = true
+must_check_current_sync_when_applicable = true
+must_check_history_mapping_when_applicable = true
+
 [outputs]
 required = [
   "acceptance_items",
@@ -716,6 +828,8 @@ required = [
   "entry_conditions_satisfied"
 ]
 optional = [
+  "current_sync_assessment",
+  "history_mapping_assessment",
   "verification_tier",
   "blocking_conditions_hit"
 ]
@@ -730,3 +844,365 @@ optional = [
 3. 再阅读 [[01_Knowledge/Agent Workflow/Agent双侧运行规范与调度模板]]，按运行状态机和调度模板实例化任务。
 
 这样可以避免把“稳定模板规范”和“项目实例化调度”混在一起。
+
+---
+
+## 0.9 文档收敛模板补充
+
+### 0.9.1 强制目录角色
+
+对持续演化的项目主题，必须形成以下角色分层：
+
+```text
+02_Projects/<Project>/<Topic>/
+├── tracking_overview_current.md
+├── tracking_design_current.md
+├── tracking_spec_current.md            # 若存在代码类任务，必须作为默认实现规范入口
+├── tracking_implementation_current.md
+├── tracking_interfaces_current.md      # 按需
+├── tracking_validation_current.md      # 按需
+├── <baseline>.md
+├── <delta>-YYYY-MM-DD.md
+├── <adr>.md                            # 按需
+└── Archive/                            # 按需
+```
+
+硬规则：
+
+- `*_current.md` 为默认真相源入口
+- `*_spec_current.md` 为默认实现规范入口
+- 若同一主题存在 2 份及以上 `*_current.md`，则必须存在 `*_overview_current.md`
+- baseline 保留原始正文，只允许补状态头和替代关系
+- delta 只允许使用 `pending_merge / merged` 生命周期
+- delta 记录增量变化与证据，不得承担 current 职责
+- 同一主题新增第 2 篇 `pending_merge` delta 时，下一轮必须优先压缩 current
+- 同一主题已有 3 篇 delta 时，禁止新增第 4 篇 delta，必须先压缩 current
+
+### 0.9.2 项目文档最小 frontmatter
+
+涉及 current / baseline / delta / adr / archive 的项目文档，必须至少包含：
+
+```yaml
+---
+title:
+summary:
+status: verified
+doc_role:
+current_kind:
+truth_role:
+lifecycle_state:
+default_entry: false
+sync_required_when: []
+retrieval_priority:
+supersedes: []
+merged_into: []
+current_replacement: []
+related_code: []
+sources: []
+scope:
+risks: []
+updated_at:
+---
+```
+
+字段说明：
+
+- `status` 表示审查成熟度，如 `draft / pending_review / verified`
+- `doc_role` 使用 `baseline / current / delta / adr / archive`
+- `current_kind` 仅在 `doc_role = current` 时必填，使用 `overview / design / spec / implementation / validation / interface`
+- `truth_role` 使用 `current / history / evidence`
+- `lifecycle_state` 使用 `active / partially_active / superseded / pending_merge / merged / archived`
+- `default_entry` 表示是否允许作为默认恢复或默认实现入口
+- `sync_required_when` 记录哪些变化必须同步改写本文件
+- `retrieval_priority` 使用 `current / reference / evidence_only / archive`
+- `supersedes` 记录本文件替代了哪些旧文档
+- `merged_into` 记录本文件内容已并入哪些 current / adr
+- `current_replacement` 记录当前入口已迁移到哪些 current 文档
+
+迁移兼容说明：
+
+- 已存在的历史文档若使用 `doc_role: design_current / spec_current / implementation_current / validation_current`，可视为 `doc_role: current` 的迁移期等价表达
+- 新建或重写的模板文档，应统一改为 `doc_role: current` 并显式填写 `current_kind`
+
+### 0.9.3 overview_current 文档骨架
+
+```md
+---
+title:
+summary:
+status: verified
+doc_role: current
+truth_role: current
+current_kind: overview
+lifecycle_state: active
+default_entry: true
+sync_required_when: []
+retrieval_priority: current
+supersedes: []
+merged_into: []
+current_replacement: []
+related_code: []
+sources: []
+scope:
+risks: []
+updated_at:
+---
+
+## 0.1 Current Scope
+
+## 0.2 Default Recovery Order
+
+## 0.3 Default Implementation Input Chain
+
+## 0.4 Historical Role Mapping
+
+## 0.5 Default Recovery Bundle
+
+## Current Sync Rule
+
+- must_update_when:
+- absorbs_history_from:
+- evidence_only_docs:
+- not_a_default_entry_anymore:
+
+## 0.6 Known Gaps
+```
+
+### 0.9.4 design_current 文档骨架
+
+```md
+---
+title:
+summary:
+status: verified
+doc_role: current
+truth_role: current
+current_kind: design
+lifecycle_state: active
+default_entry: true
+sync_required_when: []
+retrieval_priority: current
+supersedes: []
+merged_into: []
+current_replacement: []
+related_code: []
+sources: []
+scope:
+risks: []
+updated_at:
+---
+
+## 0.1 Design Scope
+
+## 0.2 Current Design Truth
+
+## 0.3 Lifecycle / State Rules
+
+## 0.4 Boundaries
+
+## 0.5 Constraints
+
+## Current Sync Rule
+
+- must_update_when:
+- absorbs_history_from:
+- evidence_only_docs:
+- not_a_default_entry_anymore:
+
+## 0.6 Known Gaps
+
+## 0.7 Historical Mapping
+```
+
+### 0.9.5 spec_current 文档骨架
+
+```md
+---
+title:
+summary:
+status: verified
+doc_role: current
+truth_role: current
+current_kind: spec
+lifecycle_state: active
+default_entry: true
+sync_required_when: []
+retrieval_priority: current
+supersedes: []
+merged_into: []
+current_replacement: []
+related_code: []
+sources: []
+scope:
+risks: []
+updated_at:
+---
+
+## 0.1 Spec Scope
+
+## 0.2 Required Behaviors
+
+## 0.3 Interface Contracts
+
+## 0.4 State / Transition Rules
+
+## 0.5 Non-goals
+
+## Current Sync Rule
+
+- must_update_when:
+- absorbs_history_from:
+- evidence_only_docs:
+- not_a_default_entry_anymore:
+
+## 0.6 Verification Hooks
+
+## 0.7 Historical Mapping
+```
+
+### 0.9.6 implementation_current 文档骨架
+
+```md
+---
+title:
+summary:
+status: verified
+doc_role: current
+truth_role: current
+current_kind: implementation
+lifecycle_state: active
+default_entry: false
+sync_required_when: []
+retrieval_priority: current
+supersedes: []
+merged_into: []
+current_replacement: []
+related_code: []
+sources: []
+scope:
+risks: []
+updated_at:
+---
+
+## 0.1 Current Code Entry
+
+## 0.2 Current Data / State Containers
+
+## 0.3 Current Flow
+
+## 0.4 Current Constraints
+
+## Current Sync Rule
+
+- must_update_when:
+- absorbs_history_from:
+- evidence_only_docs:
+- not_a_default_entry_anymore:
+
+## 0.5 Known Gaps
+
+## 0.6 Historical Mapping
+```
+
+### 0.9.7 validation_current 文档骨架
+
+```md
+---
+title:
+summary:
+status: verified
+doc_role: current
+truth_role: current
+current_kind: validation
+lifecycle_state: active
+default_entry: false
+sync_required_when: []
+retrieval_priority: current
+supersedes: []
+merged_into: []
+current_replacement: []
+related_code: []
+sources: []
+scope:
+risks: []
+updated_at:
+---
+
+## 0.1 Evidence In Hand
+
+## 0.2 Evidence Missing
+
+## 0.3 Current Review Conclusion
+
+## Current Sync Rule
+
+- must_update_when:
+- absorbs_history_from:
+- evidence_only_docs:
+- not_a_default_entry_anymore:
+
+## 0.4 Required Next Verification
+
+## 0.5 Historical Mapping
+```
+
+### 0.9.8 delta 文档骨架
+
+```md
+---
+title:
+summary:
+status: verified
+doc_role: delta
+truth_role: evidence
+lifecycle_state: pending_merge
+default_entry: false
+sync_required_when: []
+retrieval_priority: evidence_only
+supersedes: []
+merged_into: []
+current_replacement: []
+related_code: []
+sources: []
+scope:
+risks: []
+updated_at:
+---
+
+## 0.1 Change
+
+## 0.2 Evidence
+
+## 0.3 Impact On Current
+
+## 0.4 Merge Decision
+
+- sync_mode:
+- target_current_docs: []
+- history_files_to_mark: []
+- why_delta_only_allowed:
+```
+
+### 0.9.9 baseline 文档头部约束
+
+baseline 默认不要求重写正文，但文首应明确：
+
+- 自身属于 `doc_role: baseline`
+- `truth_role: history`
+- `default_entry: false`
+- `retrieval_priority: reference`
+- 当前是否 `partially_active / superseded / archived`
+- 哪些 `overview_current / design_current / spec_current / implementation_current / validation_current` 替代了其当前入口职责
+- 本文件不接受滚动式正文续写
+
+### 0.9.10 日志模板补充字段
+
+`run_log` 与 `audit_log` 模板在涉及文档收敛任务时，必须增加：
+
+- `sync_mode`
+- `current_updated`
+- `delta_created`
+- `delta_merged`
+- `baseline_status_checked`
+- `default_entry_verified`
+- `single_pass_recoverable`

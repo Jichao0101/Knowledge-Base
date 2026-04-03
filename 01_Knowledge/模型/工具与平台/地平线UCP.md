@@ -1,155 +1,166 @@
-# 1 整体架构
+---
+type: knowledge
+status: verified
+unit_type: design_pattern
+domain: 模型
+topic: 地平线UCP
+sources:
+  - 03_Inbox/统一计算平台UCP全功能介绍_（外部）.md
+scope: 适用于理解 J6/Open Explorer 中 UCP 的能力边界、典型调用模式和常见调度场景。
+risks: 该条目是能力总览与使用要点，不覆盖完整 API 细节；具体接口参数、返回值和版本兼容性仍应以对应 OE 文档为准。
+source_task: 重构 UCP 候选文档并整理为正式知识
+evidence:
+  - 补充了模型推理最小调用流程
+  - 补充了 Crop 与 MultiModelBatch 典型场景
+  - 补充了确定性调度和 DSP 自定义开发边界
+updated_at: 2026-03-30
+---
 
-统一计算平台（Unify Compute Platform）定义了一套统一的异构编程接口，将SOC上的功能硬件抽象出来并进行封装，对外提供基于功能的API，用于创建相应的UCP任务，并支持设置硬件Backend提交至UCP调度器，提供功能：
-- 视觉处理(Vision Process)
+摘要：统一计算平台 UCP 是地平线对异构硬件能力的统一抽象层，负责视觉处理、模型推理、高性能算子和自定义扩展的任务封装与调度。
+
+# 1 整体定位
+
+统一计算平台（Unify Compute Platform，UCP）定义了一套统一的异构编程接口，用于封装 SOC 上的功能硬件，并以任务形式提交到统一调度器。
+
+UCP 主要覆盖以下能力：
+
+- 视觉处理（Vision Process）
 - 神经网络模型推理（Neural Network）
 - 高性能计算库（High Performance Library）
 - 自定义算子插件开发
 
-# 2 视觉处理
+它的核心价值不是“替代所有底层硬件细节”，而是把应用开发侧最常见的任务创建、内存管理、backend 选择和调度流程统一起来。
 
-vp模块主要用于模型的前后处理环节，将图像处理相关的硬件调用进行了封装，通过设置backend来选择不同的硬件方案（若不指定backend，UCP会自动适配负载更低的处理单元）
+## 1.1 适用场景
 
-## 2.1 功能架构
+- 单算子调用：直接使用 VP/HPL 提供的视觉或高性能算子。
+- 模型推理：完成 hbm 模型加载、输入输出张量准备、任务提交与等待。
+- 插件扩展：基于 DSP 或自定义算子能力补充标准库之外的处理逻辑。
 
-- 应用层
-	- remap
-	- resize
-	- transpose
-	- roi resize
-	- warp affine
-	- pyrdown
-	- codec
-- 系统层
-	- 服务
-		- task management
-		- session management
-		- graph management
-		- engine management
-	- 硬件驱动
-		- dsp
-		- stitch
-		- gdc
-		- jpu
-		- vpu
-		- pyramid
-		- isp
+## 1.2 使用优势
+
+- 高度抽象：同一类功能可通过统一接口调用，减少硬件差异暴露。
+- 统一调度：不同 backend 的任务可以进入统一的调度框架。
+- 工程一致性：视觉处理、推理和高性能算子复用相似的任务生命周期。
+
+# 2 视觉处理与高性能算子
+
+## 2.1 视觉处理
+
+VP 模块主要服务于模型前后处理，例如：
+
+- remap
+- resize
+- transpose
+- roi resize
+- warp affine
+- pyrdown
+- codec
+
+其底层会根据指定 backend 或默认调度策略选择合适的硬件资源。
+
+## 2.2 高性能算子
+
+HPL 模块面向 FFT、IFFT 等高性能计算场景，适合与推理链路中的信号处理或特定数值计算配合使用。
 
 # 3 模型推理
 
-## 3.1 tensor内部布局对齐
+## 3.1 最小调用流程
 
-BPU对数据有对齐限制。有效数据排布和对齐数据排布用 `hbDNNTensorProperties` 中的 `validShape` 和 `stride` 表示。
+UCP 中模型推理的最小流程可以概括为：
 
-- `validShape` 是有效数据的shape。
-- `stride[i]` 表示 移动1单位该维度需要跳过的byte数
+1. 加载模型并获取 `model handle`
+2. 查询输入输出 tensor 数量与属性
+3. 分配输入输出内存并填充输入数据
+4. 创建推理任务
+5. 提交任务到 UCP 调度器
+6. 等待任务完成并读取输出
+7. 释放任务、内存和模型资源
 
-### 3.1.1 contiguous layout（软件自然布局）
+如果只记一条主线，可以记成：
 
-内存排列：
-```
-[C][H][W] 紧密排列
-每行:
-212 * element_size
+`load model -> prepare tensor -> infer -> submit -> wait -> flush/decode -> release`
 
-```
+## 3.2 Tensor 布局与内存约束
 
-没有空洞，没有padding。
+### 3.2.1 Tensor 内部布局
 
-优点：
+BPU 对数据布局存在对齐要求，常见会同时涉及：
 
-- 内存占用最小
-    
-- CPU访问友好
-    
-- numpy / pytorch 默认布局
-    
+- `validShape`：有效数据的逻辑 shape
+- `stride`：各维移动一个单位所需跨越的字节数
 
-缺点：
+软件自然布局通常是 contiguous 的紧密排布，而 BPU 友好的布局通常带有 stride 和 padding。后者虽然会增加内存占用，但更符合 DMA 和 SIMD 的访问模式。
 
-- 不满足硬件DMA和SIMD最优访问条件
+### 3.2.2 Tensor 起始地址对齐
 
-### 3.1.2 stride + padding layout（BPU布局）
+BPU 对输入输出 tensor 的首地址也有对齐限制，通常要求 `32` 或 `64` 字节对齐。否则会导致 DMA 访问低效，甚至直接非法。
 
-W维对齐到224：
+这类问题的实质不是“模型错了”，而是“推理内存准备方式不符合硬件约束”。
 
-`[C][H][224]`
+## 3.3 常用工具
 
-真实数据212，剩余12是padding。
+- 查看模型信息：`hrt_model_exec model_info --model_file=xxx.hbm`
+- 运行单次推理：`hrt_model_exec infer --model_file=xxx.hbm --input_file=xxx.bin`
+- 快速性能评测：`hrt_model_exec perf --model_file=xxx.hbm`
 
-stride示例：
+# 4 典型场景
 
-```
-stride[3] = element_size 
-stride[2] = 224 * element_size 
-stride[1] = 224 * 224 * element_size 
-stride[0] = C * stride[1]
-```
+## 4.1 Crop 场景
 
-优点：
+对于 NV12 输入模型，如果原图分辨率大于模型输入尺寸，且模型输入 `validShape` 固定、`stride` 可动态调整，则可以通过修改输入 tensor 的起始地址和 stride，实现“裁剪后直接送模型”的效果。
 
-- 每行大小是硬件友好的对齐长度
-    
-- DMA可以满速传输
-    
-- SIMD可以满宽执行
-    
+它的价值在于：
 
-缺点：
+- 避免额外拷贝
+- 避免单独做一次 crop 预处理
+- 直接复用原始图像内存中的局部区域
 
-- 内存占用增加
-    
-- 有padding
+使用前提：
 
-## 3.2 tensor起始地址对齐
+- 原图尺寸大于模型输入尺寸
+- `w_stride` 满足 32 字节对齐
+- 裁剪偏移后首地址仍满足输入内存对齐要求
 
-BPU对模型输入输出内存首地址有对齐限制，要求输入与输出内存的首地址 `32` 或者 `64` 对齐，tensor base address alignment
+## 4.2 MultiModelBatch 场景
 
-示例：
+当存在多个小模型任务时，单个任务的 BPU 执行时间可能不长，但框架调度开销占比会偏高。此时可将多个子任务追加到同一个 task handle 中，再统一提交，从而减少调度开销占比。
 
-```
-base addr = 0x10000000   ✓ (64 aligned) 
-base addr = 0x10000020   ✓ (32 aligned) 
-base addr = 0x10000003   ✗
-```
+这个模式适合：
 
-保证DMA可以直接访问tensor起点。
+- 多个小模型串行执行的场景
+- 希望降低框架开销而不是单纯优化单模型算力的场景
 
-否则：
+它优化的是任务组织方式，不是单个模型本身的算子效率。
 
-- DMA必须拆成多个访问
-    
-- 或直接非法
+## 4.3 确定性调度
 
-## 3.3 模型推理工具
+UCP 默认具有自己的调度策略，会根据优先级和 backend 情况安排任务执行。但在应用侧已经具备全局调度视角、且希望自行控制任务下发时序时，可以考虑启用确定性调度模式：
 
-1. 获取模型信息
-```
-hrt_model_exec model_info --model_file=xxx.hbm
+```bash
+export HB_UCP_CUSTOM_SCHEDULE_CONFIG=1
 ```
 
-2. 模型推理
-```
-hrt_model_exec infer --model_file=xxx.hbm --input_file=xxx.bin
-```
+启用后要注意：
 
-3. 模型性能分析
-```
-hrt_model_exec perf --model_file=xxx.hbm
-```
+- UCP 的优先级调度和负载均衡能力不再起主要作用
+- 更适合纯 BPU 节点或“先 CPU 后 BPU”的模型
+- 调度质量将更多取决于应用自身的编排能力
 
-# 4 高性能算子库
+# 5 DSP 自定义开发
 
-## 4.1 功能架构
+当 VP/HPL/DNN 标准能力不足以覆盖目标算子时，可考虑基于 DSP 做自定义开发。典型流程分为三步：
 
-- 应用
-	- fft
-	- ifft
-- 系统
-	- 服务
-		- task management
-		- session management
-		- graph management
-		- engine management
-	- 硬件
-		- dsp
+1. 使用 DSP 开发工具完成算子实现
+2. 在 DSP 侧注册算子并编译带自定义算子的镜像
+3. 在 ARM 侧通过 UCP 提供的接口调用该算子
+
+这条路径适合“标准库没有，但硬件上值得做”的场景，不适合用来替代普通前后处理逻辑。
+
+# 6 实践判断
+
+- 如果问题是前后处理算子如何高效落到硬件上，优先看 VP。
+- 如果问题是模型任务如何加载、提交、等待和取回结果，优先看 DNN/UCP 推理接口。
+- 如果问题是多个小任务吞吐不佳，优先评估 MultiModelBatch。
+- 如果问题是希望应用自己掌控任务时序，评估确定性调度。
+- 如果标准能力不够且算子长期稳定，才考虑 DSP 自定义开发。
