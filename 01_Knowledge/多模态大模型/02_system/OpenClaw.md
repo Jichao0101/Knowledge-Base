@@ -350,22 +350,35 @@ GitHub 仓库首页把 multi-agent routing 作为一等能力来展示，并说�
 
 ## 12.2 OpenClaw 与通用 Agent 抽象的映射
 
-如果把 OpenClaw 映射到 `Agent = Policy Core + Memory + Tools + Planner/Controller + Runtime` 这个抽象里，可以大致对应为：
+如果改用 `Agent = Model + Harness` 的分层来映射，OpenClaw 会更清楚：
 
-- Policy Core：Pi runtime 或其他未来 runtime
+- Model：Pi runtime 或其他未来 runtime 中承担策略与局部控制的部分
     
 - Memory：sessions + workspace state
     
 - Tools：browser / canvas / nodes / cron / automation
     
-- Planner/Controller：runtime + gateway routing + execution orchestration
+- Harness：除 Model 之外，承载 OpenClaw 稳定运行的模型外系统总称
     
-- Runtime：gateway + agent runtime + platform apps + node execution surface
+- Local Execution Harness：agent runtime + session binding + tool routing + workspace isolation + execution control
+    
+- Global Orchestration Harness：multi-agent routing + handoff control + execution orchestration + approval / routing gates
+    
+- Platform / Framework：gateway + channels + platform apps + node execution surface + multi-agent routing
+    
+
+其中要特别注意：
+
+- gateway 更像平台控制面，不宜直接并入狭义 runtime
+    
+- node execution surface 更像外部执行面，也不宜直接等同于单个 agent 的 runtime
+    
+- execution orchestration 与 routing 更接近 harness 的全局控制子层或平台控制面，而不只是 agent 内部 planner
     
 
 这个映射说明：
 
-> OpenClaw 更像一个承载 Agent 的系统框架，而不是某个特定推理方法。
+> OpenClaw 更像一个承载 Agent 的平台 / 框架系统，而不是某个特定推理方法本身。
 
 ---
 

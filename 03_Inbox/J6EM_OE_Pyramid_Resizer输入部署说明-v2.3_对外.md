@@ -1,4 +1,4 @@
-# 引言
+# 1 引言
 地平线芯片上，在图像输入节点前添加图像颜色空间转换处理可节省DDR带宽以获取更好的模型部署性能（通过BPU硬件支持了YUV420到YUV444的转换，并通过conv来完成YUV444到RGB/BGR的转换，以及归一化操作）。由于在图像通路上，通常Y、UV是独立的地址（Pyramid输出结果即为Y和UV两个独立地址），特别是对于在原图上Crop ROI区域时，Y、UV一定是非连续的，因此J6工具链将输入来源为Pyramid的模型输入直接定义为Y和UV两个Tensor，不再区分NV12和NV12_SEP两种类型，同时保障仿真模型的输入格式与板端部署模型的输入完全一致。下表是J5与J6平台各阶段模型的输入格式（部署时模型输入来源于Pyramid）对比：
 
 <lark-table rows="4" cols="7" column-widths="82,119,119,119,100,100,89">
@@ -84,9 +84,9 @@
 
 由上表可见，J6计算平台对于不同量化方式以及仿真与板端的输入格式一致性保持情况会更好，同时可简化用户做一致性验证的复杂性。模型开发阶段的前处理均和原始浮点模型保持一致（量化及模型转换），应用开发阶段（仿真及板端部署）的输入数据格式与SOC相关硬件输出格式保持一致。
 
-# 示例
-## PTQ编译
-### 编译&可视化（batch1）
+# 2 示例
+## 2.1 PTQ编译
+### 2.1.1 编译&可视化（batch1）
 1. **yaml配置**
 <grid cols="2">
   <column width="50">
@@ -160,7 +160,7 @@
 </quote-container>
 
 由于nv12数据在内存中是二维存储的（一般数据在内存中均是1维连续存储），可以通过stride指定截取的原图范围，因此其stride信息是动态的。在J6平台上要求数据满足W32对齐（J5平台为W16对齐）。在此基础上，由于resizer输入与原图大小相关，因此resizer输入的模型shape（H、W）以及stride信息均为动态。
-### 编译&可视化（batch n）
+### 2.1.2 编译&可视化（batch n）
 由于PTQ方案batchn Pyramid的支持方案还在设计中，因此用户暂时无法通过配置yaml文件中的相关参数直接编译出可上板推理的batchn Pyramid模型。**因此若您的模型输入shape第一维不等于1，请务必将input_type_train和input_type_rt参数配置为featuremap**。
 若要使用PTQ方案，并希望部署时每个batch的数据可以来源于不同的内存地址，可先使用hb_compile工具生成`*ptq_model.onnx`之后通过如下代码将模型输入沿batch维度拆开，并插入前处理节点和格式转换节点：
 ```python {wrap}
@@ -201,8 +201,8 @@ save(quantized_model, "mobilenetv1_224x224_nv12_quantized.bc")
 
 随后，使用hb_compile工具，将yaml文件中的model路径改为quantized.bc的路径，完成删除节点和模型编译的过程。
 
-## QAT编译
-### 编译&可视化
+## 2.2 QAT编译
+### 2.2.1 编译&可视化
 先参考用户手册导出并保存qat.bc，然后参考如下代码编译部署模型：
 ```python
 import torch
@@ -249,7 +249,7 @@ hbm_perf("test.hbm")
 ```
 
 
-## 板端性能评测
+## 2.3 板端性能评测
 由于Pyramid和Resizer模型中存在一些动态的属性，因此使用`hrt_model_exec perf`工具评测时需要指定一下这些属性：
 <quote-container>
 ps：为了提高用户评测效率，Pyramid模型可支持用户不提供动态参数的值（由工具依据模型实际尺寸计算最小对齐要求的参数大小），但是对于Resizer模型，roi大小不同会导致延时不一样，因此建议Resizer模型还是由用户指定输入数据和roi
@@ -268,7 +268,7 @@ roi.txt（使用空格隔开：[left, top, right, bottom]，即roi的左上角�
 
 </quote-container>
 
-### Pyramid输入
+### 2.3.1 Pyramid输入
 stride计算方式（W32对齐）：
 ```cpp
 // 假设tensor输入尺寸valid_shape=（1,112,112,2,），tensor_type=HB_DNN_TENSOR_TYPE_U8，stride= (-1,-1,2,1,)
@@ -286,7 +286,7 @@ perf命令（Pyramid输入的模型其stride为动态，可以不用指定，工
 hrt_model_exec perf --model_file pyramid.hbm --input_stride="50176,224,1,1;25088,224,2,1"
 ```
 
-### Resizer输入
+### 2.3.2 Resizer输入
 由于Resizer输入的模型其stride以及valid_shape均为动态，且模型性能与roi参数相关，需要用户提供真实的推理数据和roi信息。若提供的Y和UV数据为jpg图像，则需要通过`input_img_properties`参数指定该图片需要处理成的数据格式。若指定的input_valid_shape与jpg图像尺寸不符，则工具会将原图resize至指定尺寸。
 perf命令：
 假设希望评测的是原图尺寸为HxW=300x300，ROI=（0,0,199,199）下的性能数据，则perf命令如下所示（valid_shape和stride可以不用指定，工具会自动计算，如果无需基于特定数据评测，则仅指定模型参数即可）：
@@ -300,17 +300,17 @@ roi.txt（使用空格隔开：[left, top, right, bottom]，即roi的左上角�
 ```
 
 
-## 板端部署
+## 2.4 板端部署
 OE包中的示例路径为：
 Pyramid：OE/samples/ucp_tutorial/dnn/basic_samples/code/00_quick_start
 Resizer：OE/samples/ucp_tutorial/dnn/basic_samples/code/01_api_tutorial/roi_infer
-### 示例代码解析
-#### Pyramid
+### 2.4.1 示例代码解析
+#### 2.4.1.1 Pyramid
 pyramid模型的输入节点属性如下所示：
 ![](./J6EM_OE_Pyramid_Resizer输入部署说明-v2.3_对外.assets/J6EM_OE_Pyramid_Resizer输入部署说明-v2.3_对外_image_005)
 
 对应Y和UV两个输出，stride属性为动态，因此J5迁移J6需要关注输入数据的准备方式的区别（若使用的是Pyramid硬件的输出，则已经是经过W32对齐的数据，直接赋值给模型输入tensor即可；以下示例是读取jpg图像，使用opencv处理得到nv12数据并进行推理，用于说明如何计算pyramid数据的stride信息）：
-##### main函数
+##### 2.4.1.1.1 main函数
 J6 UCP新增加了`hbDNNInferV2`接口，该接口可根据输入参数创建同步/异步推理任务。对于异步任务，调用方可以跨函数、跨线程使用返回的 `taskHandle`。请注意该接口与J5推理接口在指定`ctrl_param`方面的区别。hbDNNInfer仅用于推理兼容模式的模型，关于兼容模式的模型说明具体请参考本文第三章。
 ```cpp
 /**
@@ -435,7 +435,7 @@ int main(int argc, char **argv) {
 }
 ```
 
-##### 准备nv12数据
+##### 2.4.1.1.2 准备nv12数据
 前处理将jpg图像读入并处理成nv12格式，并按对齐要求将Y和UV数据分别赋给模型的两个输入节点。
 ```cpp
 int32_t read_image_2_tensor_as_nv12(std::string &image_file,
@@ -494,7 +494,7 @@ int32_t read_image_2_tensor_as_nv12(std::string &image_file,
 }
 ```
 
-##### 准备输入tensor
+##### 2.4.1.1.3 准备输入tensor
 由于模型输入tensor的stride是动态的，因此推理前需要为模型输入节点指定正确的stride信息，并完成W32对齐的操作（J5为W16对齐）。同时依据对齐后的stride信息计算需要申请的内存空间大小
 ```cpp
 #define ALIGN(value, alignment) (((value) + ((alignment)-1)) & ~((alignment)-1))
@@ -565,12 +565,12 @@ int prepare_tensor(hbDNNTensor *input_tensor, hbDNNTensor *output_tensor,
 }
 ```
 
-#### Resizer
+#### 2.4.1.2 Resizer
 resizer模型的输入节点属性如下：
 ![](./J6EM_OE_Pyramid_Resizer输入部署说明-v2.3_对外.assets/J6EM_OE_Pyramid_Resizer输入部署说明-v2.3_对外_image_006)
 
 对应Y、UV以及Roi三个输入，其中Y和UV的shape和stride属性均为动态，J5迁移J6需要关注输入数据的准备方式的区别（若使用的是Pyramid硬件的输出，则已经是经过W32对齐的数据，直接赋值给模型输入tensor即可；以下示例是读取jpg图像，使用opencv处理得到nv12数据并进行推理，用于说明如何计算pyramid数据的stride信息）：
-##### main函数
+##### 2.4.1.2.1 main函数
 J6 UCP新增加了`hbDNNInferV2`接口，该接口可根据输入参数创建同步/异步推理任务。由于resizer输入的模型通常会有多组roi，推理通过连续创建任务，只提交一次的方案来实现，类似于J5 推理时的`more`功能。`hbDNNRoiInfer`以及`hbDNNRoiInferV2`仅用于推理兼容模式的模型，关于兼容模式的模型说明具体请参考本文第三章。
 ```cpp
 int main(int argc, char **argv) {
@@ -733,7 +733,7 @@ int main(int argc, char **argv) {
 }
 ```
 
-##### 准备nv12数据
+##### 2.4.1.2.2 准备nv12数据
 前处理将jpg图像读入并处理成nv12格式，并按对齐要求将Y和UV数据分别赋给模型的Y和UV两个输入节点。
 ```cpp
 int read_image_2_nv12(std::string &image_file,
@@ -801,7 +801,7 @@ int read_image_2_nv12(std::string &image_file,
 }
 ```
 
-##### 准备输入tensor
+##### 2.4.1.2.3 准备输入tensor
 由于resizer输入的Y以及UV的H和W也是动态的，需要在推理前将其设置为原图尺寸，并计算满足W32对齐的stride参数。请注意roi是模型的输入节点也需要为其进行赋值，不再作为一个推理参数。
 ```cpp
 #define ALIGN(value, alignment) (((value) + ((alignment)-1)) & ~((alignment)-1))

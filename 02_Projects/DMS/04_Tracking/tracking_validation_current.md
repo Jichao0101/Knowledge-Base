@@ -1,6 +1,6 @@
 ---
 title: Tracking Validation Current
-summary: Tracking 当前验证状态文档，记录当前已具备的证据、未闭合项、审核结论与“哪些结论只是文档推断、哪些已被代码或历史记录支撑”。
+summary: Tracking 当前验证状态文档，记录已具备的证据、缺失证据、已证明与未证明边界、当前审查结论和下一轮验证。
 status: verified
 doc_role: current
 truth_role: current
@@ -26,11 +26,14 @@ sources:
   - 02_Projects/DMS/04_Tracking/多目标跟踪功能审核记录-2026-03-27.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复未闭环记录-2026-03-27.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪手部连续性优化闭环记录-2026-03-31.md
+  - 02_Projects/DMS/04_Tracking/DMS主驾打哈欠误报修复闭环记录-2026-04-05.md
+  - 02_Projects/DMS/04_Tracking/多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md
+  - 02_Projects/DMS/04_Tracking/跟踪框越界导致板端coredump调查与修复闭环记录-2026-04-07.md
   - /home/jichao/dms/source/utils/track.cpp
 scope: 适用于判断 Tracking 当前有哪些证据已经成立、哪些结论仍需更高等级验证；为默认实现输入链提供验证边界，不承接设计或规范正文。
 risks:
   - 本文档没有新增运行验证，只整合现有记录并用代码静态读取校准其当前有效性。
-updated_at: 2026-04-03
+updated_at: 2026-04-07
 ---
 
 ## 0.1 Evidence Status
@@ -39,15 +42,36 @@ updated_at: 2026-04-03
 
 - body 使用预测 + 匈牙利 + 生命周期管理
 - face 使用恒速度模型并支持启动后解耦
-- hand 使用恒加速度模型，并支持短 miss 预测输出
+- hand 使用恒加速度模型，但 2026-04-07 起不再向下游输出 miss 预测框
 - body 结果作为乘员级主锚点
 - 上游结果事实源是 body / face / leftHand / rightHand 四类 map
 - driver body 最终唯一化已在代码中显式实现
+- 更新顺序为 `body -> face -> hand`
+- 配置从 `track_params.json` 读取，并以 `DEFAULT` 加车型覆盖
+- `m_humanTrackResultMap` 只是导出兼容层，不是上游事实源
+- track 输出在写入四类 track map 前已有统一 sanitize/clamp 与非法框过滤
 
 ### 0.1.2 由历史记录支撑但本轮未重新执行
 
 - 03-24、03-25、03-31 各轮编译级验证曾通过
 - 03-25、03-31 曾有独立审查通过或 pass_with_risks 记录
+- 2026-04-05 DMS 主驾打哈欠误报修复已按 revised acceptance sign-off：
+  - 最终接受的实现仅保留在 `/home/jichao/dms/source/utils/track.cpp`
+  - acceptance standard: whole-process driver tracking remains normal；在 `3429360843..3441459880` 内最多允许 `4` 帧 yawn-positive
+  - board/log facts: driver track id unique value `0`，yawn-positive frame count `4`，driver face logs 具备 `candidates=1` 且频繁出现 `small_filtered=1`
+  - review outcome: `pass_with_risks`
+- 2026-04-05 快速运动恢复阶段预测-更新一致性修复已完成：
+  - `/home/jichao/dms/source/utils/track.cpp` 对 body/face/hand 的命中检测更新路径做了收敛
+  - compile result: `bash scripts/compile_j6b.sh` passed，最终 `[100%] Built target sdk`
+  - review outcome: `pass_with_risks`
+  - current evidence level 仍为 compile/review 级，不是运行样本级
+- 2026-04-05 的修复仍未补运行回放证据，因此它只能支撑实现边界，不支撑效果验收
+- 2026-04-07 跟踪框越界导致板端 coredump 调查与修复已完成：
+  - 代码改动仅落在 `/home/jichao/dms/source/utils/track.cpp`
+  - compile result: `bash scripts/compile_j6b.sh` passed，最终 `[100%] Built target sdk`
+  - board result: 新 `sdk` 已部署到 `192.168.2.10:/userdata/dms/sdk`，`bash run.sh` 覆盖到目标帧 `3425547100` 且未再出现 `abort` / `core dumped`
+  - review outcome: `pass_with_risks`
+  - 残余风险：sanitize clamp 日志可能过多；hand miss 不输出后，HandOff 等下游会更频繁看到空 hand map，需要单独做功能侧确认
 
 ### 0.1.3 当前仍未被充分证据支撑
 
@@ -55,19 +79,28 @@ updated_at: 2026-04-03
 - left_hand / right_hand 区域级最终唯一输出
 - “较好的 ID 连续性”效果性结论
 - 运行时 replay / 视频流级验证
+- face / hand fallback 路径是否在运行样本中完全满足唯一性约束
+- 对快速运动恢复的效果改善是否能推广到代表性样本集
 
 ## 0.2 Current Review Conclusion
 
 - 当前系统主框架不是“未实现”，而是“主框架已形成，但仍有输出唯一性与运行级证据缺口”
 - 以本轮允许范围内的静态读取判断，`多目标跟踪功能审核记录-2026-03-27` 中关于唯一性未闭合和 ID 连续性证据不足的结论仍然有效
 - `多目标跟踪设计失配修复未闭环记录-2026-03-27` 记录的是一次中间阻塞状态，已经不再代表当前整体状态
+- DMS 主驾打哈欠误报修复属于 accepted with risks 的项目闭环，不应被提升为正式知识，也不应表述为已完成根因级彻底消除
+- 跟踪框越界 coredump 的当前 route 已收敛为 `bug_fix(track-only)`，本轮证据足以关闭 incident，但还不构成“所有 hand 相关功能指标已重新验收通过”
+- 当前 current 组已能在不依赖 baseline 作为默认入口、也不依赖两篇及以上 delta 作为当前态补洞的前提下恢复 Tracking 主态；但运行效果仍未闭合
 
 ## 0.3 Required Next Verification
 
 - 如果要把 Tracking 从“当前实现已形成”推进到“功能验收接近闭合”，优先补：
   1. face 区域级唯一输出验证
   2. left/right hand 区域级唯一输出验证
-  3. 代表性视频或日志回放，验证 ID 连续性和 hand continuity 优化
+  3. 代表性视频或日志回放，验证 ID 连续性和 hand miss 不输出后的功能影响
+  4. 快速运动恢复样本，验证 body/face/hand 的 `predBox / detection / updated box` 三者关系是否按预期收敛
+- 若后续要重新评估 DMS driver false-yawn 的根因消除，建议补更长窗口 replay，专门量化 identity-swap 风险
+- 若后续继续沿用本轮 sanitize/clamp 方案，建议补一次日志降噪，避免 `track sanitize clamp` 在板端形成噪声洪泛
+- 若后续代码再次触及 `track.cpp`、`AtomicResult` 或导出链路，应重新跑 `knowledge_sync_check`，并再次判断 `single_pass_recoverable`
 
 ## 0.4 Current Boundary
 
@@ -78,9 +111,10 @@ updated_at: 2026-04-03
 - single_pass_recoverable: `true`
 - 判定依据：
   - 读取 `tracking_overview_current + tracking_design_current + tracking_spec_current + tracking_implementation_current + tracking_validation_current` 已能恢复当前 Tracking 的主要设计、默认实现约束、实现事实与验证边界。
-  - 只需少量代码路径辅助核对事实源：`track.h`、`track.cpp`、`atomic_result.h`、`fuse_algorithm.cpp`。
+  - 只需少量代码路径辅助核对事实源：`track.h`、`track.cpp`、`atomic_result.h`、`fuse_algorithm.cpp`、`humanpose_model.cpp`、`handpose_model.cpp`。
   - baseline 与历史 delta 已全部降级为 `default_entry: false`，不再承担默认恢复职责。
   - 默认情况下不再要求拼接 baseline 或两篇及以上 delta 才能理解当前态。
+  - 代码里仍存在 fallback 输出路径，但 current 文档已经明确把该风险归入验证边界，而不是恢复入口缺口。
 - 保留限制：
   - 该判定只说明“当前态可单次恢复”，不等价于“运行效果已验证闭环”。
   - 若默认恢复 bundle、事实源代码路径或历史文档入口关系变化，必须重新判定本节。
@@ -89,14 +123,17 @@ updated_at: 2026-04-03
 
 - 03-27 审核记录中的有效 blocker 已收敛到本文件
 - 03-31 手部连续性优化的收益与风险判断也已收敛到本文件
+- 2026-04-05 DMS 主驾打哈欠误报修复的 accepted-with-risks 结论已收敛到本文件，但仍保留残余风险描述
+- 当前 validation 仅负责证据与边界判定，不承担设计职责或实现职责
 
-## Current Sync Rule
+## 0.7 Current Sync Rule
 
 - must_update_when:
   - 已有证据等级变化
   - 功能审核 blocker 被关闭或新增
   - hand continuity 的收益/风险评估变化
   - 默认恢复所需的验证边界变化
+  - DMS driver false-yawn 的 acceptance standard 或风险边界变化
 - absorbs_history_from:
   - `多目标跟踪功能审核记录-2026-03-27.md`
   - `多目标跟踪设计失配修复未闭环记录-2026-03-27.md`

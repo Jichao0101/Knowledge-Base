@@ -2,16 +2,16 @@
 type: knowledge
 status: verified
 domain: 工程工作流
-topic: Agent驱动知识库与代码库协同闭环规范
+topic: Agent驱动知识库、代码库与板端侧协同闭环规范
 sources: ["内部方法论整理"]
-scope: 适用于使用 Agent 连接知识库与代码库，在受控知识检索、方案设计、代码实现、验证和回写沉淀之间形成闭环的通用工程协作流程
-risks: ["项目特例误沉淀为正式知识", "代码优化越过需求边界", "知识库与代码库规则不一致导致越权修改", "外部信息未经审核直接进入正式知识区", "主代理 orchestration 职责不清导致角色漂移"]
-updated_at: 2026-04-02
+scope: 适用于使用 Agent 连接知识库、代码库与智驾芯片板端侧，在受控知识检索、方案设计、代码实现、上板执行、日志采集、效果评估、状态回写和知识沉淀之间形成三侧闭环的通用工程协作流程
+risks: ["项目特例误沉淀为正式知识", "代码优化越过需求边界", "知识库与代码库规则不一致导致越权修改", "板端执行环境与仓库实现脱节", "板端日志和效果评估未回流仓库审查", "外部信息未经审核直接进入正式知识区", "主代理 orchestration 职责不清导致角色漂移"]
+updated_at: 2026-04-07
 ---
 
 ## 0.1 摘要
 
-本文档定义 Agent 双侧闭环的上位规则，目标是让**知识依据、实施方案、代码改动、验证结果、知识沉淀**保持一致。  
+本文档定义 Agent 三侧闭环的上位规则，目标是让**知识依据、实施方案、代码改动、板端执行结果、效果评估、状态回写与知识沉淀**保持一致。
 它只定义制度边界，不承载运行模板细节。
 
 ---
@@ -27,26 +27,30 @@ updated_at: 2026-04-02
 
 配套文档分层如下：
 
-- 上位规范：`01_Knowledge/Agent Workflow/Agent驱动知识库与代码库协同闭环规范.md`
-- 运行规范：`01_Knowledge/Agent Workflow/Agent双侧运行规范与调度模板.md`
-- 文件规范：`01_Knowledge/Agent Workflow/Agent双侧模板与文件结构规范.md`
+- 上位规范：`01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范.md`
+- 运行规范：`01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板.md`
+- 文件规范：`01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范.md`
 
 ---
 
 ## 0.3 系统目标
 
-双侧闭环至少要覆盖五步：
+三侧闭环至少要覆盖六步：
 
 1. 受控检索
 2. 受约束规划
 3. 边界内实施
-4. 分级验证与独立审查
-5. 分区回写与候选沉淀
+4. 板端执行与产物采集
+5. 分级验证与 repo review
+6. 分区回写、板端结果同步与候选沉淀
 
-它主要防止四类断裂：
+它主要防止六类断裂：
 
+- 只改代码不上板，无法进入软硬件效果闭环
 - 只改代码，不回写知识
+- 板端已运行，但日志与效果评估未进入 repo review
 - 只写方案，不真正落地
+- 板端状态已变化，但知识 current 与验证事实未同步
 - 外部信息直接污染正式知识
 - 主代理、实施者、reviewer、closer 职责漂移
 
@@ -118,7 +122,7 @@ updated_at: 2026-04-02
 
 ---
 
-## 1.2 双侧职责划分
+## 1.2 三侧职责划分
 
 ### 1.2.1 知识库侧职责
 
@@ -150,16 +154,62 @@ updated_at: 2026-04-02
 
 代码库侧不负责知识分区和沉淀门槛。
 
-### 1.2.3 双侧协同关系
+### 1.2.3 board 侧职责
 
-知识库侧与代码库侧共同构成双侧约束：
+board 侧负责“**代码在哪块板上运行、如何采集执行产物、板端状态如何推进与回流**”，本质上是板端执行与效果验证规则。
+
+board 侧应回答：
+
+- 目标板端是什么，例如哪块智驾芯片板、哪套固件或运行环境
+- 通过什么 SSH 入口、部署路径和执行命令完成上板运行
+- 运行时需要采集哪些日志、指标、trace、录像或效果产物
+- 何时可从 `board_ready / package_deployed / running / artifacts_collected / analyzed` 推进到完成态
+- 板端失败、超时、环境异常或效果不达标时如何回流到 repo 侧返工
+- 哪些板端日志摘要、效果评估和回写结果必须进入项目区与知识区
+
+board 侧不直接做代码质量裁决，不替代知识分区与知识转正审查。
+
+### 1.2.4 三侧协同关系
+
+知识库侧、代码库侧与 board 侧共同构成三侧约束：
 
 - 知识库侧负责“知道什么、写回哪里”
 - 代码库侧负责“怎么改、改到哪、如何验证”
+- board 侧负责“在哪里运行、产出什么执行证据、板端状态如何流转”
 
-两者缺一不可。  
-如果只有知识库规则而没有工程规则，Agent 可能知道该做什么，但无法安全落地。  
-如果只有工程规则而没有知识治理规则，Agent 可能能改代码，但无法形成可复用闭环。
+三者缺一不可。
+如果只有 knowledge + repo，而没有 board，Agent 可以形成工程内闭环，但无法形成“上板执行、日志采集、效果验证”的软硬件闭环。
+如果只有 board + repo，而没有知识治理规则，Agent 可能完成上板测试，但无法沉淀可复用知识。
+如果只有 board + knowledge，而没有工程规则，Agent 可能知道为什么做，也知道写回哪里，但无法安全落地。
+
+### 1.2.5 三侧核心属性
+
+#### 1.2.5.1 knowledge side
+
+- 核心目标：提供受控知识依据，决定写回分区与沉淀门槛
+- 主要输入：`allowed_paths`、项目 current、来源材料、板端关联知识范围
+- 主要输出：知识依据、实施约束、writeback targets、候选与转正建议
+- 权限边界：不直接实施代码，不直接替代 repo review 做板端效果裁决，不直接提升未审内容
+- 状态责任：维护 knowledge sync、current 收敛、single-pass recoverability
+- 同步关系：接收板端执行约束，为 repo 实施提供依据，并在完成后接收 repo/board 结果写回
+
+#### 1.2.5.2 repo side
+
+- 核心目标：在授权范围内完成实现、修复、验证与独立代码审查
+- 主要输入：板端目标、knowledge 计划、repo_scope、verification plan
+- 主要输出：diff、验证结果、板端运行命令、repo review 结论、回归风险
+- 权限边界：不替代知识沉淀，但负责汇总板端日志与效果评估结论
+- 状态责任：推进 `implementation_done`、`board_executed`、`repo_review_done`
+- 同步关系：从 knowledge side 获取约束，把构建产物部署到 board side，并把实现事实和板端证据回流给两侧
+
+#### 1.2.5.3 board side
+
+- 核心目标：作为智驾芯片板端执行侧，承接部署、运行、日志产出与效果观察
+- 主要输入：构建产物、SSH 目标、部署路径、运行命令、采集路径、超时与安全约束
+- 主要输出：板端日志、trace、效果指标、运行状态与失败信号
+- 权限边界：不直接修改仓库代码，不独立给出最终质量裁决，不替代知识分区
+- 状态责任：维护 `board_ready / package_deployed / running / artifacts_collected / analyzed / failed / completed`
+- 同步关系：接收 repo 产物与命令，在板端生成执行证据，再由 repo review 汇总为质量结论
 
 ---
 
@@ -167,10 +217,12 @@ updated_at: 2026-04-02
 
 稳定规则不应依赖单次任务 prompt 重复注入，而应外置为长期约束。
 
-### 1.3.1 应外置到知识库/代码库 `AGENTS.md` 的内容
+### 1.3.1 应外置到知识库/代码库/board 侧 `AGENTS.md` 或等价制度文件的内容
 
 - 知识分区语义
 - 可访问范围
+- 板端执行合同
+- 板端状态映射与回写协议
 - 高风险修改边界
 - 测试与验证要求
 - 禁止事项
@@ -210,7 +262,7 @@ updated_at: 2026-04-02
 - 控制层：`workflow-orchestrator`
 - 执行层：`knowledge-planner`、`source-ingestor`、`repo-coder`、`repo-reviewer`、`knowledge-closer` 与按需扩展角色
 
-其中 `workflow-orchestrator` 默认表示**主代理在双侧闭环任务中的 orchestration 职责模式**，默认由 Codex 主代理承担，而不是默认显式启动的普通子代理。
+其中 `workflow-orchestrator` 默认表示**主代理在三侧闭环任务中的 orchestration 职责模式**，默认由 Codex 主代理承担，而不是默认显式启动的普通子代理。
 
 至少建议固化以下执行层角色：
 
@@ -255,10 +307,11 @@ updated_at: 2026-04-02
 职责：
 
 - 读取知识库侧规则
+- 解析板端执行目标或显式判断本轮是否为“无板端执行”
 - 识别 `primary_type` 与 `task_modifiers`
 - 确定允许访问范围
 - 检索项目区与相关正式知识
-- 形成实施计划、验证计划与建议回写路径
+- 对 `incident_investigation` 先形成调查计划、证据缺口分析、分类候选与路由前提；对 plan-first 任务再形成实施计划、验证计划与建议回写路径
 - 输出验证等级与非目标项
 
 约束：
@@ -270,10 +323,12 @@ updated_at: 2026-04-02
 其主要产出是：
 
 - 任务判断
+- 板端执行判断
 - 知识依据
 - 约束与风险
-- 实施计划
-- 验收与验证建议
+- 调查计划或实施计划
+- 板端执行与验证建议
+- 板端映射建议
 - 建议回写路径
 - `verification_tier`
 
@@ -284,6 +339,7 @@ updated_at: 2026-04-02
 - 读取代码库侧规则
 - 按计划在允许范围内实施修改
 - 执行最小必要验证
+- 在需要时通过 SSH 或等价通道完成上板部署与运行
 - 记录修改文件、修改原因和方案外优化
 
 约束：
@@ -305,6 +361,7 @@ updated_at: 2026-04-02
 - 实际改动文件
 - 改动原因
 - 验证结果
+- 板端执行记录
 - 方案外优化记录
 - 未覆盖风险
 - 对 reviewer 发现的返工实现
@@ -317,6 +374,7 @@ updated_at: 2026-04-02
 - 判断改动是否满足目标与约束
 - 识别 blocker / major / minor 风险
 - 判断是否可以进入闭环回写阶段
+- 基于板端日志、指标和效果产物做最终质量判断
 
 约束：
 
@@ -330,7 +388,7 @@ updated_at: 2026-04-02
 - 风险分级
 - 未覆盖边界
 - 回归缺口
-- 是否允许进入回写
+- 板端效果评估结论
 - 是否需要返工以及返工建议
 
 ### 2.2.5 `knowledge-closer`
@@ -339,6 +397,7 @@ updated_at: 2026-04-02
 
 - 根据任务结果进行分区回写
 - 更新 `02_Projects/`
+- 输出 board 回写摘要与状态同步结果
 - 将可复用结论标记为 `01_Knowledge/` 候选
 - 将未审核内容放入 `03_Inbox/` 或 `04_Sources/`
 
@@ -351,6 +410,7 @@ updated_at: 2026-04-02
 其主要产出是：
 
 - 项目区更新
+- board 回写摘要
 - 正式知识候选
 - 候选/来源归档
 - 闭环完成记录
@@ -415,7 +475,7 @@ updated_at: 2026-04-02
 
 - 任务核心是功能符合度审核
 - 需要对规范与行为证据做逐项比对
-- 需要独立于一般代码审查的验收判断
+- 需要对规范要求与板端效果证据做逐项比对
 
 不启用时由谁兜底：
 
@@ -426,6 +486,7 @@ updated_at: 2026-04-02
 - 负责规范符合度与行为证据审查
 - 不直接修改代码
 - 不替代 `knowledge-closer` 做知识回写
+- 不替代 `repo-reviewer` 做最终质量裁决
 
 输入输出契约：
 
@@ -440,6 +501,7 @@ updated_at: 2026-04-02
 
 何时启用：
 
+- `primary_type = incident_investigation`
 - 复杂 `primary_type = bug_fix`
 - 根因假设存在多分支竞争
 - 多轮返工后仍不能稳定收敛
@@ -451,13 +513,14 @@ updated_at: 2026-04-02
 边界：
 
 - 负责故障模式拆解、根因路径收敛与最小验证路径设计
+- 在 board-first 模式下负责区分根因、表象、伴随噪声与环境问题
 - 不直接改代码
 - 不做最终审查裁决
 
 输入输出契约：
 
-- 输入：预期行为、实际行为、日志、复现路径、相关代码线索
-- 输出：故障树、根因假设、证据优先级、最小验证路径、是否需要 replan
+- 输入：预期行为或设计预期状态、实际行为或观测现象、日志、trace、指标、复现路径或触发条件、相关代码线索
+- 输出：故障树、根因假设、证据优先级、最小验证路径、分类建议、probe 优先级、是否需要 replan
 
 是否进入默认调度链：
 
@@ -491,8 +554,6 @@ updated_at: 2026-04-02
 
 - 否
 
----
-
 ## 2.4 角色独立性原则
 
 角色之间的独立性不是绝对隔离，而是输入与职责的受控分离。
@@ -518,6 +579,7 @@ updated_at: 2026-04-02
 原因包括：
 
 - 原 coder 保留了实现期的局部代码上下文与验证经验
+- 板端执行失败或效果不达标后的返工也应默认回到原 `repo-coder`，而不是由主代理直接接管实现
 - 主调度 agent 应维持编排职责，避免角色漂移
 - reviewer 的独立性并不要求切换修复责任人，而是要求独立给出审查结论
 - 返工责任回到原 coder，更容易形成“实现 -> 审查 -> 返工 -> 重审”的稳定闭环
@@ -1072,11 +1134,11 @@ Agent 可以实现方案中未明确列出的优化项，但必须满足以下�
 
 ---
 
-# 9.1 文档收敛与当前态治理
+# 10 文档收敛与当前态治理
 
-双侧闭环不仅要记录“发生过什么”，还要维护“现在系统是什么”。
+三侧闭环不仅要记录“发生过什么”，还要维护“现在系统是什么”以及“board 当前状态与验收事实是什么”。
 
-## 9.1.1 文档角色分层
+## 10.1 文档角色分层
 
 项目区与知识区中的设计/实现文档必须按以下角色分层：
 
@@ -1089,7 +1151,7 @@ Agent 可以实现方案中未明确列出的优化项，但必须满足以下�
 默认回写策略必须为“更新 `current` 并压缩历史”，而不是“新增 `delta` 记录变化”。
 除非满足本章定义的 `delta_only` 例外条件，否则不得只写 `delta` 而不更新相关 `current`。
 
-## 9.1.2 状态标记与结构化字段
+## 10.2 状态标记与结构化字段
 
 文档除原有 `status` 外，必须增加或等价表达以下结构化字段：
 
@@ -1123,21 +1185,71 @@ Agent 可以实现方案中未明确列出的优化项，但必须满足以下�
 - `default_entry = true` 的文档必须同时具备 `retrieval_priority = current`
 - `baseline / delta / archive` 默认 `default_entry = false`
 
-## 9.1.3 current 真相源原则
+## 10.3 current 真相源原则
 
-- `current` 文档回答“现在系统是什么”，而不是“曾经如何演化”
-- `design_current` 负责描述当前设计真相，但不默认承担全部实现级硬约束
-- `spec_current` 负责承接当前实现规范；若实现仍需依赖 baseline 或历史 delta 才能补齐关键约束，则视为收敛失败
-- `implementation_current` 与 `validation_current` 分别承接“代码当前事实”和“证据当前事实”，避免把现状、规范和证据混写在一份 current 中
+`current` 文档组的目标不是“给出几个当前文档入口”，而是以**最小 current 文档组单次恢复当前系统的设计、规范、实现事实、验证边界与已知缺口**。
+
+它必须共同回答以下六个问题：
+
+1. 现在系统目标和边界是什么
+2. 现在系统按什么设计组织
+3. 现在系统按什么规范实现
+4. 现在代码事实是什么
+5. 现在已证明和未证明什么
+6. 当前已知缺口与风险是什么
+
+若 coder / reviewer / verifier 仍需默认依赖 baseline、两篇及以上 delta、或大段代码阅读才能恢复关键当前态，则视为 `current` 文档组粒度不足，`single_pass_recoverable = false`。
+
+### 10.3.1 current_kind 强职责与排他边界
+
+- `overview_current`
+  - 必须承担：唯一默认入口声明、默认恢复顺序、默认实现输入链、`default_recovery_bundle`、历史文档角色映射、当前真相源集合声明、当前入口排他声明
+  - 不得承担：机制级规范细节主体、代码逐层实现映射主体、具体验证结论主体
+- `design_current`
+  - 必须承担：当前设计目标与边界、当前模块分层与数据流、当前关键状态/生命周期/对象耦合的设计组织、当前设计约束、非目标项、当前仍开放的设计级问题
+  - 不得承担：代码路径级事实主体、完整验证证据主体、逐项配置语义主体
+- `spec_current`
+  - 必须承担：当前版本必须遵守的机制级规范事实，以及在相应机制存在时的 `object model / required behaviors / core state variables / interface contracts / calculation rules / type or attribute computation / motion or filter model / state or transition rules / config contract / verification contract`
+  - 不得承担：逐行代码细节、完整数学推导全集、纯实验记录、纯历史叙事
+- `implementation_current`
+  - 必须承担：当前代码入口路径、关键容器/结构体/类/函数映射、design/spec 到代码的映射关系、当前实现中的关键约束、实际分支、兼容层，以及当前代码事实与规范间的已知不完全闭合点
+  - 不得承担：规范性行为定义主体、验证结论主体
+- `validation_current`
+  - 必须承担：当前已持有证据、当前证据缺口、当前能证明什么、当前不能证明什么、当前 review / verification 结论、下一轮必须补的验证
+  - 不得承担：用猜测替代证据、用“待验证”替代规范定义、承接设计或实现主体职责
+
+### 10.3.2 current 组互补关系
+
+- `overview / design / spec / implementation / validation` 不是并列可选说明文档，而是恢复当前态的互补组
+- 若某项关键当前事实既不在 `design/spec`，也不在 `implementation/validation` 中，则视为 current 组缺口
+- 若某项事实被写入错误 `current_kind`，导致默认恢复链不能稳定裁剪，也视为收敛失败
+- 设计目标、结构边界、机制约束、代码落点、证据边界必须各归其位，不能通过“混写一篇 current”规避职责分层
+- evidence 应优先下沉到 `validation_current`、`delta` 或来源文档；历史叙事应留在 `delta / adr / archive`；只有当前稳定真相才上收为 current 主体
+
+### 10.3.3 overview_current 额外门禁
+
 - 若同一持续演化主题存在 2 份及以上 `current` 文档，则必须存在 `overview_current`
 - `overview_current` 必须声明：
-  - 默认恢复顺序
-  - 默认实现输入链
-  - 历史文档角色分层
-  - `default_recovery_bundle`
-- 若当前态必须依赖 baseline 或 2 篇及以上 delta 才能恢复，则视为文档系统未收敛，`single_pass_recoverable = false`
+  - `Current Scope`
+  - `Current Truth`
+  - `Current Boundaries`
+  - `Default Recovery Order`
+  - `Default Implementation Input Chain`
+  - `Default Recovery Bundle`
+  - `Current Document Roles`
+  - `Current Recovery Rule`
+  - `Known Gaps`
+  - `Historical Mapping`
+  - `Current Sync Rule`
+- 若多份 current 并存，但 `overview_current` 未能排除 baseline / interfaces / delta 的默认入口地位，则 `default_entry` 校验失败
+- 若 `default_recovery_bundle` 不能支撑单次恢复当前态，则 `overview_current` 粒度不足
 
-## 9.1.3.1 默认实现输入链
+### 10.3.4 样例提醒
+
+Tracking 类主题暴露的典型问题不是“只缺一篇更细的 `spec_current`”，而是 current 组整体仍可能无法唯一恢复 body / face / hand 的设计边界、规范事实、代码映射和证据边界。
+因此规范必须整体收紧 `overview / design / spec / implementation / validation`，而不是只补单篇规范。
+
+## 10.4 默认实现输入链
 
 若任务目标是“按照规范实现代码”，默认实现输入链必须为：
 
@@ -1148,15 +1260,16 @@ Agent 可以实现方案中未明确列出的优化项，但必须满足以下�
 
 其中：
 
-- `design_current` 提供设计边界与目标
-- `spec_current` 提供必须满足的行为约束、接口契约、状态规则和非目标项
-- `implementation_current` 提供当前代码事实，帮助识别应改哪里
-- `validation_current` 提供当前证据边界，帮助确定验证计划
+- `design_current` 提供设计边界、对象/模块组织、关键状态与非目标项
+- `spec_current` 提供必须满足的机制级规范事实；若存在状态、计算、类型、滤波、配置或验证机制，对应约束不得缺位
+- `implementation_current` 提供当前代码事实、关键实现载体以及 design/spec 到代码的映射，帮助识别应改哪里
+- `validation_current` 提供当前证据边界、已证实/未证实结论与下一轮验证要求，帮助确定验证计划
 
 `baseline` 与 `delta` 不得作为 `implementation / bug_fix / optimization` 类任务的默认实现入口，只能在追溯来源、证据或历史决策时按需回读。
 若主题已存在 `spec_current`，coder 不得绕过 `spec_current` 直接基于 baseline 或 delta 实施。
+若 coder 仍需依赖 baseline、两篇及以上 delta、或大段代码阅读才能恢复行为约束、状态语义、关键计算链、滤波模型、类型计算或配置语义，则 `spec_current` 粒度不足。
 
-## 9.1.4 强制收敛规则与 `delta_only` 例外
+## 10.5 强制收敛规则与 `delta_only` 例外
 
 默认情况下，以下变化必须同步更新 `current`：
 
@@ -1178,7 +1291,7 @@ Agent 可以实现方案中未明确列出的优化项，但必须满足以下�
 
 若不满足上述任一条件，则 `delta_only` 不成立，必须改为 `current_patch`、`current_rewrite` 或 `adr_only`。
 
-## 9.1.5 delta 生命周期与数量门禁
+## 10.6 delta 生命周期与数量门禁
 
 `delta` 的生命周期必须遵守以下规则：
 
@@ -1192,7 +1305,7 @@ Agent 可以实现方案中未明确列出的优化项，但必须满足以下�
 - 同一主题已有 3 篇 delta 时，禁止新增第 4 篇 delta，必须先重写或重整 current
 - 若 reviewer 或 knowledge-auditor 判定 delta 已污染当前态检索，则即使数量未到阈值，也必须优先压缩
 
-## 9.1.6 baseline / adr / archive 规则
+## 10.7 baseline / adr / archive 规则
 
 - `baseline` 只保留原始设计 / 实现起点，不接受滚动式正文续写
 - `baseline` 只能更新 frontmatter、替代关系、状态说明和引用入口说明
@@ -1200,7 +1313,7 @@ Agent 可以实现方案中未明确列出的优化项，但必须满足以下�
 - `adr / decision_ledger` 用于承接仍需独立保留的决策，而不是替代 current 承担当前态说明
 - `archive` 只承担审计价值，不参与默认检索和默认实现输入链
 
-## 9.1.7 knowledge_sync_check 强制决议
+## 10.8 knowledge_sync_check 强制决议
 
 当以下对象发生变化时，闭环必须显式执行 `knowledge_sync_check`：
 
@@ -1226,10 +1339,14 @@ Agent 可以实现方案中未明确列出的优化项，但必须满足以下�
 3. 既有 `delta` 是否应转为 `merged`
 4. baseline 或旧 current 是否应改为 `superseded`
 5. `default_entry` 与 `retrieval_priority` 是否需要调整
+6. `overview / design / spec / implementation / validation` 是否仍承担正确职责
+7. 是否存在关键事实只留在 baseline、delta 或代码中
+8. `default_recovery_bundle` 是否仍足以支撑单次恢复
+9. 哪些信息应上收、下沉或只保留为 evidence
 
 若答案不明确，不得默认跳过知识同步。
 
-## 9.1.8 检索优先级、single-pass recoverability 与回写门禁
+## 10.9 检索优先级、single-pass recoverability 与回写门禁
 
 默认检索优先级从高到低必须为：
 
@@ -1242,13 +1359,25 @@ Agent 可以实现方案中未明确列出的优化项，但必须满足以下�
 
 若检索系统或人工入口不能表达上述优先级，必须至少通过文件命名、目录组织和状态头提示降低历史文档误命中概率。
 
-`single_pass_recoverable` 的最低判定标准为：
+`single_pass_recoverable = true` 仅在同时满足以下条件时成立：
 
-- 当前模块目标与边界可由 current 单次恢复
-- 当前主流程、状态机或生命周期可由 current 单次恢复
-- 当前接口或结果事实源可由 current 单次恢复
-- 当前已知限制与未闭环项可由 current 单次恢复
-- 历史文档与 current 的替代/合并关系可由状态头单次判定
+1. `overview_current` 可单次确定默认入口、默认恢复顺序、默认实现输入链和 current 真相源集合
+2. `design_current` 可单次恢复当前设计目标、边界、主流程和关键机制组织
+3. `spec_current` 可单次恢复当前版本必须遵守的机制级规范事实
+4. `implementation_current` 可单次恢复主要代码入口、关键实现载体与规范映射
+5. `validation_current` 可单次恢复当前已证实/未证实边界
+6. baseline 和 delta 仅用于追溯来源，而不是补 current 主体缺口
+7. 关键状态变量、关键计算口径、关键接口事实、关键验证缺口不得只存在于代码或 delta 中
+
+补充硬规则：
+
+- 若 `design_current` 只写高层图景，不能支撑 `spec_current` 的机制落点，则视为粒度不足
+- 若 `implementation_current` 只列文件路径和函数名，不能解释 design/spec 落在哪些代码载体上，则视为粒度不足
+- 若 `validation_current` 只能写“待验证”，却不能明确哪些结论已证明、哪些未证明、缺什么证据，则视为粒度不足
+- 若某个当前风险在 `validation_current` 中不可判定，则视为验证边界未收敛
+- 若 `overview_current` 未排除 baseline、interfaces 或 delta 的默认入口地位，则 `default_entry` 校验失败
+- 若 `spec_current` 只能写“应该怎么做”，不能写清“按什么机制和什么约束去做”，则视为粒度不足
+- 若 coder / reviewer / verifier 仍需默认回读 baseline、两篇及以上 delta 或大段代码才能补齐关键当前态，则必须判定 `single_pass_recoverable = false`
 
 对项目区和知识区的 writeback，除原有来源/审查门槛外，还必须同时满足：
 
@@ -1263,9 +1392,9 @@ Agent 可以实现方案中未明确列出的优化项，但必须满足以下�
 
 ---
 
-# 10 结论
+# 11 结论
 
-Agent 双侧闭环规范的关键，不是增加多少角色，而是把控制层与执行层分开，把状态推进从描述升级为门禁，把验证、返工、回写和审计放入同一套受控系统。
+Agent 三侧闭环规范的关键，不是增加多少角色，而是把控制层与执行层分开，把 board 入口、repo 实施、board 验收、知识回写和审计放入同一套受控系统。
 
 在该体系下：
 
