@@ -3,16 +3,16 @@ type: knowledge
 status: verified
 domain: 工程工作流
 topic: Agent三侧模板与文件结构规范
-sources: ["内部方法论整理", "01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范.md"]
-scope: 适用于需要在知识库根目录、代码库根目录与板端执行记录层布置三侧 AGENTS.md、角色 toml 配置和任务模板骨架的通用场景。
-risks: ["将规范文档误当成项目实例直接执行", "未按具体仓库裁剪允许范围", "板端记录与知识 current 职责重叠", "角色模板与实际工具链不匹配", "把运行状态机错误塞入文件结构规范"]
+sources: ["内部方法论整理", "01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范.md", "01_Knowledge/Agent Workflow/Agent三侧角色契约规范.md"]
+scope: 适用于需要在知识库根目录、代码库根目录与板端执行记录层布置三侧 AGENTS.md、角色 toml 配置、角色契约引用和日志模板骨架的通用场景。
+risks: ["将规范文档误当成项目实例直接执行", "未按具体仓库裁剪允许范围", "板端记录与知识 current 职责重叠", "角色模板与实际工具链不匹配", "把运行状态机或角色契约错误塞入文件结构规范"]
 updated_at: 2026-04-07
 ---
 
 ## 0.1 摘要
 
-本文档给出三侧 `AGENTS.md`、角色 `toml` 和日志模板的放置方式与骨架。
-它只描述“文件怎么放”，不描述“任务怎么调度”。
+本文档给出三侧 `AGENTS.md`、`.codex/agents/*.toml`、角色契约引用位和日志模板的放置方式与骨架。
+它只描述“文件怎么放”，不描述“任务怎么调度”，也不承接角色契约细则。
 
 ---
 
@@ -23,14 +23,15 @@ updated_at: 2026-04-07
 ```text
 knowledgeBase/
 ├── AGENTS.md
-├── agents/
-│   ├── workflow-orchestrator.toml
-│   ├── knowledge-planner.toml
-│   ├── knowledge-closer.toml
-│   ├── source-ingestor.toml
-│   ├── verification-manager.toml
-│   ├── failure-analyst.toml
-│   └── knowledge-auditor.toml
+├── .codex/
+│   └── agents/
+│       ├── workflow-orchestrator.toml
+│       ├── knowledge-planner.toml
+│       ├── knowledge-closer.toml
+│       ├── source-ingestor.toml
+│       ├── verification-manager.toml
+│       ├── failure-analyst.toml
+│       └── knowledge-auditor.toml
 ├── logs/
 │   ├── run_log.template.md
 │   └── audit_log.template.md
@@ -38,6 +39,7 @@ knowledgeBase/
 │   └── Agent Workflow/
 │       ├── Agent驱动知识库、代码库与板端侧协同闭环规范.md
 │       ├── Agent三侧运行规范与调度模板.md
+│       ├── Agent三侧角色契约规范.md
 │       └── Agent三侧模板与文件结构规范.md
 ├── 02_Projects/
 │   └── <Project>/
@@ -58,16 +60,18 @@ knowledgeBase/
 - `verification-manager.toml`、`failure-analyst.toml`、`knowledge-auditor.toml` 为可选扩展角色骨架
 - `02_Projects/<Project>/Board/` 用于存放板端执行摘要、目标配置、执行产物与状态回写记录
 - `logs/` 仅提供日志模板骨架，不在本文档中承载运行逻辑
+- 角色职责边界、最小输入输出与停止条件统一写入 `Agent三侧角色契约规范.md`，而不是散落在运行模板中重复定义
 
 ### 0.2.2 代码库侧
 
 ```text
 repo-root/
 ├── AGENTS.md
-├── agents/
-│   ├── repo-coder.toml
-│   ├── repo-reviewer.toml
-│   └── functional-reviewer.toml
+├── .codex/
+│   └── agents/
+│       ├── repo-coder.toml
+│       ├── repo-reviewer.toml
+│       └── functional-reviewer.toml
 ├── logs/
 │   ├── run_log.template.md
 │   └── audit_log.template.md
@@ -88,7 +92,7 @@ repo-root/
 ### 0.3.1 应放在知识库根目录的内容
 
 - 知识库侧 `AGENTS.md`
-- 知识侧角色 `toml`
+- 知识侧 `.codex/agents/*.toml`
 - 板端执行记录和状态回写记录
 - 用于治理知识访问、候选入库、来源分区的长期规则
 - `run_log / audit_log` 模板骨架
@@ -96,7 +100,7 @@ repo-root/
 ### 0.3.2 应放在代码库根目录的内容
 
 - 代码库侧 `AGENTS.md`
-- 实施侧角色 `toml`
+- 实施侧 `.codex/agents/*.toml`
 - 用于约束修改边界、验证要求和高风险停止条件的长期规则
 - 项目级 `run_log / audit_log` 模板骨架
 
@@ -108,8 +112,9 @@ repo-root/
 - 调度顺序逻辑
 - stop / confirm / replan 规则细节
 - reviewer 返工升级策略
+- 角色契约细则
 
-这些内容应放在运行规范中。
+这些内容应分别放在运行规范或角色契约规范中。
 
 ---
 
@@ -927,8 +932,8 @@ optional = [
 ## 0.8 使用方式
 
 1. 先阅读 [[01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范]]。
-2. 按本文档给出的文件树，在知识库根目录和代码库根目录生成实体 `AGENTS.md`、`logs/*.template.md` 与 `agents/*.toml`。
-3. 再阅读 [[01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板]]，按运行状态机和调度模板实例化任务。
+2. 按本文档给出的文件树，在知识库根目录和代码库根目录生成实体 `AGENTS.md`、`logs/*.template.md` 与 `.codex/agents/*.toml`。
+3. 再阅读 [[01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板]] 与 [[01_Knowledge/Agent Workflow/Agent三侧角色契约规范]]，按运行状态机、角色集合派生和轻实例 prompt 方式实例化任务。
 
 这样可以避免把“稳定模板规范”和“项目实例化调度”混在一起。
 
@@ -1353,7 +1358,7 @@ updated_at:
 - why_delta_only_allowed:
 ```
 
-### 0.9.9 baseline 文档头部约束
+### 0.9.10 baseline 文档头部约束
 
 baseline 默认不要求重写正文，但文首应明确：
 
@@ -1365,7 +1370,7 @@ baseline 默认不要求重写正文，但文首应明确：
 - 哪些 `overview_current / design_current / spec_current / implementation_current / validation_current` 替代了其当前入口职责
 - 本文件不接受滚动式正文续写
 
-### 0.9.10 日志模板补充字段
+### 0.9.11 日志模板补充字段
 
 `run_log` 与 `audit_log` 模板在涉及文档收敛任务时，必须增加：
 
@@ -1377,7 +1382,7 @@ baseline 默认不要求重写正文，但文首应明确：
 - `default_entry_verified`
 - `single_pass_recoverable`
 
-### 0.9.11 board side 存放原则
+### 0.9.12 board side 存放原则
 
 board side 信息默认属于项目工作区，而不是正式知识区。推荐放置在：
 
@@ -1405,7 +1410,7 @@ board side 信息默认属于项目工作区，而不是正式知识区。推荐
 - knowledge current 不能承担单卡生命周期记录
 - board evidence 可以引用 knowledge / repo 证据，但不得覆盖其真相源职责
 
-### 0.9.12 board target 最小 frontmatter
+### 0.9.13 board target 最小 frontmatter
 
 ```yaml
 ---
@@ -1437,7 +1442,7 @@ updated_at:
 ---
 ```
 
-### 0.9.13 board target 正文骨架
+### 0.9.14 board target 正文骨架
 
 ```md
 ## 0.1 Target

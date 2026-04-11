@@ -3,16 +3,16 @@ type: knowledge
 status: verified
 domain: 工程工作流
 topic: Agent三侧运行规范与调度模板
-sources: ["内部方法论整理", "01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范.md", "01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范.md"]
-scope: 适用于需要将三侧闭环规则包装成可运行流程，包括板端目标绑定、状态推进、调度 prompt、角色输入输出契约与回写要求的场景。
-risks: ["运行规范过重导致单次任务负担过大", "板端执行被退化为附属说明", "项目特例被误提升为通用步骤", "角色契约与实际工具链不一致", "扩展角色加入后模板不同步导致制度与运行脱节"]
+sources: ["内部方法论整理", "01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范.md", "01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范.md", "01_Knowledge/Agent Workflow/Agent三侧角色契约规范.md"]
+scope: 适用于需要将三侧闭环规则包装成可运行流程，包括板端目标绑定、状态推进、角色集合派生、返工升级和轻实例 prompt 约束的场景。
+risks: ["运行规范过重导致单次任务负担过大", "板端执行被退化为附属说明", "项目特例被误提升为通用步骤", "角色契约与运行规范重复维护", "扩展角色加入后分层失效导致制度与运行脱节"]
 updated_at: 2026-04-07
 ---
 
 ## 0.1 摘要
 
 本文档定义三侧闭环的运行层，回答“系统怎么跑起来”。
-它承接任务入口、状态门禁、角色调度、返工升级、日志记录和 prompt 模板。
+它承接任务入口、状态门禁、角色调度、返工升级、日志记录和轻实例 prompt 规则。
 
 ---
 
@@ -21,7 +21,8 @@ updated_at: 2026-04-07
 三层文档的分工如下：
 
 - 上位规范：制度、边界、门槛
-- 运行规范：状态机、调度、返工、模板
+- 运行规范：状态机、调度、返工、任务属性到角色集合的派生
+- 角色契约：角色边界、最小输入输出、停止条件与独立性要求
 - 文件结构规范：文件树、骨架、字段
 
 ---
@@ -566,74 +567,77 @@ repo review 与板端执行的关系：
 
 ---
 
-## 0.6 子代理调用矩阵
+## 0.6 任务属性到角色集合的派生矩阵
+
+本章只定义“什么任务默认需要哪些角色、哪些扩展角色按条件启用、哪些门禁不可跳过”。  
+角色边界、最小输入输出与停止条件，统一下沉到 [[01_Knowledge/Agent Workflow/Agent三侧角色契约规范]]。
 
 ### 0.6.1 `knowledge_task + read_only`
 
-- 主代理职责：确认允许范围、裁剪检索目标、维护轻量状态与输出
-- 必须显式调用的子代理：`knowledge-planner`
-- 条件启用的子代理：`source-ingestor`
-- 可被主代理轻量吸收的职责：最终汇总、轻量 writeback 建议
+- required_roles: `knowledge-planner`
+- conditional_roles: `source-ingestor`
+- hard_gates:
+  - 未明确允许范围不得进入执行
+  - 若允许联网，外部信息只允许进入候选区或来源区
 
 ### 0.6.2 `knowledge_task + requires_web + read_only`
 
-- 主代理职责：确认联网授权、限定候选落区、控制不进入正式知识
-- 必须显式调用的子代理：`knowledge-planner`、`source-ingestor`
-- 条件启用的子代理：`knowledge-auditor`
-- 可被主代理轻量吸收的职责：候选整理摘要
+- required_roles: `knowledge-planner`、`source-ingestor`
+- conditional_roles: `knowledge-auditor`
+- hard_gates:
+  - 未授权联网不得启动 `source-ingestor`
+  - 未经审查不得把外部信息写入正式知识区
 
 ### 0.6.3 `implementation + code_change_allowed + review_required`
 
-- 主代理职责：维护状态机、控制默认链路与返工轮次
-- 必须显式调用的子代理：`knowledge-planner`、`repo-coder`、`repo-reviewer`、`knowledge-closer`
-- 条件启用的子代理：`source-ingestor`、`verification-manager`
-- 可被主代理轻量吸收的职责：轻量确认点判断
-
-若为 `board_execution_required`，必须执行上板运行、产物采集和基于板端证据的 `repo-reviewer` 分析，缺一不可。
+- required_roles: `knowledge-planner`、`repo-coder`、`repo-reviewer`、`knowledge-closer`
+- conditional_roles: `source-ingestor`、`verification-manager`
+- hard_gates:
+  - 主代理不得吸收 `repo-coder` 实施职责
+  - review 未通过不得 writeback
+  - 若为 `board_execution_required`，必须完成上板运行、产物采集和基于板端证据的 `repo-reviewer` 分析
 
 ### 0.6.4 `bug_fix + code_change_allowed + review_required`
 
-- 主代理职责：确认预期行为、实际行为与根因路径是否充分
-- 必须显式调用的子代理：`knowledge-planner`、`repo-coder`、`repo-reviewer`、`knowledge-closer`
-- 条件启用的子代理：`failure-analyst`、`source-ingestor`、`verification-manager`
-- 可被主代理轻量吸收的职责：返工轮次控制
+- required_roles: `knowledge-planner`、`repo-coder`、`repo-reviewer`、`knowledge-closer`
+- conditional_roles: `failure-analyst`、`source-ingestor`、`verification-manager`
+- hard_gates:
+  - reviewer 必须独立实例或独立会话阶段
+  - review 未通过默认返工给原 `repo-coder`
+  - 若为 `board_execution_required`，不得跳过板端复现与验证
 
-若为 `board_execution_required`，必须增加板端执行与日志采集步骤。
+### 0.6.5 `incident_investigation + review_required`
 
-### 0.6.5 0.6.4A `incident_investigation + review_required`
-
-- 主代理职责：维护 investigation 状态机、控制 triage 门禁、控制 route decision、控制 reviewer 独立性
-- 必须显式调用的子代理：`knowledge-planner`、`failure-analyst`、`repo-reviewer`、`knowledge-closer`
-- 条件启用的子代理：`repo-coder`、`verification-manager`、`source-ingestor`
-- 可被主代理轻量吸收的职责：调查摘要编排、route decision 汇总
-
-该模式默认不要求先改代码。  
-若 investigation 需要补采样、补 trace、补日志或复现实验，可调用 `repo-coder` 做 instrumentation 或 probe，但不默认进入业务修复。
+- required_roles: `knowledge-planner`、`failure-analyst`、`repo-reviewer`、`knowledge-closer`
+- conditional_roles: `repo-coder`、`verification-manager`、`source-ingestor`
+- hard_gates:
+  - investigation 默认不要求先改代码
+  - `repo-coder` 优先承担 instrumentation / probe / capture，不默认修复业务逻辑
+  - 证据不足时允许 `investigation_closed`，不强行转入修复链
 
 ### 0.6.6 `optimization + code_change_allowed + review_required`
 
-- 主代理职责：控制不演化为结构性重构，维护收益验证门禁
-- 必须显式调用的子代理：`knowledge-planner`、`repo-coder`、`repo-reviewer`、`knowledge-closer`
-- 条件启用的子代理：`verification-manager`、`source-ingestor`
-- 可被主代理轻量吸收的职责：收益对比摘要
-
-若为 `board_execution_required`，必须增加板端执行与日志采集步骤。
+- required_roles: `knowledge-planner`、`repo-coder`、`repo-reviewer`、`knowledge-closer`
+- conditional_roles: `verification-manager`、`source-ingestor`
+- hard_gates:
+  - 不得把受控优化演化为结构性重构而不触发 `scope_creep`
+  - 收益验证和语义回归验证缺一不可
 
 ### 0.6.7 `audit + functional_scope + read_only`
 
-- 主代理职责：确认规范来源、证据优先级与只读边界
-- 必须显式调用的子代理：`knowledge-planner`、`functional-reviewer`
-- 条件启用的子代理：`source-ingestor`、`knowledge-closer`
-- 可被主代理轻量吸收的职责：验收条目整理
-
-若审核对象同时要求板端效果评估，则 `functional-reviewer` 只负责规范符合度，不替代 `repo-reviewer` 基于板端证据做最终裁决。
+- required_roles: `knowledge-planner`、`functional-reviewer`
+- conditional_roles: `source-ingestor`、`knowledge-closer`、`repo-reviewer`
+- hard_gates:
+  - `functional-reviewer` 只负责规范符合度，不替代 `repo-reviewer` 做板端效果裁决
+  - 证据不足时不得硬判定符合度
 
 ### 0.6.8 `knowledge_task + promotion_review + writeback_required`
 
-- 主代理职责：确认候选来源、边界、风险与证据链
-- 必须显式调用的子代理：`knowledge-closer`
-- 条件启用的子代理：`knowledge-auditor`、`source-ingestor`
-- 可被主代理轻量吸收的职责：候选汇总、转正建议编排
+- required_roles: `knowledge-closer`
+- conditional_roles: `knowledge-auditor`、`source-ingestor`
+- hard_gates:
+  - 候选缺少来源、边界或风险时不得提升为正式知识
+  - 主代理不得绕过审查直接转正
 
 ---
 
@@ -700,249 +704,28 @@ repo review 与板端执行的关系：
 
 ---
 
-## 0.9 角色输入输出契约
+## 0.9 角色契约放置规则
 
-### 0.9.1 knowledge-planner
+角色契约已从运行规范中抽出，统一放在：
 
-输入：
+- [[01_Knowledge/Agent Workflow/Agent三侧角色契约规范]]
 
-- 任务目标
-- 可选的板端执行范围与连接策略
-- 知识侧允许范围
-- 项目侧允许范围
-- 可选的来源范围与联网策略
+本文档不再重复定义各角色的：
 
-输出：
+- 职责边界
+- 最小输入输出
+- 停止条件
+- reviewer 独立性细则
 
-- 主类型与修饰属性
-- `investigation_plan`
-- `board_gap_analysis`
-- `board_target_resolution`
-- 已读取文件
-- 实施计划
-- 验证计划
-- `board_execution_plan`
-- `classification_candidates`
-- `route_preconditions`
-- `verification_tier`
-- `required / optional / unavailable` 验证集合
-- 回写建议
-- 未解决不确定项
+运行规范只保留：
 
-停止条件：
+- 何时需要哪些角色
+- 何时必须阻断
+- 何时需要返工、replan 或 escalate
 
-- 未获得允许范围
-- `board_execution_required` 但未获得最小板端合同
-- 无法确定 `primary_type` 或 `task_modifiers`
-- 需要联网但未授权
+若需要实例化角色骨架，则同步参考：
 
-当 `primary_type = incident_investigation` 时，`knowledge-planner` 应优先输出 `investigation_plan`、`evidence_gap_analysis`、`triage_plan` 与 `classification_candidates`，而不是直接输出 `implementation_plan`。
-
-### 0.9.2 repo-coder
-
-输入：
-
-- 任务目标
-- 计划
-- 代码库允许修改范围
-- 验证命令
-- 不做事项
-- `verification_tier`
-
-输出：
-
-- 修改文件
-- `instrumentation_changes`
-- `probe_results`
-- `post_instrumentation_artifacts`
-- 实施结果
-- 板端部署与运行记录
-- 板端产物采集记录
-- 执行过的验证
-- 未解决技术风险
-- 对审查发现的返工结果
-- `scope_creep_triggered`
-
-停止条件：
-
-- 需修改禁止目录
-- 需做接口级变更
-- 无法完成最小验证
-- reviewer 发现需要返工但返工内容已超出当前授权范围
-
-当 `primary_type = incident_investigation` 时，`repo-coder` 的优先职责是 instrumentation、probe、capture、最小复现实验与证据补强，而不是默认直接修复业务逻辑。
-
-### 0.9.3 repo-reviewer
-
-输入：
-
-- 任务目标
-- 计划与验收标准
-- diff 摘要
-- 验证结果
-- 板端日志、trace、指标或效果产物
-- 必要代码上下文
-- `verification_tier`
-
-输出：
-
-- `goal_alignment_assessment`
-- `route_correctness_assessment`
-- `evidence_sufficiency_assessment`
-- `hypothesis_closure_assessment`
-- `scope_compliance_assessment`
-- `validation_coverage_assessment`
-- `regression_risk_assessment`
-- `behavioral_correctness_assessment`
-- `board_effect_assessment`
-- `overall_decision`
-- `repo_review_result`
-- `findings`
-- `finding_severity`
-- `next_action`
-- `fix_owner`
-
-停止条件：
-
-- 关键验证缺失
-- 板端证据要求存在但缺失
-- 修改目标与计划不一致
-- 审查输入未裁剪且无法保证独立性
-
-当 `primary_type = incident_investigation` 时，`repo-reviewer` 必须额外审查：
-
-- 问题分类是否成立
-- 证据是否足够支撑分流
-- 假设是否闭环
-- 是否误将环境问题当代码问题
-- 是否允许得出“暂不改代码”的结论
-
-### 0.9.4 functional-reviewer
-
-输入：
-
-- 任务目标
-- 规范输入
-- 验收条目
-- 代码或运行证据
-- 必要上下文
-
-输出：
-
-- `acceptance_items`
-- `compliance_matrix`
-- `evidence_used`
-- `evidence_gaps`
-- `norm_conflicts`
-- `review_conclusion`
-- `suggested_followup`
-
-停止条件：
-
-- 规范输入不足
-- 证据不足以支撑判定
-- 规范冲突未被显式标注
-
-### 0.9.5 verification-manager
-
-输入：
-
-- 任务目标
-- 风险边界
-- 实施计划
-- 已执行验证
-
-输出：
-
-- 验证矩阵
-- tier 对应验证要求
-- 缺失验证分类
-- blocker 判断
-
-停止条件：
-
-- 无法定义验证目标
-- 验证证据无法映射到风险边界
-
-### 0.9.6 failure-analyst
-
-输入：
-
-- `expected_behavior` 或 `whether_design_expectation_known`
-- `actual_behavior` 或 `observed_symptoms`
-- `reproduction_path` 或 `trigger_condition`
-- 日志、trace、指标、视频、dump、错误码与相关代码线索
-
-输出：
-
-- `hypothesis_set`
-- `hypothesis_confidence`
-- `evidence_priority`
-- `supporting_evidence_map`
-- `contradicting_evidence_map`
-- `noise_signals`
-- `observability_gaps`
-- `next_probe_actions`
-- `minimal_verifiable_path`
-- 是否需要 replan
-
-停止条件：
-
-- 预期行为与设计预期均不可得，且无法形成可判别假设
-- 证据不足以形成可检验假设
-
-### 0.9.7 knowledge-auditor
-
-输入：
-
-- 候选条目
-- 来源与证据
-- 适用边界
-- 风险
-- 来源任务
-
-输出：
-
-- 提升建议
-- 复用价值判断
-- 边界补全建议
-- 是否仍应停留在候选区
-
-停止条件：
-
-- 候选缺少来源
-- 边界与风险缺失
-- 无法判断其是否只是项目特例
-
-### 0.9.8 knowledge-closer
-
-输入：
-
-- 任务目标
-- 实际修改
-- 验证结果
-- 审查结论
-
-输出：
-
-- 项目回写内容
-- `investigation_summary`
-- `evidence_boundary`
-- `unresolved_hypotheses`
-- `route_decision`
-- board 回写摘要
-- 知识候选
-- 来源记录
-- 未闭环事项
-- `run_log`
-- `audit_log`
-
-停止条件：
-
-- 无法确定分区位置
-- 结论缺少来源或边界
-
-当 `primary_type = incident_investigation` 时，即使未进入修复或优化主链，也必须回写“为何当前轮只调查、不修复”。
+- [[01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范]] 中的 `.codex/agents/*.toml`
 
 ---
 
@@ -1043,586 +826,124 @@ repo review 与板端执行的关系：
 
 一个合格的调度 prompt 应包含：
 
-- 本轮任务目标
-- 板端执行目标或无板端执行声明
-- 输入材料
-- 允许范围
-- 是否允许联网
-- 是否需要确认
+- 问题描述
+- 当前任务目标
+- 必要输入材料或已知证据
+- `primary_type`
+- `task_modifiers`
+- `board_target` 或 `no_board_execution`
+- `allowed_paths`
+- `repo_scope`（若涉及代码）
+- 联网策略
+- 必要边界
+- 成功标准
 - 输出要求
-- reviewer 是否独立调度以及 reviewer 的输入边界
-- review 未通过时由谁返工以及返工轮次上限
-- `verification_tier`
-- `scope_creep_policy`
-- `extended_roles`
-- board execution contract 是否完整
-- 板端执行、日志分析与回写由谁负责
 
 一个不合格的调度 prompt 往往会：
 
 - 临时定义长期角色
 - 重复知识分区规则
 - 重复仓库级验证制度
+- 重复 reviewer 独立性、writeback gate 和 board gate 的制度文本
 - 同时塞入过多特例和例外
+- 把默认调用顺序写成冗长剧本
 - 让 reviewer 直接继承 coder 的完整上下文叙述
 - 把 board side 退化成最后一步的同步备注
 
 ---
 
-## 0.13 调度 prompt 模板
+## 0.13 轻实例 prompt 推荐方式
 
-### 0.13.1 通用型
+默认不再推荐复制整段“大展开模板”作为实例 prompt。  
+推荐方式是：实例 prompt 只描述**本轮问题、目标、任务属性、必要边界和成功标准**，其余制度、门禁、角色契约和状态机从长期层派生。
+
+### 0.13.1 推荐最小结构
+
+一个推荐的实例 prompt 至少包含：
+
+1. 任务对象
+2. 任务背景
+3. 任务目标
+4. `primary_type`
+5. `task_modifiers`
+6. `board_target` 或 `no_board_execution`
+7. `allowed_paths`
+8. `repo_scope`（若涉及代码）
+9. 联网策略
+10. 本轮特例边界
+11. 成功标准
+12. 输出要求
+
+### 0.13.2 推荐实例 prompt
 
 ```text
 按 Agent 三侧运行规范执行本次任务。
 
-技术基准：
-- [[01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范]]
-- [[01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板]]
+任务对象：
+- [填写目标对象]
+
+任务背景：
+[填写当前问题、现状、已知症状、已有上下文]
 
 任务目标：
-[填写目标]
+1. [填写本轮目标]
+2. [填写希望优化、修复、审查或收敛的点]
 
-板端描述：
-- board_target_id:
-- board_type: chip_board | vehicle_controller | simulator_board | other_embedded_target
-- ssh_target:
-- workspace_path:
-- deploy_artifacts:
-- run_commands:
-- collect_paths:
-- expected_signals:
-- timeout_policy:
-- reset_or_recovery_steps:
-- linked_repo_scope:
-- linked_knowledge_scope:
-- writeback_targets:
-- 若无板端执行，必须填写 `no_board_execution_reason`
-
-主类型：
-[填写 primary_type]
-
-任务修饰属性：
-[填写 task_modifiers]
-
-允许范围：
-- 知识库读取：[填写路径]
-- 项目区读写：[填写路径]
-- 代码库修改：[填写路径]
+任务属性：
+- primary_type: [implementation / bug_fix / audit / optimization / knowledge_task / incident_investigation]
+- task_modifiers: [按需填写]
+- board_target: [若无则写 no_board_execution]
+- allowed_paths:
+  - [知识库读取范围]
+  - [项目区读写范围]
+  - [代码库修改范围；若无则写 read_only]
+- verification_tier: [若已知则填写；未知可由主代理收敛]
 
 联网策略：
 [允许 / 禁止 / 条件允许]
 
-main_agent_mode:
-- orchestration
+本轮特例边界：
+- [只写本轮需要额外强调的边界；若无可省略]
 
-planner_mode:
-- explicit / lightweight_absorbed
-
-writeback_mode:
-- explicit / recommendation_only
-
-verification_tier:
-- V0 / V1 / V2 / V3
-
-scope_creep_policy:
-- stop_and_confirm / replan_required / allow_minor_expansion_with_record
-
-extended_roles:
-- failure-analyst: enabled / disabled
-- verification-manager: enabled / disabled
-- functional-reviewer: enabled / disabled
-- knowledge-auditor: enabled / disabled
-
-确认策略：
-[填写确认点与停止条件]
-
-主代理职责：
-- 维护状态机与状态门禁
-- 决定角色调用顺序
-- 裁剪交接包
-- 控制 reviewer 独立性
-- 控制返工轮次
-- 汇总最终输出
-
-主代理不得：
-- 直接修改代码
-- 替代 reviewer 做质量裁决
-- 绕过 review 进入 knowledge writeback
-- 把未审内容直接写入正式知识区
-
-说明：
-以下顺序描述的是主代理在 orchestration 模式下对子代理的默认调用顺序。
-workflow-orchestrator 默认由主代理承担，不作为普通子代理列入调用链。
-
-子代理调用顺序：
-1. 先调用 knowledge-planner，先解析板端描述或无板端执行声明，再输出主类型、修饰属性、已读取范围、实施计划、验证计划、board_execution_plan、verification_tier、验证集合、建议回写路径。
-2. 如本地知识不足且允许联网，再调用 source-ingestor，结果只写候选区或来源区；之后重新经过 knowledge-planner 收敛计划。
-3. 如验证矩阵复杂，再调用 verification-manager 补充 required / optional / unavailable 验证集合。
-4. 再调用 repo-coder，仅在授权范围内实施修改、部署到板端并执行最小验证。
-5. 再调用 repo-reviewer，使用独立 reviewer 实例，仅接收任务目标、验收标准、计划、diff、验证结果、板端日志/指标/效果产物和必要代码上下文，独立检查越界风险、验证覆盖、板端效果与行为变化。
-6. 若 repo review 不通过，则将裁剪后的审查结论返回原 repo-coder 返工；超过 2 轮、根因失效或 scope creep 触发时，回 planner 或 stop / confirm / escalate。
-7. 仅在 repo review 通过后调用 knowledge-closer，按分区规则回写结果并同步板端摘要。
+成功标准：
+- [填写完成判据]
+- [填写不可接受结果]
 
 输出要求：
-- roles_invoked
-- state_transitions
-- rework_rounds
-- overall_decision
-- verification_tier
-- files_read
-- files_written
-- implementation_plan
-- verification_results
-- review_conclusion
-- board_execution_result
-- writeback_targets
-- risks_or_uncertainties
-- board_gap_analysis
-- three_side_model_summary
-- board_execution_contract
-- execution_chain_changes
-- template_changes
-- rule_changes_summary
-- run_log / audit_log（如适用）
+1. context_used
+2. problem_diagnosis
+3. execution_or_dispatch_recommendation
+4. expected_writeback_or_followup
+5. risks_or_uncertainties
 ```
 
-### 0.13.2 功能审核型
+### 0.13.3 对实例 prompt 的补充规则
 
-```text
-按 Agent 三侧运行规范执行本次功能审核任务。
+- 不要重写长期制度
+- 不要重写主代理职责和禁止事项
+- 不要把默认角色调用顺序写成完整剧本
+- 不要把 reviewer 独立性、writeback gate、board gate 重复抄入每轮 prompt
+- 若本轮必须启用特定扩展角色，只写“本轮特例边界”即可
 
-技术基准：
+### 0.13.4 何时允许补充任务特例
+
+以下信息可作为本轮特例补充进实例 prompt：
+
+- `board_target` 的特例字段
+- 特定 reviewer 必须启用
+- 特定路径禁止触碰
+- 本轮只允许 instrumentation、不允许业务修复
+- 必须保留的证据优先级
+- 特定成功标准或阻断条件
+
+其余长期规则默认从：
+
 - [[01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范]]
-- [[01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板]]
-
-任务目标：
-[填写要审核的功能或能力]
-
-审核对象：
-[功能模块 / 接口 / 状态机 / 页面行为 / 算法行为]
-
-规范输入：
-[填写技术规范、设计要求、验收标准、接口契约、时序约束、边界条件]
-
-实现输入：
-[填写代码路径 / diff / 可执行产物 / 测试结果 / 日志 / trace / 截图]
-
-板端描述：
-[若本次审核涉及上板验证，填写 ssh_target / run_commands / collect_paths / expected_signals；否则写 no_board_execution]
-
-主类型：
-audit
-
-任务修饰属性：
-[functional_scope, read_only]
-
-允许范围：
-- 知识库读取：[填写路径]
-- 项目区读写：[填写路径]
-- 代码库读取：[填写路径]
-- 代码库修改：默认禁止
-
-联网策略：
-[允许 / 禁止 / 条件允许]
-
-main_agent_mode:
-- orchestration
-
-planner_mode:
-- explicit / lightweight_absorbed
-
-writeback_mode:
-- explicit / recommendation_only
-
-verification_tier:
-- V0 / V1 / V2 / V3
-
-scope_creep_policy:
-- stop_and_confirm / replan_required / allow_minor_expansion_with_record
-
-extended_roles:
-- failure-analyst: disabled
-- verification-manager: disabled
-- functional-reviewer: enabled
-- knowledge-auditor: enabled / disabled
-
-主代理职责：
-- 确认规范来源与允许范围
-- 维护状态对象
-- 控制 reviewer 独立性
-- 汇总审核结论与后续动作
-
-主代理不得：
-- 直接修改代码
-- 用 coder/planner 解释替代证据
-- 绕过 review 直接写入正式知识区
-
-说明：
-以下顺序描述的是主代理在 orchestration 模式下对子代理的默认调用顺序。
-workflow-orchestrator 默认由主代理承担，不作为普通子代理列入调用链。
-
-证据优先级：
-- 行为证据 > 规范文本 > 代码证据 > coder/planner 解释
-
-子代理调用顺序：
-1. 先调用 knowledge-planner 的轻量模式，仅完成规范来源确认、允许范围确认、验收条目整理与 verification_tier 输出。
-2. 如本地规范不足且允许联网，再调用 source-ingestor，结果只写候选区或来源区。
-3. 调用 functional-reviewer，输出规范符合度判断。
-4. 若任务包含板端验证，则由 repo-coder 完成上板运行与产物采集，再由 repo-reviewer 汇总板端证据。
-5. reviewer 必须输出 acceptance_items、compliance_matrix、evidence_used、evidence_gaps、norm_conflicts、review_conclusion、suggested_followup。
-6. 若审核不通过，不直接修代码；建议转入 `primary_type = bug_fix / optimization` 或 redesign 时，由主代理 stop / confirm / replan。
-7. 若审核通过且需要沉淀，再调用 knowledge-closer；若涉及正式知识提升审查，可插入 knowledge-auditor。
-
-输出要求：
-- roles_invoked
-- state_transitions
-- rework_rounds
-- overall_decision
-- verification_tier
-- files_read
-- audit_scope
-- acceptance_items
-- compliance_matrix
-- evidence_used
-- evidence_gaps
-- review_conclusion
-- suggested_followup
-- writeback_targets
-- risks_or_uncertainties
-- run_log / audit_log（如适用）
-```
-
-### 0.13.3 板端异常调查型
-
-```text
-按 Agent 三侧运行规范执行本次板端异常调查任务。
-
-技术基准：
-- [[01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范]]
-- [[01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板]]
-
-任务目标：
-[填写调查目标]
-
-主类型：
-incident_investigation
-
-任务修饰属性：
-[failure_investigation, review_required, board_artifact_collection_required, board_execution_required | no_board_execution, code_change_allowed | read_only]
-
-观测现象：
-- observed_symptoms:
-- symptom_category:
-- severity_guess:
-- first_seen_at:
-- seen_frequency:
-
-板端描述：
-- board_target_id:
-- board_type: chip_board | vehicle_controller | simulator_board | other_embedded_target
-- ssh_target:
-- workspace_path:
-- deploy_artifacts:
-- run_commands:
-- collect_paths:
-- board_session_info:
-- environment_fingerprint:
-- 若无板端执行，必须填写 `no_board_execution_reason`
-
-已有 artifacts：
-- artifact_inventory:
-- log_sources:
-- anomaly_window:
-- available_evidence:
-- missing_evidence:
-
-触发与复现：
-- trigger_condition:
-- reproduction_confidence:
-- issue_scope_guess:
-- whether_design_expectation_known:
-- signal_expectations:
-
-允许范围：
-- 知识库读取：[填写路径]
-- 项目区读写：[填写路径]
-- 代码库修改：[填写路径]
-
-联网策略：
-[允许 / 禁止 / 条件允许]
-
-main_agent_mode:
-- orchestration
-
-planner_mode:
-- explicit
-
-writeback_mode:
-- explicit / recommendation_only
-
-verification_tier:
-- V1 / V2 / V3
-
-scope_creep_policy:
-- stop_and_confirm / replan_required / allow_minor_expansion_with_record
-
-extended_roles:
-- failure-analyst: enabled
-- verification-manager: enabled / disabled
-- functional-reviewer: disabled
-- knowledge-auditor: enabled / disabled
-
-主代理职责：
-- 维护 investigation 状态机
-- 控制 triage、classification 与 route decision 门禁
-- 控制 reviewer 独立性
-- 控制返工轮次与是否只允许 instrumentation
-
-主代理不得：
-- 在问题未定性时强行推进业务修复
-- 直接修改代码
-- 绕过 review 进入 knowledge writeback
-
-子代理调用顺序：
-1. 先调用 knowledge-planner，输出 investigation_plan、evidence_gap_analysis、triage_plan、classification_candidates、verification_tier、required / optional / unavailable 验证集合。
-2. 必须调用 failure-analyst，输出 hypothesis_set、hypothesis_confidence、evidence_priority、noise_signals、next_probe_actions、minimal_verifiable_path。
-3. 如需要最小观测增强、补日志、补 trace、补 dump 或复现实验，再调用 repo-coder，但其职责优先是 instrumentation、probe、capture，不默认修复业务逻辑。
-4. 如验证矩阵复杂，再调用 verification-manager，补充 evidence sufficiency、hypothesis discrimination 与 route correctness 对应验证集合。
-5. 调用 repo-reviewer，仅接收任务目标、现象描述、调查计划、关键证据、假设集、分流建议、必要 diff、验证结果与板端 artifacts，独立审查证据充分性、分类正确性、路由正确性，以及“是否允许暂不改代码”。
-6. 若 route decision 已明确且门禁满足，则转入既有 `bug_fix / optimization / audit` 模板；若结论为 `insufficient_evidence / out_of_scope env_issue`，可直接 `investigation_closed`。
-7. 调查轮结束后调用 knowledge-closer，回写 investigation_summary、evidence_boundary、unresolved_hypotheses、route_decision、followup_required。
-
-输出要求：
-- roles_invoked
-- state_transitions
-- rework_rounds
-- overall_decision
-- verification_tier
-- files_read
-- files_written
-- investigation_plan
-- classification
-- classification_confidence
-- route_decision
-- route_blockers
-- minimal_verifiable_path
-- verification_results
-- review_conclusion
-- writeback_targets
-- risks_or_uncertainties
-- run_log / audit_log（如适用）
-```
-
-### 0.13.4 缺陷修复型
-
-```text
-按 Agent 三侧运行规范执行本次缺陷修复任务。
-
-技术基准：
-- [[01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范]]
-- [[01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板]]
-
-任务目标：
-[填写缺陷目标]
-
-缺陷类型：
-[runtime_bug / functional_bug / design_mismatch]
-
-预期行为：
-[填写设计要求、验收标准或方案约束]
-
-实际行为：
-[填写当前表现、错误输出、偏差现象]
-
-已知证据：
-[日志 / 截图 / 复现输入 / 指标异常 / 相关代码线索]
-
-板端描述：
-[若本次修复要求上板复现或验证，填写 ssh_target / deploy_artifacts / run_commands / collect_paths / expected_signals；否则写 no_board_execution]
-
-主类型：
-bug_fix
-
-任务修饰属性：
-[code_change_allowed, review_required]
-
-允许范围：
-- 知识库读取：[填写路径]
-- 项目区读写：[填写路径]
-- 代码库修改：[填写路径]
-
-联网策略：
-[允许 / 禁止 / 条件允许]
-
-main_agent_mode:
-- orchestration
-
-planner_mode:
-- explicit
-
-writeback_mode:
-- explicit / recommendation_only
-
-verification_tier:
-- V1 / V2 / V3
-
-scope_creep_policy:
-- stop_and_confirm / replan_required / allow_minor_expansion_with_record
-
-extended_roles:
-- failure-analyst: enabled / disabled
-- verification-manager: enabled / disabled
-- functional-reviewer: disabled
-- knowledge-auditor: enabled / disabled
-
-主代理职责：
-- 检查预期行为、实际行为、根因假设与最小验证路径
-- 维护返工轮次
-- 决定是否 replan 或 escalate
-
-主代理不得：
-- 直接修改代码
-- 替代 reviewer 做质量裁决
-- 在 review 前进入 writeback
-
-说明：
-以下顺序描述的是主代理在 orchestration 模式下对子代理的默认调用顺序。
-workflow-orchestrator 默认由主代理承担，不作为普通子代理列入调用链。
-
-子代理调用顺序：
-1. knowledge-planner 输出主类型、修饰属性、已读取范围、根因假设、最小验证路径、修复计划、verification_tier、建议回写路径。
-2. 若根因复杂或多轮返工不收敛，可插入 failure-analyst，补充根因假设、证据优先级和最小验证路径。
-3. 如本地知识不足且允许联网，再调用 source-ingestor，结果只写候选区或来源区；之后重新经过 knowledge-planner 收敛计划。
-4. 如验证矩阵复杂，再调用 verification-manager。
-5. 调用 repo-coder，仅在授权范围内实施符合设计边界的修复，并执行最小必要验证与相关回归验证。
-6. 调用 repo-reviewer，仅接收任务目标、预期行为、实际行为、验收标准、实施计划、diff、验证结果和必要代码上下文，独立检查根因是否闭环、改动是否越界、验证是否覆盖行为失配、是否仍存在回归风险。
-7. 若绑定板端执行，则在 repo-coder 完成上板、采集日志与效果产物后，由 repo-reviewer 统一判断板端效果是否达标。
-8. 若 review 不通过，默认返回原 repo-coder 返工；根因假设失效、scope creep 触发或返工超出授权范围时，回 planner。
-9. 仅在 review 通过后，knowledge-closer 回写调试记录、修复结论、failure_mode 候选和未闭环事项；如涉及正式知识提升审查，可插入 knowledge-auditor。
-
-输出要求：
-- roles_invoked
-- state_transitions
-- rework_rounds
-- overall_decision
-- verification_tier
-- files_read
-- files_written
-- root_cause_hypotheses
-- implementation_plan
-- verification_results
-- review_conclusion
-- writeback_targets
-- risks_or_uncertainties
-- run_log / audit_log（如适用）
-```
-
-### 0.13.5 受控优化型
-
-```text
-按 Agent 三侧运行规范执行本次受控优化任务。
-
-技术基准：
-- [[01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范]]
-- [[01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板]]
-
-任务目标：
-[填写优化目标]
-
-优化类型：
-[performance / memory / latency / maintainability / build / test]
-
-优化依据：
-[填写瓶颈证据、基线数据、重复问题或明确设计依据]
-
-基线现状：
-[填写当前耗时、资源占用、复杂度或维护问题]
-
-目标指标：
-[填写希望改善的指标或约束]
-
-非目标项：
-[填写明确不做事项]
-
-板端描述：
-[若本次优化要求上板收益验证，填写 ssh_target / deploy_artifacts / run_commands / collect_paths / expected_signals；否则写 no_board_execution]
-
-主类型：
-optimization
-
-任务修饰属性：
-[code_change_allowed, review_required]
-
-允许范围：
-- 知识库读取：[填写路径]
-- 项目区读写：[填写路径]
-- 代码库修改：[填写路径]
-
-联网策略：
-[允许 / 禁止 / 条件允许]
-
-main_agent_mode:
-- orchestration
-
-planner_mode:
-- explicit
-
-writeback_mode:
-- explicit / recommendation_only
-
-verification_tier:
-- V1 / V2 / V3
-
-scope_creep_policy:
-- stop_and_confirm / replan_required / allow_minor_expansion_with_record
-
-extended_roles:
-- failure-analyst: disabled
-- verification-manager: enabled
-- functional-reviewer: disabled
-- knowledge-auditor: enabled / disabled
-
-主代理职责：
-- 控制 scope creep
-- 检查优化依据、收益验证和语义回归验证
-- 决定是否需要 replan 或 stop_and_confirm
-
-主代理不得：
-- 直接修改代码
-- 替代 reviewer 给出质量裁决
-- 绕过 review 直接沉淀优化结论
-
-说明：
-以下顺序描述的是主代理在 orchestration 模式下对子代理的默认调用顺序。
-workflow-orchestrator 默认由主代理承担，不作为普通子代理列入调用链。
-
-子代理调用顺序：
-1. knowledge-planner 输出优化依据、风险边界、非目标项、验证计划、verification_tier 和回写建议。
-2. 如本地知识不足且允许联网，再调用 source-ingestor，结果只写候选区或来源区；之后重新经过 knowledge-planner 收敛计划。
-3. 调用 verification-manager，补充收益验证、语义回归验证和 tier 对应验证集合。
-4. 调用 repo-coder，仅在授权范围内实施边界内优化，并完成收益验证与语义回归验证。
-5. 调用 repo-reviewer，仅接收任务目标、目标指标、非目标项、实施计划、diff、验证结果和必要代码上下文，独立检查是否越界、是否改变核心语义、优化收益是否有证据、是否引入新的回归风险。
-6. 若绑定板端执行，则在 repo-coder 完成上板、采集指标与效果产物后，由 repo-reviewer 统一判断板端收益是否成立。
-7. 若 review 不通过，默认返回原 repo-coder；若优化演化为结构性重构或验证不足构成 blocker，则 stop / confirm / replan。
-8. 仅在 review 通过后，knowledge-closer 回写项目优化记录、可复用候选和未闭环事项；如涉及正式知识提升审查，可插入 knowledge-auditor。
-
-输出要求：
-- roles_invoked
-- state_transitions
-- rework_rounds
-- overall_decision
-- verification_tier
-- files_read
-- files_written
-- optimization_basis
-- implementation_plan
-- verification_results
-- review_conclusion
-- writeback_targets
-- risks_or_uncertainties
-- run_log / audit_log（如适用）
-```
+- [[01_Knowledge/Agent Workflow/Agent三侧角色契约规范]]
+- [[01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范]]
+- `AGENTS.md`
+
+中读取，不在实例 prompt 中重复展开。
 
 ---
 
@@ -1675,8 +996,9 @@ workflow-orchestrator 默认由主代理承担，不作为普通子代理列入�
 建议按以下顺序使用三篇文档：
 
 1. 先读 [[01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范]]，明确原则和边界。
-2. 读本文档，按运行状态机和调度模板组织任务。
-3. 读 [[01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范]]，在根目录生成所需文件骨架。
+2. 读本文档，按任务入口、状态机和角色集合派生规则组织任务。
+3. 读 [[01_Knowledge/Agent Workflow/Agent三侧角色契约规范]]，明确角色边界和最小交接要求。
+4. 读 [[01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范]]，在根目录生成所需文件骨架。
 
 ---
 
@@ -1750,8 +1072,8 @@ workflow-orchestrator 默认由主代理承担，不作为普通子代理列入�
 
 ### 0.16.4 角色补充职责放置规则
 
-与文档收敛相关的角色补充职责，应写入 [[01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范]] 中对应角色的 `toml` 模板，而不是写在运行模板里重复定义。
-本文档只保留状态机、门禁、输入输出与调度要求。
+与文档收敛相关的角色补充职责，应先写入 [[01_Knowledge/Agent Workflow/Agent三侧角色契约规范]]，再同步到 [[01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范]] 中对应角色的 `toml` 骨架。
+本文档只保留状态机、门禁、角色集合派生与调度要求。
 
 ### 0.16.5 默认检索顺序
 
@@ -1829,7 +1151,7 @@ planner、reviewer 与 knowledge-auditor 至少要用以下六类事实做一次
 - `validation_current` 不得用来定义行为、设计或实现主体事实
 - 若事实无 owner、owner 冲突、或 owner 放错位置导致恢复链失稳，则不得通过收敛门禁
 
-### 0.16.9 orchestration 任务模板补充
+### 0.16.9 orchestration 实例提示补充
 
 涉及文档收敛的任务，在“实施计划”和“验证计划”中至少增加两段：
 
@@ -1855,7 +1177,7 @@ planner、reviewer 与 knowledge-auditor 至少要用以下六类事实做一次
 - `default_entry_verified`
 - `single_pass_recoverable`
 
-### 0.16.10 项目级 current 重写任务模板
+### 0.16.10 项目级 current 重写任务骨架
 
 后续若要按本规范重写某个项目主题的 current 文档组，可直接复用以下任务骨架：
 
@@ -1885,7 +1207,7 @@ knowledge_task
 
 # 执行要求
 1. 先检查 `overview_current / design_current / spec_current / implementation_current / validation_current` 的粒度缺口、owner 冲突和错误落位。
-2. 再按最新模板重写 current 文档组，明确：
+2. 再按最新轻实例 prompt 方式与 current 规范重写 current 文档组，明确：
    - overview 的唯一默认入口、默认恢复顺序、默认实现输入链、truth-source set、历史角色映射
    - design 的边界、对象/模块组织、生命周期/状态组织、数据/控制流、约束、非目标项
    - spec 的 object model、required behaviors、state/config/interface/verification contracts，以及存在时的 calculation / type / filter 机制
@@ -1911,7 +1233,7 @@ knowledge_task
 - remaining_risks
 ```
 
-### 0.16.11 板端测试在环任务模板
+### 0.16.11 板端测试在环任务骨架
 
 ```text
 按 Agent 三侧运行规范执行本次板端测试在环任务。

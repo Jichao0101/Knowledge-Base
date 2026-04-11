@@ -29,6 +29,7 @@ updated_at: 2026-04-07
 
 - 上位规范：`01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范.md`
 - 运行规范：`01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板.md`
+- 角色契约：`01_Knowledge/Agent Workflow/Agent三侧角色契约规范.md`
 - 文件规范：`01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范.md`
 
 ---
