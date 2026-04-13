@@ -18,13 +18,16 @@ current_files_must_update:
 history_files_to_mark:
   - 02_Projects/DMS/04_Tracking/座舱乘员多目标跟踪方案.md
   - 02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
+  - 02_Projects/DMS/04_Tracking/tracking_interfaces_evidence.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪实现闭环记录-2026-03-24.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复闭环记录-2026-03-25.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪生命周期与手部关联设计失配修复闭环记录-2026-03-25.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪功能审核记录-2026-03-27.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复未闭环记录-2026-03-27.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪手部连续性优化闭环记录-2026-03-31.md
+  - 02_Projects/DMS/04_Tracking/后排乘客头部误跟踪为副驾驶修复闭环记录-2026-04-05.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md
+  - 02_Projects/DMS/04_Tracking/跟踪框越界导致板端coredump调查与修复闭环记录-2026-04-07.md
 single_pass_recoverable: true
 sync_required_when:
   - 默认恢复顺序变化
@@ -53,7 +56,9 @@ sources:
   - 02_Projects/DMS/04_Tracking/多目标跟踪功能审核记录-2026-03-27.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复未闭环记录-2026-03-27.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪手部连续性优化闭环记录-2026-03-31.md
+  - 02_Projects/DMS/04_Tracking/后排乘客头部误跟踪为副驾驶修复闭环记录-2026-04-05.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md
+  - 02_Projects/DMS/04_Tracking/跟踪框越界导致板端coredump调查与修复闭环记录-2026-04-07.md
   - /home/jichao/dms/include/utils/track.h
   - /home/jichao/dms/source/utils/track.cpp
   - /home/jichao/dms/include/models/atomic_result.h
@@ -86,7 +91,7 @@ updated_at: 2026-04-07
 3. [[02_Projects/DMS/04_Tracking/tracking_implementation_current]]
 4. [[02_Projects/DMS/04_Tracking/tracking_validation_current]]
 
-[[02_Projects/DMS/04_Tracking/tracking_interfaces_current]] 只保留为接口补充证据，不进入默认恢复顺序，也不进入默认实现输入链。
+[[02_Projects/DMS/04_Tracking/tracking_interfaces_evidence]] 只保留为接口补充证据，不进入默认恢复顺序，也不进入默认实现输入链。
 
 ## 0.2 Default Recovery Bundle
 
@@ -115,7 +120,8 @@ default_recovery_bundle:
   - `tracking_implementation_current`
   - `tracking_validation_current`
 - auxiliary_evidence_set:
-  - `tracking_interfaces_current`
+  - `tracking_interfaces_evidence`
+  - merged `fix_record / investigation_record` 仅承担追溯与证据补充
   - `/home/jichao/dms/include/utils/track.h`
   - `/home/jichao/dms/source/utils/track.cpp`
   - `/home/jichao/dms/include/models/atomic_result.h`
@@ -133,7 +139,7 @@ Tracking 当前目标仍是为 DMS 提供稳定的 `body / face / left_hand / ri
 - 本模块负责：检测结果关联、轨迹生命周期、人员类型稳定判定、face/hand 与 body 的关联和输出。
 - 本模块不负责：新增检测器能力、运行时效果验收、下游业务判决逻辑。
 - 当前仍存在的开放问题集中在验证与输出唯一性边界，而不是主框架缺失。
-- `tracking_interfaces_current` 不再承担默认输入职责，只作为接口边界的辅助证据。
+- `tracking_interfaces_evidence` 不再承担默认输入职责，只作为接口边界的辅助证据。
 
 ## 0.5 Current Document Roles
 
@@ -147,7 +153,7 @@ Tracking 当前目标仍是为 DMS 提供稳定的 `body / face / left_hand / ri
   - [[02_Projects/DMS/04_Tracking/tracking_implementation_current]]
   - [[02_Projects/DMS/04_Tracking/tracking_validation_current]]
 - evidence/reference only：
-  - [[02_Projects/DMS/04_Tracking/tracking_interfaces_current]]
+  - [[02_Projects/DMS/04_Tracking/tracking_interfaces_evidence]]
 - merged delta：
   - 2026-03-24 实现闭环
   - 2026-03-25 两篇设计失配修复闭环

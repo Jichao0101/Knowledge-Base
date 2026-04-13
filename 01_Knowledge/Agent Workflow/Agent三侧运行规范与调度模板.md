@@ -6,7 +6,7 @@ topic: Agent三侧运行规范与调度模板
 sources: ["内部方法论整理", "01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范.md", "01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范.md", "01_Knowledge/Agent Workflow/Agent三侧角色契约规范.md"]
 scope: 适用于需要将三侧闭环规则包装成可运行流程，包括板端目标绑定、状态推进、角色集合派生、返工升级和轻实例 prompt 约束的场景。
 risks: ["运行规范过重导致单次任务负担过大", "板端执行被退化为附属说明", "项目特例被误提升为通用步骤", "角色契约与运行规范重复维护", "扩展角色加入后分层失效导致制度与运行脱节"]
-updated_at: 2026-04-07
+updated_at: 2026-04-13
 ---
 
 ## 0.1 摘要
@@ -55,19 +55,64 @@ updated_at: 2026-04-07
 - `primary_type`: `implementation / incident_investigation / bug_fix / audit / optimization / knowledge_task`
 - `task_modifiers`: `requires_web / read_only / code_change_allowed / writeback_required / review_required / promotion_review / functional_scope / failure_investigation / board_execution_required / no_board_execution / board_artifact_collection_required`
 
-常见组合：
+默认规则：
 
-- 背景检索：`knowledge_task` + `read_only`
-- 联网研究：`knowledge_task` + `requires_web` + `read_only`
-- 项目实现：`implementation` + `code_change_allowed` + `review_required`
-- 板端调查：`incident_investigation` + `failure_investigation` + `review_required` + `board_artifact_collection_required`
-- 缺陷修复：`bug_fix` + `code_change_allowed` + `review_required`
-- 受控优化：`optimization` + `code_change_allowed` + `review_required`
-- 板端实现：`implementation` + `code_change_allowed` + `review_required` + `board_execution_required` + `board_artifact_collection_required`
-- 功能审核：`audit` + `functional_scope` + `read_only`
-- 知识提升：`knowledge_task` + `promotion_review` + `writeback_required`
+- `task_modifiers` 不应再要求每轮全量手填
+- 主代理应先根据 `primary_type` 应用默认 modifiers，再由本轮 prompt 只补充特例 override
+- 若 prompt 未显式声明某个 modifier，则默认沿用该 `primary_type` 的推荐默认值
+- 只有当本轮任务存在特殊边界、特殊执行方式或与默认值冲突时，才显式覆盖对应 modifier
 
-### 0.3.3 进入条件
+`primary_type` 到默认 `task_modifiers` 的推荐映射：
+
+- `knowledge_task`
+  - 默认：`read_only: true`
+  - 可选覆盖：`requires_web`、`writeback_required`、`promotion_review`
+- `implementation`
+  - 默认：`code_change_allowed: true`, `review_required: true`
+  - 可选覆盖：`board_execution_required`、`board_artifact_collection_required`
+- `bug_fix`
+  - 默认：`code_change_allowed: true`, `review_required: true`
+  - 可选覆盖：`board_execution_required`、`board_artifact_collection_required`
+- `optimization`
+  - 默认：`code_change_allowed: true`, `review_required: true`
+  - 可选覆盖：`board_execution_required`、`board_artifact_collection_required`
+- `audit`
+  - 默认：`read_only: true`
+  - 若为功能审核，再补：`functional_scope: true`
+- `incident_investigation`
+  - 默认：`failure_investigation: true`, `review_required: true`
+  - 可选覆盖：`code_change_allowed`、`board_execution_required`、`board_artifact_collection_required`
+
+常见实例：
+
+- 背景检索：`primary_type = knowledge_task`，无需显式写 modifiers
+- 联网研究：`primary_type = knowledge_task`，覆盖 `requires_web: true`
+- 项目实现：`primary_type = implementation`，无需显式写 modifiers
+- 板端调查：`primary_type = incident_investigation`，覆盖 `board_execution_required: true`, `board_artifact_collection_required: true`
+- 缺陷修复：`primary_type = bug_fix`，无需显式写 modifiers
+- 受控优化：`primary_type = optimization`，无需显式写 modifiers
+- 功能审核：`primary_type = audit`，覆盖 `functional_scope: true`
+- 知识提升：`primary_type = knowledge_task`，覆盖 `writeback_required: true`, `promotion_review: true`
+
+### 0.3.3 0.3.2A 角色解析与 overlay 规则
+
+主代理在运行时应按以下顺序解析角色约束：
+
+1. 当前运行环境中的系统 / 开发者硬约束
+2. `.codex/agents/*.toml` 中的稳定角色骨架
+3. `Agent三侧角色契约规范` 与上位规范中的长期制度
+4. 本轮任务 prompt 中的实例化 overlay
+
+执行要求：
+
+- 若库内已存在匹配角色的 `toml`，应优先复用该稳定角色
+- 本轮 prompt 默认只补任务参数，不应重新定义“你现在扮演某角色”的长期职责
+- overlay 只允许覆盖本轮目标、路径、验证、调用顺序与特例边界
+- 若 overlay 与稳定角色基线冲突，默认以稳定角色基线为准
+- 若必须偏离稳定角色基线，必须显式声明 `role_override_reason`
+- 发生角色覆盖时，`workflow-orchestrator` 必须在 `run_log / audit_log` 记录覆盖原因、影响范围与回退条件
+
+### 0.3.4 进入条件
 
 任务启动前必须满足：
 
@@ -80,7 +125,7 @@ updated_at: 2026-04-07
 
 若上述条件缺失，应先补全条件，而不是直接执行。
 
-### 0.3.4 0.3.3A board-first 正式入口模式
+### 0.3.5 0.3.3A board-first 正式入口模式
 
 当任务的已知信息主要来自板端现象、日志、trace、指标、视频、dump 或错误码，而不是人工已定义清楚的问题说明时，应使用 `primary_type = incident_investigation`。
 
@@ -123,7 +168,7 @@ updated_at: 2026-04-07
 
 若 investigation 完成后形成稳定分类，再转入既有主链；若结论为 `insufficient_evidence / board_environment_issue / design_mismatch / missing_observability`，允许不进入代码修复。
 
-### 0.3.5 board execution contract
+### 0.3.6 board execution contract
 
 每个正式进入三侧闭环的 `board_target` 至少应包含：
 
@@ -316,6 +361,9 @@ updated_at: 2026-04-07
 - 已输出 `current_files_must_update`
 - 已输出 `history_files_to_mark`
 - 若 `sync_mode = delta_only`，已输出 `why_delta_only_allowed`
+- 已判断本轮是否必须新增或更新 `modification record`
+- 若新增 `delta`，已判断其类型属于 `fix / optimization / audit / investigation / validation` 中的哪一类
+- 已判断该记录是否只是 patch 回放或版本流水账
 
 阻断条件：
 
@@ -323,6 +371,9 @@ updated_at: 2026-04-07
 - 明显只追加 delta 而未判断 current 是否过期
 - 使用 `delta_only` 但未给出举证
 - 需要更新的 current 未列入同步决议
+- 应有 modification record 却未创建
+- 新增 delta 但未说明影响哪些 current owner
+- 新增 delta 只记录 patch 过程，缺少动机、验证边界或闭环结论
 
 #### 0.4.1.12 `convergence_ready`
 
@@ -335,6 +386,8 @@ updated_at: 2026-04-07
 - 已确认默认检索顺序不会优先命中 superseded baseline
 - 已确认 `default_entry` 与 `retrieval_priority` 已校验
 - 已确认 `single_pass_recoverable = true`
+- 已确认 current 不会退化为 changelog
+- 已确认 modification record 不会继续承担 current 主体职责
 
 阻断条件：
 
@@ -343,6 +396,8 @@ updated_at: 2026-04-07
 - current 缺少关键主题
 - 仍存在应降级但未降级的 baseline / delta
 - default entry 仍指向 baseline 或 delta
+- current 主体中混入事件叙事、版本流水账或 patch 过程
+- modification record 仍被用作默认恢复链补洞
 
 #### 0.4.1.13 `rework_needed`
 
@@ -367,6 +422,9 @@ repo review 已基于代码、日志和板端效果证据给出需要修改的�
 - 已记录 `baseline_status_checked`
 - 已记录 `default_entry_verified`
 - 已记录 `single_pass_recoverable`
+- 若新增或更新 `delta`，已记录 `target_current_docs`
+- 若新增或更新 `delta`，已记录其事件类型与 merge 目标
+- 若记录为 `pass_with_risks / accepted_with_risks / verification_blocked`，已显式记录验证边界与残余风险
 
 阻断条件：
 
@@ -380,6 +438,9 @@ repo review 已基于代码、日志和板端效果证据给出需要修改的�
 - 历史文档未标记 `merged_into / supersedes / lifecycle_state`
 - `default_entry` 未校验
 - `single_pass_recoverable = false`
+- current 被写成 changelog
+- 修复记录被写成 patch 复述
+- 修复记录缺少 `target_current_docs`、验证边界或追溯入口
 
 #### 0.4.1.15 `board_sync_done`
 
@@ -771,6 +832,7 @@ repo review 与板端执行的关系：
 - `task_modifiers`
 - `verification_tier`
 - `roles_invoked`
+- `role_override_reason`
 - `rework_rounds`
 - `files_changed_count`
 - `review_findings_count`
@@ -891,7 +953,11 @@ repo review 与板端执行的关系：
 
 任务属性：
 - primary_type: [implementation / bug_fix / audit / optimization / knowledge_task / incident_investigation]
-- task_modifiers: [按需填写]
+- task_modifiers:
+  - 默认：按 `primary_type` 自动带出默认项
+  - 仅在存在特例时填写 override
+  - 示例（knowledge_task 联网研究）:
+    `requires_web: true`
 - board_target: [若无则写 no_board_execution]
 - allowed_paths:
   - [知识库读取范围]
@@ -904,10 +970,12 @@ repo review 与板端执行的关系：
 
 本轮特例边界：
 - [只写本轮需要额外强调的边界；若无可省略]
+- 示例：仅允许更新 `tracking_validation_current.md` 与对应修复记录，禁止改 current 主体设计。
 
 成功标准：
 - [填写完成判据]
 - [填写不可接受结果]
+- 示例：完成 `tracking_validation_current` 收敛，且不新增 `active delta`。
 
 输出要求：
 1. context_used
@@ -924,6 +992,8 @@ repo review 与板端执行的关系：
 - 不要把默认角色调用顺序写成完整剧本
 - 不要把 reviewer 独立性、writeback gate、board gate 重复抄入每轮 prompt
 - 若本轮必须启用特定扩展角色，只写“本轮特例边界”即可
+- 若 `primary_type` 的默认 modifiers 已足够表达本轮任务，则不要重复展开 `task_modifiers`
+- 若需要覆盖，只写发生变化的项，而不是把全部 modifiers 重写一遍
 
 ### 0.13.4 何时允许补充任务特例
 

@@ -27,6 +27,7 @@ sources:
   - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复未闭环记录-2026-03-27.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪手部连续性优化闭环记录-2026-03-31.md
   - 02_Projects/DMS/04_Tracking/DMS主驾打哈欠误报修复闭环记录-2026-04-05.md
+  - 02_Projects/DMS/04_Tracking/后排乘客头部误跟踪为副驾驶修复闭环记录-2026-04-05.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md
   - 02_Projects/DMS/04_Tracking/跟踪框越界导致板端coredump调查与修复闭环记录-2026-04-07.md
   - /home/jichao/dms/source/utils/track.cpp
@@ -66,6 +67,10 @@ updated_at: 2026-04-07
   - review outcome: `pass_with_risks`
   - current evidence level 仍为 compile/review 级，不是运行样本级
 - 2026-04-05 的修复仍未补运行回放证据，因此它只能支撑实现边界，不支撑效果验收
+- 2026-04-05 后排乘客头部误跟踪为副驾驶修复已完成：
+  - 当前代码已移除 body small-face 判定污染并收敛 unique-driver 回退逻辑
+  - repo review 结论为 `pass_with_risks`
+  - 仍缺最终问题样本日志级验收，因此只能作为实现/验证边界补充，不能视为功能完全闭环
 - 2026-04-07 跟踪框越界导致板端 coredump 调查与修复已完成：
   - 代码改动仅落在 `/home/jichao/dms/source/utils/track.cpp`
   - compile result: `bash scripts/compile_j6b.sh` passed，最终 `[100%] Built target sdk`
@@ -124,6 +129,7 @@ updated_at: 2026-04-07
 - 03-27 审核记录中的有效 blocker 已收敛到本文件
 - 03-31 手部连续性优化的收益与风险判断也已收敛到本文件
 - 2026-04-05 DMS 主驾打哈欠误报修复的 accepted-with-risks 结论已收敛到本文件，但仍保留残余风险描述
+- 2026-04-05 后排乘客头部误跟踪修复的 pass-with-risks 结论已收敛到本文件
 - 当前 validation 仅负责证据与边界判定，不承担设计职责或实现职责
 
 ## 0.7 Current Sync Rule

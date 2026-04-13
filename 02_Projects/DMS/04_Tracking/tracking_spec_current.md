@@ -58,7 +58,7 @@ updated_at: 2026-04-07
 3. [[02_Projects/DMS/04_Tracking/tracking_implementation_current]]
 4. [[02_Projects/DMS/04_Tracking/tracking_validation_current]]
 
-baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_current` 只作为接口证据，不作为默认输入链入口。
+baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_evidence` 只作为接口证据，不作为默认输入链入口。
 
 ## 0.2 Object Model
 
@@ -105,7 +105,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_c
   - `m_rightHandTrackResultMap`
 - `m_humanTrackResultMap` 只可视为导出兼容层，不得再次反向塑造 tracking 上游设计。
 - 左右手输出必须保持分离，不得在 tracking 内部重新定义统一 hand 真相源。
-- `tracking_interfaces_current` 只保留接口证据，不是当前默认实现输入链入口。
+- `tracking_interfaces_evidence` 只保留接口证据，不是当前默认实现输入链入口。
 
 ## 0.6 Calculation Contracts
 

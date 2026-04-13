@@ -1,6 +1,6 @@
 ---
-title: Tracking Interfaces Current
-summary: Tracking 接口补充文档，保留接口事实的独立展开说明；默认实现输入链已切换到 design/spec/implementation/validation，本文件不再作为必读入口。
+title: Tracking Interfaces Evidence
+summary: Tracking 接口补充证据文档，保留接口事实的独立展开说明；默认实现输入链已切换到 design/spec/implementation/validation，本文件不再作为 current 命名文档或必读入口。
 status: verified
 doc_role: delta
 truth_role: evidence
@@ -22,6 +22,11 @@ related_code:
   - /home/jichao/dms/source/fuse_algos/fuse_algorithm.cpp
   - /home/jichao/dms/include/fuse_algos/serialize_result.h
   - /home/jichao/dms/source/fuse_algos/serialize_result.cpp
+record_type: audit_record
+target_current_docs:
+  - 02_Projects/DMS/04_Tracking/tracking_implementation_current.md
+  - 02_Projects/DMS/04_Tracking/tracking_spec_current.md
+decision_scope: DMS Tracking interface evidence consolidation
 sources:
   - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复闭环记录-2026-03-25.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪生命周期与手部关联设计失配修复闭环记录-2026-03-25.md
@@ -37,7 +42,7 @@ risks:
 updated_at: 2026-04-03
 ---
 
-> 文档状态：本文件保留为接口补充记录，其当前有效接口事实已并入 `tracking_implementation_current` 与 `tracking_spec_current`。
+> 文档状态：本文件保留为接口补充证据，其当前有效接口事实已并入 `tracking_implementation_current` 与 `tracking_spec_current`。
 
 ## 0.1 Upstream Facts
 

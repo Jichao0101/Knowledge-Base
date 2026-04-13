@@ -16,7 +16,7 @@ retrieval_priority: current
 supersedes:
   - 02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪实现闭环记录-2026-03-24.md
-  - 02_Projects/DMS/04_Tracking/tracking_interfaces_current.md
+  - 02_Projects/DMS/04_Tracking/tracking_interfaces_evidence.md
 merged_into: []
 current_replacement: []
 related_code:
@@ -129,7 +129,7 @@ updated_at: 2026-04-07
 - retired body 只作为 handoff 和 orphan child 清理的历史锚点，不直接对外输出。
 - 当前实现为了保留解耦 child，会有 orphan face / hand 兜底输出路径，这也是区域级唯一性尚未完全闭合的直接原因。
 - `m_humanTrackResultMap` 只在导出层作为 body 兼容映射，不是 tracking 上游事实源。
-- 当前实现并未把 `tracking_interfaces_current` 提升为默认实现输入；其接口事实已经并入本文件和 spec。
+- 当前实现并未把 `tracking_interfaces_evidence` 提升为默认实现输入；其接口事实已经并入本文件和 spec。
 
 ## 0.7 Known Gaps
 
@@ -144,7 +144,7 @@ updated_at: 2026-04-07
 - 03-31 delta 收敛了 hand continuity 优化与短 miss 输出。
 - 04-05 delta 收敛了快速运动恢复阶段的预测残留抑制。
 - 04-07 delta 收敛了 tracking 输出框统一 sanitize/clamp，并把 hand miss 输出语义对齐到 face/body。
-- 原 `tracking_interfaces_current` 的当前有效接口事实已并入本文件。
+- 原 `tracking_interfaces_evidence` 的当前有效接口事实已并入本文件。
 
 ## 0.9 Current Sync Rule
 
@@ -161,9 +161,9 @@ updated_at: 2026-04-07
   - `多目标跟踪生命周期与手部关联设计失配修复闭环记录-2026-03-25.md`
   - `多目标跟踪手部连续性优化闭环记录-2026-03-31.md`
   - `多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md`
-  - `tracking_interfaces_current.md`
+  - `tracking_interfaces_evidence.md`
 - evidence_only_docs:
-  - `tracking_interfaces_current.md`
+  - `tracking_interfaces_evidence.md`
 - not_a_default_entry_anymore:
   - `座舱多目标跟踪实现.md`
   - `多目标跟踪实现闭环记录-2026-03-24.md`
