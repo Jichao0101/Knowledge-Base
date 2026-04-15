@@ -3,10 +3,10 @@ type: knowledge
 status: verified
 domain: 工程工作流
 topic: Agent三侧角色契约规范
-sources: ["内部方法论整理", "01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范.md", "01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板.md", "01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范.md"]
+sources: ["内部方法论整理", "01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范.md", "01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板.md", "01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范.md", "02_Projects/Agent Workflow/主代理越权执行规范硬化优化记录-2026-04-15.md"]
 scope: 适用于定义三侧闭环任务中的稳定角色边界、最小输入输出契约、停止条件与 reviewer 独立性要求。本文档承接角色契约，不承接状态机与实例 prompt 模板。
 risks: ["角色契约与实际工具链不一致", "主代理吸收执行层职责", "reviewer 输入未裁剪导致独立性失效", "角色契约散落在运行模板中重复维护"]
-updated_at: 2026-04-13
+updated_at: 2026-04-15
 ---
 
 ## 0.1 摘要
@@ -136,6 +136,44 @@ updated_at: 2026-04-13
 - 绕过 review 进入 knowledge writeback
 - 把未审内容直接写入正式知识区
 - 在 `board_execution_required` 场景下绕过上板闭环
+
+---
+
+### 0.4.2 高风险动作权限硬门禁
+
+角色权限采用默认 deny 原则：凡属于高风险动作且未在权限表中显式标记为 `allow` 的，一律视为 `deny`。底层工具具备写入能力不等于角色被授权执行该动作。
+
+高风险动作定义：
+
+- `repo_write`：修改代码、脚本、配置、构建文件、测试文件或会进入仓库的工程文件。
+- `verification_write`：运行会改变仓库内容、项目 current、正式知识、持久化工程产物、模型产物、基线报告或可被后续任务默认消费的状态文件的写入型验证命令。
+- `verification_read`：运行不修改仓库、不更新 current / 正式知识、不覆盖持久化产物，或仅在临时目录生成一次性检查输出的验证命令。
+- `review_decision`：对实现产物给出 `pass / rework_required / blocked` 的 repo 侧质量裁决。
+- `project_log_write`：写入项目区临时记录、运行记录、分析草案、review 记录或审计记录。
+- `project_current_update`：更新项目 current、决策记录、状态基线或会影响后续任务入口的项目文档。
+- `knowledge_promotion`：新增或更新正式知识区条目，或将条目标记为 `verified`。
+- `rollback_or_discard`：回滚、废弃、降级或标记已有产物为 invalid。
+
+最小高风险权限表：
+
+| 高风险动作 | workflow-orchestrator | repo-coder | reviewer | knowledge-closer / auditor |
+|---|---|---|---|---|
+| `repo_write` | deny | allow | deny | deny |
+| `verification_write` | deny | allow | deny | deny |
+| `verification_read` | allow | allow | allow | allow |
+| `review_decision` | deny | deny | allow | conditional allow，仅限知识 promotion 审核 |
+| `project_log_write` | allow | allow，仅限实现记录 | allow，仅限 review 记录 | allow |
+| `project_current_update` | conditional allow | deny | deny | conditional allow |
+| `knowledge_promotion` | deny | deny | deny | allow，且必须通过 promotion gate |
+| `rollback_or_discard` | conditional allow，仅限调度和标记 | conditional allow，仅限被授权返工 | conditional allow，仅限提出建议 | conditional allow，仅限知识条目降级 |
+
+`conditional allow` 不得解释为“角色可自行判断是否执行”。只有当运行规范或闭环规范中对应 gate 的全部条件满足，并且 audit_log 已逐项记录 `gate_result` 时，才允许执行。若条件未被逐项记录，按 deny 处理。
+
+术语对齐：
+
+- `review_decision` 对应运行规范中的 `repo_review_result`，只表示 repo 侧质量裁决。
+- `knowledge_promotion` 对应上位规范中的 `promotion_review` 与正式知识区 `verified` 转正门槛。
+- `project_current_update` 对应项目 current 体系，不等同于普通项目日志。
 
 ---
 

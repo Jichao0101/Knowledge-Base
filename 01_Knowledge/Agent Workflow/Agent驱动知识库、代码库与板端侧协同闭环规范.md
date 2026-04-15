@@ -3,10 +3,10 @@ type: knowledge
 status: verified
 domain: 工程工作流
 topic: Agent驱动知识库、代码库与板端侧协同闭环规范
-sources: ["内部方法论整理"]
+sources: ["内部方法论整理", "02_Projects/Agent Workflow/主代理越权执行规范硬化优化记录-2026-04-15.md"]
 scope: 适用于使用 Agent 连接知识库、代码库与智驾芯片板端侧，在受控知识检索、方案设计、代码实现、上板执行、日志采集、效果评估、状态回写和知识沉淀之间形成三侧闭环的通用工程协作流程
 risks: ["项目特例误沉淀为正式知识", "代码优化越过需求边界", "知识库与代码库规则不一致导致越权修改", "板端执行环境与仓库实现脱节", "板端日志和效果评估未回流仓库审查", "外部信息未经审核直接进入正式知识区", "主代理 orchestration 职责不清导致角色漂移"]
-updated_at: 2026-04-07
+updated_at: 2026-04-15
 ---
 
 ## 0.1 摘要
@@ -940,6 +940,26 @@ Agent 可以实现方案中未明确列出的优化项，但必须满足以下�
 ## 5.3 回写与沉淀规则
 
 任务完成后，必须根据内容性质分区回写。
+
+回写必须按风险拆分为三层：
+
+| writeback 层级 | 风险等级 | 最低 gate | 允许状态 | 独立 review |
+|---|---|---|---|---|
+| `project_log_write` | 低 / 中 | allowed_paths + `draft / pending_review` | `analysis / implementation / review / writeback` | 默认不需要 |
+| `project_current_update` | 中 / 高 | review pass 或 spec_update gate | `writeback` | 默认需要 |
+| `knowledge_promotion` | 高 | promotion_review + knowledge-auditor pass | `writeback` | 必须需要 |
+
+`project_log_write` 用于记录过程、草案、审计与未决问题。该层写回不得改变项目 current，不得作为正式决策入口，不得标记为 `verified`。
+
+`project_current_update` 用于更新 current 文档、决策基线、状态基线或会影响后续任务入口的项目文档。它会改变后续默认检索与 single-pass recoverability，默认需要 review gate。未通过 review 的内容只能写入 project log，不得写入 current。
+
+`knowledge_promotion` 用于新增或更新 `01_Knowledge`，或将条目标记为 `verified`。任何未完成 promotion gate 的内容，即使已在项目中验证，也只能保留在 `02_Projects`、`03_Inbox` 或 `04_Sources`，不得进入 `01_Knowledge` 的 verified 条目。
+
+术语对齐：
+
+- `project_current_update` 对应第 10 章 current 真相源、默认实现输入链与 single-pass recoverability 规则。
+- `knowledge_promotion` 对应 `promotion_review` 与正式沉淀门槛。
+- `project_log_write` 对应 modification record、run_log、audit_log 或项目区草案记录，不替代 current。
 
 ### 5.3.1 写入 `02_Projects`
 

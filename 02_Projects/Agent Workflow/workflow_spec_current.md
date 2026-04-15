@@ -23,7 +23,7 @@ sources:
 scope: 适用于 Agent Workflow 自身演化的项目化 writeback 与记录收敛。
 risks:
   - 本规范当前只覆盖知识库内项目文档，不扩展到外部代码库主题。
-updated_at: 2026-04-13
+updated_at: 2026-04-15
 ---
 
 ## 0.1 Required Behaviors
@@ -32,6 +32,8 @@ updated_at: 2026-04-13
 - 若发生具体收敛、诊断、审计或验证事件，必须创建或更新 modification record
 - modification record 必须声明 `record_type` 与 `target_current_docs`
 - `delta_only` 只允许用于纯证据或纯追溯补充
+- 高风险动作必须遵守正式规范中的默认 deny、核心门禁状态与 writeback 分层
+- `project_log_write / project_current_update / knowledge_promotion` 必须按风险分层执行，不得混用一个 writeback gate
 
 ## 0.2 Prohibited Behaviors
 
@@ -50,3 +52,13 @@ updated_at: 2026-04-13
 - 先更新知识规范
 - 再更新本主题 project current
 - 再将实例主题按更新后规则收敛
+
+## 0.5 Latest Governance Update
+
+- `主代理越权执行规范硬化优化记录-2026-04-15.md` 已通过独立 review 并提升到正式规范
+- 本轮正式规范新增：
+  - 高风险动作默认 deny
+  - `verification_write / verification_read` 分界
+  - 四核心门禁状态
+  - 违规分级、冻结范围与恢复责任
+  - writeback 三层：`project_log_write / project_current_update / knowledge_promotion`

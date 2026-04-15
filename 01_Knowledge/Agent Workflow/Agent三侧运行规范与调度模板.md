@@ -3,10 +3,10 @@ type: knowledge
 status: verified
 domain: 工程工作流
 topic: Agent三侧运行规范与调度模板
-sources: ["内部方法论整理", "01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范.md", "01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范.md", "01_Knowledge/Agent Workflow/Agent三侧角色契约规范.md"]
+sources: ["内部方法论整理", "01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范.md", "01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范.md", "01_Knowledge/Agent Workflow/Agent三侧角色契约规范.md", "02_Projects/Agent Workflow/主代理越权执行规范硬化优化记录-2026-04-15.md"]
 scope: 适用于需要将三侧闭环规则包装成可运行流程，包括板端目标绑定、状态推进、角色集合派生、返工升级和轻实例 prompt 约束的场景。
 risks: ["运行规范过重导致单次任务负担过大", "板端执行被退化为附属说明", "项目特例被误提升为通用步骤", "角色契约与运行规范重复维护", "扩展角色加入后分层失效导致制度与运行脱节"]
-updated_at: 2026-04-13
+updated_at: 2026-04-15
 ---
 
 ## 0.1 摘要
@@ -223,6 +223,72 @@ updated_at: 2026-04-13
 5. `hypothesis_generated`
 6. `classification_decided`
 7. `routed_to_bug_fix | routed_to_optimization | routed_to_audit | routed_to_env_issue | investigation_closed`
+
+### 0.4A 高风险动作核心门禁
+
+本节不替代完整状态机，只作为高风险动作的运行时硬门禁 overlay。完整状态机继续使用 `task_received -> ... -> closed`；核心门禁状态只用于判断 `repo_write / verification_write / review_decision / project_current_update / knowledge_promotion` 等动作是否可执行。
+
+术语对齐：
+
+| 核心门禁状态 | 对应既有状态段 | 说明 |
+|---|---|---|
+| `analysis` | `context_retrieved -> plan_ready` | 分析、计划与交接包形成阶段，不替代 `plan_ready` |
+| `implementation` | `execution_approved -> implementation_done` | 实现执行阶段，只允许 `repo-coder` 执行 `repo_write` |
+| `review` | `implementation_done -> repo_review_done` | repo-reviewer 独立审查阶段 |
+| `writeback` | `knowledge_sync_checked -> convergence_ready -> writeback_done` | 分层写回阶段，包含项目记录、current 更新和知识提升 |
+
+核心状态门禁：
+
+| 核心状态 | 允许的高风险动作 | 必须阻断的动作 | 进入条件 |
+|---|---|---|---|
+| `analysis` | `project_log_write`，仅限草案或审计记录 | `repo_write`, `verification_write`, `project_current_update`, `knowledge_promotion`, `review_decision` | 已确认 allowed_paths，已读取必要上下文 |
+| `implementation` | `repo_write`, `verification_write`, `project_log_write` | `review_decision`, `knowledge_promotion` | 已形成 implementation package，执行者为 `repo-coder` |
+| `review` | `review_decision`, `verification_read`, `project_log_write` | `repo_write`, `verification_write`, `knowledge_promotion` | 已存在 artifact，reviewer 独立 |
+| `writeback` | `project_log_write`, `project_current_update`, `knowledge_promotion` | `repo_write`, 未授权 `verification_write` | review gate、spec_update gate 或 promotion gate 通过 |
+
+以下跃迁必须阻断：
+
+1. `analysis -> implementation`，且执行者为 `workflow-orchestrator`
+2. `analysis -> writeback`，且无 review gate 或 spec_update gate
+3. `implementation -> writeback`，且无 `review_decision = pass`
+4. `review -> writeback`，且 `review_decision != pass`
+5. 任意状态 -> `knowledge_promotion`，且 promotion gate 未通过
+
+`intake / context_collect / dispatch / closed` 属于管理辅助状态，用于 run_log 与任务可恢复性，不作为每次工具调用的硬阻断条件。小型 read_only 或 spec_update 任务可以合并记录管理辅助状态，但不得跳过核心门禁状态。
+
+### 0.4B 违规分级、冻结范围与检测信号
+
+违规等级：
+
+- `S0_observation`：轻微记录缺失或审计字段不完整，未产生错误产物。
+- `S1_gate_miss`：gate 记录缺失或状态记录不完整，但未发生高风险写入。
+- `S2_invalid_artifact`：产生了越权 artifact，但尚未进入 writeback 或正式知识区。
+- `S3_invalid_writeback`：未审或越权内容已进入项目 current、正式知识区或影响后续任务入口。
+
+冻结范围：
+
+- `freeze_none`：仅补审计记录。
+- `freeze_action`：冻结同类动作，例如继续 `repo_write`。
+- `freeze_artifact`：冻结受影响 artifact，不得作为 review / writeback 输入。
+- `freeze_writeback`：冻结所有 writeback。
+- `freeze_promotion`：冻结正式知识提升，但允许项目区 draft 记录。
+- `freeze_task`：冻结本轮任务，必须重新调度。
+
+恢复责任：
+
+| 违规类型 | recovery owner |
+|---|---|
+| orchestrator 越权 `repo_write` | independent reviewer + workflow-orchestrator |
+| reviewer 不独立 | workflow-orchestrator + new reviewer |
+| 未审内容进入 writeback | knowledge-closer + reviewer |
+| 正式知识条目缺元数据 | knowledge-auditor |
+
+检测信号分为两类：
+
+1. 机械可检信号：可由路径、角色、状态、文件写入、frontmatter、audit_log 字段直接判断。机械可检信号命中时，应立即阻断或冻结对应动作。
+2. 语义审计信号：需要 reviewer 或 knowledge-auditor 判断。语义审计信号命中时，应进入 `pending_review`，不得直接标记 `verified`。
+
+若机械可检信号与语义审计信号冲突，以机械可检信号先冻结，再由语义审计决定恢复路径。
 
 ### 0.4.1 状态说明
 
