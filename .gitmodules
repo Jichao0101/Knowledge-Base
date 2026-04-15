@@ -1,0 +1,4 @@
+[submodule "plugins/chaospower"]
+	path = plugins/chaospower
+	url = git@github.com:Jichao0101/chaospower.git
+	branch = main
