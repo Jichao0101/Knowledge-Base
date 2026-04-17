@@ -91,18 +91,18 @@ updated_at: 2026-04-11
 - 关注点：多步流程、角色顺序、审批、返工、多 agent 协同
 - 在本库中的角色：Harness 内的全局编排控制层
 - 它不是什么：不是单个 Agent 内部的局部 planning，也不是某个 Skill 的执行脚本
-- 首读文档：[[01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范|Agent驱动知识库、代码库与板端侧协同闭环规范]]
-- 配套运行文档：[[01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板|Agent三侧运行规范与调度模板]]
+- 首读文档：[[01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式|Plugin-first与Contracts-first治理插件设计模式]]
+- 配套运行文档：[[01_Knowledge/Agent Workflow/运行时门禁与独立审查边界模式|运行时门禁与独立审查边界模式]]
 
-一个直接可用的例子是三侧闭环里的 `workflow-orchestrator`：
+一个直接可用的例子是治理插件里的 `workflow-orchestrator`：
 
 - 主代理默认承担 `workflow-orchestrator` 职责
-- 它决定先调用 `knowledge-planner`
+- 它决定先调用 `scope-planner`
 - 再决定是否进入 `repo-coder`
 - 之后把结果裁剪后交给 `repo-reviewer`
-- 最后再由 `knowledge-closer` 完成知识回写
-- 若本地知识不足，可插入 `source-ingestor`
-- 若问题复杂，可插入 `failure-analyst`
+- 若存在板端证据需求，可插入 `board-operator`
+- 若存在需求符合度裁定，可插入 `functional-reviewer`
+- 若存在故障调查闭环，可插入 `incident-investigator`
 
 这里真正发生的是：
 
@@ -134,8 +134,8 @@ updated_at: 2026-04-11
 2. [[Agent]]
 3. [[OpenClaw]]
 4. [[Codex Skill开发与脚本化边界规范]]
-5. [[01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范|Agent驱动知识库、代码库与板端侧协同闭环规范]]
-6. [[01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板|Agent三侧运行规范与调度模板]]
+5. [[01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式|Plugin-first与Contracts-first治理插件设计模式]]
+6. [[01_Knowledge/Agent Workflow/运行时门禁与独立审查边界模式|运行时门禁与独立审查边界模式]]
 
 ---
 

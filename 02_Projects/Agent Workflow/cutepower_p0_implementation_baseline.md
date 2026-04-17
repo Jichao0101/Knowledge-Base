@@ -1,20 +1,31 @@
 ---
 title: cutepower P0 implementation baseline
-summary: 定义 cutepower 插件第一阶段最小可落地实施基线，先固定目录、contracts、skills、桥接层边界与 reviewer 验收清单，再据此实施。
-status: pending_review
-doc_role: implementation_baseline
-truth_role: project_baseline
-scope: 适用于 cutepower 插件 P0 第一阶段最小闭环实施，不覆盖 P1/P2 扩展、复杂 hooks 或运行时 enforcement。
+summary: cutepower P0 第一阶段实施基线的历史快照，保留当时的实施边界与 reviewer 验收项；不再作为当前 plugin 实现或测试入口。
+status: verified
+doc_role: baseline
+truth_role: history
+lifecycle_state: superseded
+default_entry: false
+retrieval_priority: reference
+current_replacement:
+  - plugins/cutepower/contracts/
+  - plugins/cutepower/skills/
+  - plugins/cutepower/README.md
+scope: 适用于追溯 cutepower P0 第一阶段的实施边界与 reviewer 验收项，不再作为当前 plugin 实现或测试入口。
 related_plugins:
   - plugins/cutepower
 sources:
+  - 01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式.md
   - 02_Projects/Agent Workflow/workflow_overview_current.md
   - 02_Projects/Agent Workflow/workflow_design_current.md
   - 02_Projects/Agent Workflow/workflow_spec_current.md
   - 02_Projects/Agent Workflow/workflow_implementation_current.md
-  - 02_Projects/Agent Workflow/Chaospower P0 skill-first 第一阶段落地收敛记录-2026-04-15.md
-updated_at: 2026-04-16
+  - 02_Projects/Agent Workflow/cutepower P1插件落地与运行时门禁收敛记录-2026-04-17.md
+updated_at: 2026-04-17
 ---
+
+> Status note:
+> 本文件已降级为历史 baseline。cutepower 当前 active truth 以 `plugins/cutepower/contracts/`、`skills/`、`scripts/` 和安装/README 文档为准；后续测试不应再将本文件当作默认实现输入。
 
 # 1 目标与范围
 

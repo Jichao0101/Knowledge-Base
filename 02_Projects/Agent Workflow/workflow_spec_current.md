@@ -1,93 +1,86 @@
 ---
 title: Agent Workflow Spec Current
-summary: Agent Workflow 当前项目化管理规范，明确 current / modification records / writeback / recoverability / Chaospower active truth source 的执行规则。
-status: verified
+summary: 当前 Agent Workflow 主题的项目级强规则：cutepower plugin 是唯一 active truth，project current 只做同步说明，baseline 与 record 只做历史追溯。
+status: pending_review
 doc_role: current
 truth_role: current
 current_kind: spec
 lifecycle_state: active
 default_entry: false
 sync_required_when:
-  - modification-record 规则变化
-  - writeback 门禁变化
-  - recoverability 判定变化
+  - cutepower 真相源优先级变化
+  - current / baseline / record 规则变化
+  - runtime gate 或 writeback 语义变化
 retrieval_priority: current
 supersedes: []
 merged_into: []
 current_replacement: []
 related_code: []
 related_plugins:
-  - plugins/chaospower
+  - plugins/cutepower
 sources:
-  - 01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范.md
-  - 01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板.md
-  - 01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范.md
-  - plugins/chaospower/docs/Chaospower active contract index.md
-scope: 适用于 Agent Workflow 自身演化的项目化 writeback 与记录收敛。
+  - plugins/cutepower/contracts/contract-index.yaml
+  - plugins/cutepower/contracts/writeback-levels.yaml
+  - plugins/cutepower/contracts/review-boundaries.yaml
+  - plugins/cutepower/scripts/runtime-gates.js
+  - 01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式.md
+  - 01_Knowledge/Agent Workflow/运行时门禁与独立审查边界模式.md
+scope: 适用于定义 cutepower 当前项目区同步规则、真相源优先级与禁止行为，不替代 plugin contracts 本身。
 risks:
-  - Chaospower P0 当前只覆盖 plan / repo-change / code-review / writeback，不覆盖板端和联网。
-updated_at: 2026-04-15
+  - 若 project spec 与 plugin contracts 发生漂移，会再次形成两套治理语义。
+  - 若 record 被当成当前规则源，会破坏 single-pass recoverability。
+updated_at: 2026-04-17
 ---
 
 ## 0.1 Required Behaviors
 
-- 若规则变化影响当前态语义，必须更新 current
-- 若发生具体收敛、诊断、审计或验证事件，必须创建或更新 modification record
-- modification record 必须声明 `record_type` 与 `target_current_docs`
-- `delta_only` 只允许用于纯证据或纯追溯补充
-- 高风险动作必须遵守正式规范中的默认 deny、核心门禁状态与 writeback 分层
-- `project_log_write / project_current_update / knowledge_promotion` 必须按风险分层执行，不得混用一个 writeback gate
-- Chaospower 运行时规则必须优先读取 `plugins/chaospower/skills/` 的 active skill
-- `AGENTS.md` 只允许承载极薄入口和全局 hard stop
-- `agents/*.toml` 只允许承载 description 与调用对应 skill 的薄 prompt
-- legacy 文档、appendices 与 migration payload 不得覆盖 active skill
+- cutepower 的运行治理必须优先读取 `plugins/cutepower/contracts/`
+- 运行时高风险拒绝路径必须以 `plugins/cutepower/scripts/runtime-gates.js` 为准
+- skills、`AGENTS.md`、`agents/*.toml` 只能作为薄桥接，不得复制治理正文
+- 任何影响当前态语义的 cutepower 变更，必须同步更新 current 组
+- 任何 cutepower-specific 实施或硬化事件，必须写入 cutepower-specific record
+- baseline 只保留为历史参考，不得重新回升为默认实现入口
 
 ## 0.2 Prohibited Behaviors
 
-- 不允许 current 承载事件时间线
-- 不允许 modification record 复制代码、配置或 patch 细节
-- 不允许 active delta 长期滞留
-- 不允许把 P1/P2 未落地能力创建为空 skill 目录充当 active 规则
-- 不允许把 `using-chaospower` 扩写成完整旧状态机或角色契约全文
+- 不允许恢复原三侧或 Chaospower 为 current truth
+- 不允许把宿主知识库目录、项目目录或候选区语义写进 cutepower plugin
+- 不允许把 README、baseline 或 record 当作高于 contracts 的规则源
+- 不允许把 reviewer、incident-investigator 或主代理扩回越权角色
+- 不允许把 current 写成事件时间线或 patch 回放
 
 ## 0.3 Verification Contract
 
-- current 是否仍能 single-pass recover
-- modification record 是否说明动机、边界、验证与残余风险
-- target current docs 是否明确
+- current 组是否仍能 single-pass recover 当前 cutepower 状态
+- current 是否只描述当前态，而不是复制 contracts
+- current 是否只引用仍然存在的知识、plugin 和项目资产
+- record 是否只承接 cutepower-specific 事件
 
 ## 0.4 Writeback Contract
 
-- 先更新知识规范
-- 再更新本主题 project current
-- 再将实例主题按更新后规则收敛
+- 先更新 plugin 真相源：contracts / skills / scripts / thin bridge
+- 再更新 current 组，反映新的当前态
+- 若本轮存在具体实现、硬化或验证事件，再补 cutepower-specific record
+- baseline 仅在“冻结一轮实施边界”时更新，不作为普通 writeback 载体
 
 ## 0.5 Latest Governance Update
 
-- `主代理越权执行规范硬化优化记录-2026-04-15.md` 已通过独立 review 并提升到正式规范
-- 本轮正式规范新增：
-  - 高风险动作默认 deny
-  - `verification_write / verification_read` 分界
-  - 四核心门禁状态
-  - 违规分级、冻结范围与恢复责任
-  - writeback 三层：`project_log_write / project_current_update / knowledge_promotion`
-- `Chaospower P0 skill-first 第一阶段落地收敛记录-2026-04-15.md` 将第一阶段运行时规则收敛到 `plugins/chaospower`
-- P0 active skill 集固定为：
-  - `using-chaospower`
-  - `chaos-scope-plan`
-  - `chaos-repo-change`
-  - `chaos-code-review`
-  - `chaos-writeback`
+- cutepower 已完成 P1 contracts、schemas、validation 与三项 P1 skills 落地
+- runtime gate 已覆盖 legacy reviewer、review 态 board_execute、非 board route artifact_collect、incident repo_write、模糊 pass 状态等关键拒绝路径
+- cutepower 已去除宿主知识库目录语义，不再携带 `01_Knowledge / 02_Projects / 03_Inbox` 绑定
+- 项目区已移除原三侧与 Chaospower 记录，仅保留 cutepower assets
 
 ## 0.6 Active Truth Source Priority
 
 优先级从高到低：
 
-1. `plugins/chaospower/skills/`
-2. `plugins/chaospower/docs/Chaospower active contract index.md`
-3. `plugins/chaospower/AGENTS.md`
-4. `plugins/chaospower/agents/*.toml`
-5. `plugins/chaospower/docs/appendices/` 与 `01_Knowledge/Agent Workflow` legacy 规范
-6. `plugins/agent-workflow-migrator` payload
+1. `plugins/cutepower/contracts/`
+2. `plugins/cutepower/scripts/runtime-gates.js`
+3. `plugins/cutepower/skills/`
+4. `plugins/cutepower/README.md`、`AGENTS.md`、`agents/*.toml`
+5. `02_Projects/Agent Workflow/workflow_*_current.md`
+6. `02_Projects/Agent Workflow/cutepower_*_baseline.md`
+7. `02_Projects/Agent Workflow/cutepower P1插件落地与运行时门禁收敛记录-2026-04-17.md`
+8. `01_Knowledge/Agent Workflow/*.md` 通用模式知识
 
-若 active skill 与低优先级载体冲突，以 active skill 为准。
+若高优先级与低优先级冲突，以高优先级为准。

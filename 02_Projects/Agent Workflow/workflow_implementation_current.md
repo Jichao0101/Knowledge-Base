@@ -1,70 +1,107 @@
 ---
 title: Agent Workflow Implementation Current
-summary: Agent Workflow 当前规则在知识规范、项目文档与 Chaospower 插件中的落点映射。
-status: verified
+summary: 当前 Agent Workflow 主题的落点映射：cutepower 的 contracts、skills、scripts 与桥接层写在 plugin 内；项目区只保留 current、baseline 与 cutepower record。
+status: pending_review
 doc_role: current
 truth_role: current
 current_kind: implementation
 lifecycle_state: active
 default_entry: false
 sync_required_when:
-  - 规范落点变化
-  - 项目 current 组变化
+  - cutepower 落点变化
+  - 保留的项目资产集合变化
+  - runtime gate 或验证脚本变化
 retrieval_priority: current
 supersedes: []
 merged_into: []
 current_replacement: []
 related_code: []
 related_plugins:
-  - plugins/chaospower
-  - plugins/agent-workflow-migrator
+  - plugins/cutepower
 sources:
-  - 01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范.md
-  - 01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板.md
-  - 01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范.md
-  - plugins/chaospower/docs/Chaospower active contract index.md
-scope: 适用于快速定位 Agent Workflow 当前规则写在哪些文档里。
+  - plugins/cutepower/.codex-plugin/plugin.json
+  - plugins/cutepower/README.md
+  - plugins/cutepower/contracts/contract-index.yaml
+  - plugins/cutepower/scripts/validate-contracts.js
+  - plugins/cutepower/scripts/test-runtime-gates.js
+  - 02_Projects/Agent Workflow/cutepower P1插件落地与运行时门禁收敛记录-2026-04-17.md
+scope: 适用于快速定位当前 cutepower 资产写在哪些 plugin 和项目文件中。
 risks:
-  - 当前 Chaospower 插件已有 P0 skill，但仍没有脚本化 lint 或完整插件安装校验器。
-updated_at: 2026-04-15
+  - 若继续把 legacy plugin 或 legacy project record 视为实现入口，会恢复错误落点。
+updated_at: 2026-04-17
 ---
 
-## 0.1 Knowledge-side Mapping
+## 0.1 Plugin-side Mapping
 
-- 上位规则：`Agent驱动知识库、代码库与板端侧协同闭环规范`
-- 运行门禁：`Agent三侧运行规范与调度模板`
-- 模板与字段：`Agent三侧模板与文件结构规范`
-- 上述文档在 Chaospower P0 运行时中降级为解释性依据与 legacy reference，不覆盖 active skill
+- 插件根目录：`plugins/cutepower`
+- plugin manifest：`plugins/cutepower/.codex-plugin/plugin.json`
+- 极薄入口：`plugins/cutepower/AGENTS.md`
+- 安装入口：`plugins/cutepower/README.codex.md`、`plugins/cutepower/.codex/INSTALL.md`
+- active governance truth：
+  - `plugins/cutepower/contracts/contract-index.yaml`
+  - `plugins/cutepower/contracts/gate-matrix.yaml`
+  - `plugins/cutepower/contracts/role-contracts.yaml`
+  - `plugins/cutepower/contracts/review-boundaries.yaml`
+  - `plugins/cutepower/contracts/writeback-levels.yaml`
+  - `plugins/cutepower/contracts/routing-table.yaml`
+- validation / runtime gate：
+  - `plugins/cutepower/scripts/validate-contracts.js`
+  - `plugins/cutepower/scripts/runtime-gates.js`
+  - `plugins/cutepower/scripts/test-runtime-gates.js`
 
-## 0.1A Plugin-side Mapping
+## 0.2 Active Skill Mapping
 
-- 插件根目录：`plugins/chaospower`
-- 插件 manifest：`plugins/chaospower/.codex-plugin/plugin.json`
-- 极薄入口：`plugins/chaospower/AGENTS.md`
-- active truth source：`plugins/chaospower/docs/Chaospower active contract index.md`
-- P0 skills：
-  - `plugins/chaospower/skills/using-chaospower/SKILL.md`
-  - `plugins/chaospower/skills/chaos-scope-plan/SKILL.md`
-  - `plugins/chaospower/skills/chaos-repo-change/SKILL.md`
-  - `plugins/chaospower/skills/chaos-code-review/SKILL.md`
-  - `plugins/chaospower/skills/chaos-writeback/SKILL.md`
-- thin agent descriptors：
-  - `plugins/chaospower/agents/scope-plan.toml`
-  - `plugins/chaospower/agents/repo-change.toml`
-  - `plugins/chaospower/agents/code-review.toml`
-  - `plugins/chaospower/agents/writeback.toml`
-- migration-only plugin：`plugins/agent-workflow-migrator`
+P0：
 
-## 0.2 Project-side Mapping
+- `plugins/cutepower/skills/using-cutepower/SKILL.md`
+- `plugins/cutepower/skills/cute-scope-plan/SKILL.md`
+- `plugins/cutepower/skills/cute-repo-change/SKILL.md`
+- `plugins/cutepower/skills/cute-code-review/SKILL.md`
+- `plugins/cutepower/skills/cute-writeback/SKILL.md`
 
-- 默认入口：`workflow_overview_current`
-- 当前分工：`workflow_design_current`
-- 当前强规则：`workflow_spec_current`
-- 落点映射：`workflow_implementation_current`
-- 当前验证：`workflow_validation_current`
+P1：
 
-## 0.3 Modification Records
+- `plugins/cutepower/skills/cute-board-run/SKILL.md`
+- `plugins/cutepower/skills/cute-functional-review/SKILL.md`
+- `plugins/cutepower/skills/cute-incident-investigation/SKILL.md`
 
-- `Agent Workflow-current与修改记录分工收敛记录-2026-04-13.md`
-- `Agent Workflow-DMS Tracking 文档体系诊断记录-2026-04-13.md`
-- `Chaospower P0 skill-first 第一阶段落地收敛记录-2026-04-15.md`
+thin agent descriptors：
+
+- `plugins/cutepower/agents/scope-plan.toml`
+- `plugins/cutepower/agents/repo-change.toml`
+- `plugins/cutepower/agents/code-review.toml`
+- `plugins/cutepower/agents/writeback.toml`
+
+## 0.3 Project-side Mapping
+
+current：
+
+- `workflow_overview_current`
+- `workflow_interface_current`
+- `workflow_design_current`
+- `workflow_spec_current`
+- `workflow_implementation_current`
+- `workflow_validation_current`
+
+baseline：
+
+- `cutepower_p0_implementation_baseline.md`
+- `cutepower_p1_board_functional_incident_baseline.md`
+
+record：
+
+- `cutepower P1插件落地与运行时门禁收敛记录-2026-04-17.md`
+
+## 0.4 Removed Assets
+
+以下资产不再属于当前落点：
+
+- 原三侧项目记录
+- Chaospower 项目记录
+- 原三侧正式知识文档
+- `plugins/chaospower` 作为当前实现入口
+
+## 0.5 Current Recovery Note
+
+恢复当前 cutepower 状态时，应先读 plugin truth，再用本文件确认项目区保留了哪些 current / baseline / record 资产；
+不需要再恢复已删除的原三侧或 Chaospower 记录。

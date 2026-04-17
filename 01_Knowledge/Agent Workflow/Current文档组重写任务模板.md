@@ -4,9 +4,8 @@ status: verified
 domain: 工程工作流
 topic: Current文档组重写任务模板
 sources:
-  - "01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范.md"
-  - "01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板.md"
-  - "01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范.md"
+  - "01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式.md"
+  - "01_Knowledge/Agent Workflow/运行时门禁与独立审查边界模式.md"
 scope: 适用于下一轮按 hardened current 规则重写某个项目主题的 overview/design/spec/implementation/validation 文档组，并在 writeback 前验证 single-pass recoverability。
 risks:
   - 若允许范围未明确，模板中的读取与写回动作可能越权。
@@ -27,9 +26,8 @@ updated_at: 2026-04-07
 重写 <主题名> current 文档组，使其满足 hardened current recoverability 要求
 
 # 技术基准
-- [[01_Knowledge/Agent Workflow/Agent驱动知识库、代码库与板端侧协同闭环规范]]
-- [[01_Knowledge/Agent Workflow/Agent三侧运行规范与调度模板]]
-- [[01_Knowledge/Agent Workflow/Agent三侧模板与文件结构规范]]
+- [[01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式]]
+- [[01_Knowledge/Agent Workflow/运行时门禁与独立审查边界模式]]
 - [[01_Knowledge/Agent Workflow/Current文档组重写任务模板]]
 
 # 主类型
