@@ -17,13 +17,13 @@ merged_into: []
 current_replacement: []
 related_code: []
 related_plugins:
-  - plugins/cutepower
+  - cutepower
 sources:
-  - plugins/cutepower/README.md
-  - plugins/cutepower/skills/using-cutepower/SKILL.md
-  - plugins/cutepower/skills/cute-scope-plan/SKILL.md
-  - plugins/cutepower/contracts/routing-table.yaml
-  - plugins/cutepower/contracts/gate-matrix.yaml
+  - /mnt/d/cutepower/README.md
+  - /mnt/d/cutepower/skills/using-cutepower/SKILL.md
+  - /mnt/d/cutepower/skills/cute-scope-plan/SKILL.md
+  - /mnt/d/cutepower/contracts/routing-table.yaml
+  - /mnt/d/cutepower/contracts/gate-matrix.yaml
   - 02_Projects/Agent Workflow/workflow_overview_current.md
 scope: 适用于在当前项目中以最小提示词方式启动 cutepower 或让 agent 自行决定是否启用 cutepower，不覆盖 plugin contracts 本身。
 risks:

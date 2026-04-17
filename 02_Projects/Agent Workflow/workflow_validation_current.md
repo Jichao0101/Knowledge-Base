@@ -17,12 +17,12 @@ merged_into: []
 current_replacement: []
 related_code: []
 related_plugins:
-  - plugins/cutepower
+  - cutepower
 sources:
-  - plugins/cutepower/scripts/validate-contracts.js
-  - plugins/cutepower/scripts/test-runtime-gates.js
-  - plugins/cutepower/README.md
-  - plugins/cutepower/.codex/INSTALL.md
+  - /mnt/d/cutepower/scripts/validate-contracts.js
+  - /mnt/d/cutepower/scripts/test-runtime-gates.js
+  - /mnt/d/cutepower/README.md
+  - /mnt/d/cutepower/.codex/INSTALL.md
   - 02_Projects/Agent Workflow/cutepower P1插件落地与运行时门禁收敛记录-2026-04-17.md
 scope: 适用于判断当前 cutepower 哪些边界已被验证，哪些仍需后续验收。
 risks:

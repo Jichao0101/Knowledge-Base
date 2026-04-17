@@ -8,12 +8,12 @@ lifecycle_state: superseded
 default_entry: false
 retrieval_priority: reference
 current_replacement:
-  - plugins/cutepower/contracts/
-  - plugins/cutepower/skills/
-  - plugins/cutepower/README.md
+  - /mnt/d/cutepower/contracts/
+  - /mnt/d/cutepower/skills/
+  - /mnt/d/cutepower/README.md
 scope: 适用于追溯 cutepower P0 第一阶段的实施边界与 reviewer 验收项，不再作为当前 plugin 实现或测试入口。
 related_plugins:
-  - plugins/cutepower
+  - cutepower
 sources:
   - 01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式.md
   - 02_Projects/Agent Workflow/workflow_overview_current.md
@@ -25,7 +25,7 @@ updated_at: 2026-04-17
 ---
 
 > Status note:
-> 本文件已降级为历史 baseline。cutepower 当前 active truth 以 `plugins/cutepower/contracts/`、`skills/`、`scripts/` 和安装/README 文档为准；后续测试不应再将本文件当作默认实现输入。
+> 本文件已降级为历史 baseline。cutepower 当前 active truth 以 `/mnt/d/cutepower/contracts/`、`skills/`、`scripts/` 和安装/README 文档为准；后续测试不应再将本文件当作默认实现输入。
 
 # 1 目标与范围
 
@@ -33,7 +33,7 @@ updated_at: 2026-04-17
 
 本轮只做以下事情：
 
-- 将 active 运行资产固定到 `plugins/cutepower`
+- 将 active 运行资产固定到独立仓 `/mnt/d/cutepower`
 - 将 core governance contracts 固定到 plugin 自带 `contracts/`
 - 将 skills 压到“消费 contracts”的最小形态
 - 将 `AGENTS.md` 与 `agents/*.toml` 压到桥接层
@@ -42,7 +42,7 @@ updated_at: 2026-04-17
 
 # 2 本轮明确要实现的内容
 
-1. 创建 `plugins/cutepower` 的 P0 最小目录骨架
+1. 创建独立仓 `/mnt/d/cutepower` 的 P0 最小目录骨架
 2. 创建最小 plugin manifest
 3. 创建以下 core contracts：
    - `gate-matrix`
@@ -76,7 +76,7 @@ updated_at: 2026-04-17
 # 4 第一阶段目录结构
 
 ```text
-plugins/cutepower/
+/mnt/d/cutepower/
 ├── .codex-plugin/plugin.json
 ├── AGENTS.md
 ├── README.md

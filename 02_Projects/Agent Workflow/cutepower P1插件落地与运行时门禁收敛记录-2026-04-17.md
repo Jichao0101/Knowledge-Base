@@ -15,17 +15,17 @@ target_current_docs:
   - 02_Projects/Agent Workflow/workflow_implementation_current.md
   - 02_Projects/Agent Workflow/workflow_validation_current.md
 related_plugins:
-  - plugins/cutepower
+  - cutepower
 sources:
-  - plugins/cutepower/contracts/contract-index.yaml
-  - plugins/cutepower/contracts/role-contracts.yaml
-  - plugins/cutepower/contracts/gate-matrix.yaml
-  - plugins/cutepower/contracts/review-boundaries.yaml
-  - plugins/cutepower/contracts/writeback-levels.yaml
-  - plugins/cutepower/contracts/routing-table.yaml
-  - plugins/cutepower/scripts/validate-contracts.js
-  - plugins/cutepower/scripts/runtime-gates.js
-  - plugins/cutepower/scripts/test-runtime-gates.js
+  - /mnt/d/cutepower/contracts/contract-index.yaml
+  - /mnt/d/cutepower/contracts/role-contracts.yaml
+  - /mnt/d/cutepower/contracts/gate-matrix.yaml
+  - /mnt/d/cutepower/contracts/review-boundaries.yaml
+  - /mnt/d/cutepower/contracts/writeback-levels.yaml
+  - /mnt/d/cutepower/contracts/routing-table.yaml
+  - /mnt/d/cutepower/scripts/validate-contracts.js
+  - /mnt/d/cutepower/scripts/runtime-gates.js
+  - /mnt/d/cutepower/scripts/test-runtime-gates.js
   - 02_Projects/Agent Workflow/cutepower_p0_implementation_baseline.md
   - 02_Projects/Agent Workflow/cutepower_p1_board_functional_incident_baseline.md
 scope: 适用于追溯 cutepower P1 插件实现、运行时门禁加固、隔离测试与项目区收口的边界与残余风险。
@@ -61,8 +61,8 @@ updated_at: 2026-04-17
 ## 1.4 Verification Boundary
 
 - 已验证：
-  - `node plugins/cutepower/scripts/validate-contracts.js`
-  - `node plugins/cutepower/scripts/test-runtime-gates.js`
+  - `cd /mnt/d/cutepower && node scripts/validate-contracts.js`
+  - `cd /mnt/d/cutepower && node scripts/test-runtime-gates.js`
   - isolated vault 下的最小 plugin 自洽验证
 - 已被负向测试覆盖：
   - legacy `reviewer`

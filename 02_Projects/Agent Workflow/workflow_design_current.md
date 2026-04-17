@@ -17,12 +17,12 @@ merged_into: []
 current_replacement: []
 related_code: []
 related_plugins:
-  - plugins/cutepower
+  - cutepower
 sources:
   - 02_Projects/Agent Workflow/workflow_overview_current.md
-  - plugins/cutepower/README.md
-  - plugins/cutepower/contracts/role-contracts.yaml
-  - plugins/cutepower/contracts/routing-table.yaml
+  - /mnt/d/cutepower/README.md
+  - /mnt/d/cutepower/contracts/role-contracts.yaml
+  - /mnt/d/cutepower/contracts/routing-table.yaml
   - 01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式.md
 scope: 适用于恢复当前 cutepower 的项目分层、角色边界与项目区资产职责分工。
 risks:
@@ -42,10 +42,10 @@ updated_at: 2026-04-17
 
 ## 0.2 Current Layering
 
-- `plugins/cutepower/contracts/`
+- `/mnt/d/cutepower/contracts/`
   - 当前治理真相源
   - 承接 role / gate / review / writeback / routing
-- `plugins/cutepower/skills/` 与 `scripts/`
+- `/mnt/d/cutepower/skills/` 与 `scripts/`
   - 当前运行与校验资产
   - 消费 contracts，不复制治理正文
 - `02_Projects/Agent Workflow/workflow_*_current.md`

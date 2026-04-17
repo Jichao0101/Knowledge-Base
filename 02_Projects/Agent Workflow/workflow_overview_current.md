@@ -29,11 +29,11 @@ merged_into: []
 current_replacement: []
 related_code: []
 related_plugins:
-  - plugins/cutepower
+  - cutepower
 sources:
-  - plugins/cutepower/README.md
-  - plugins/cutepower/contracts/contract-index.yaml
-  - plugins/cutepower/scripts/runtime-gates.js
+  - /mnt/d/cutepower/README.md
+  - /mnt/d/cutepower/contracts/contract-index.yaml
+  - /mnt/d/cutepower/scripts/runtime-gates.js
   - 01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式.md
   - 01_Knowledge/Agent Workflow/运行时门禁与独立审查边界模式.md
   - 02_Projects/Agent Workflow/cutepower_p0_implementation_baseline.md
@@ -49,7 +49,7 @@ updated_at: 2026-04-17
 ## 0.1 Current Scope
 
 Agent Workflow 当前不再维护原三侧文档体系，也不再维护 Chaospower 过渡态。
-当前唯一 active 运行资产是 `plugins/cutepower`。
+当前唯一 active 运行资产是独立仓 `/mnt/d/cutepower`。
 
 当前范围固定为：
 
@@ -85,10 +85,10 @@ Agent Workflow 当前不再维护原三侧文档体系，也不再维护 Chaospo
 
 ## 0.4 Current Truth
 
-- `plugins/cutepower/contracts/`：治理真相源
-- `plugins/cutepower/scripts/runtime-gates.js`：执行期门禁真相源
-- `plugins/cutepower/skills/`：消费 contracts 的运行资产
-- `plugins/cutepower/README.md`、`AGENTS.md`、`agents/*.toml`：薄桥接与安装入口
+- `/mnt/d/cutepower/contracts/`：治理真相源
+- `/mnt/d/cutepower/scripts/runtime-gates.js`：执行期门禁真相源
+- `/mnt/d/cutepower/skills/`：消费 contracts 的运行资产
+- `/mnt/d/cutepower/README.md`、`AGENTS.md`、`agents/*.toml`：薄桥接与安装入口
 - 项目区 current：描述当前 cutepower 如何被组织、实现与验证
 - 项目区 baseline / record：历史与事件追溯，不进入默认恢复链
 

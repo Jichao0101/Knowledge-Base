@@ -8,28 +8,28 @@ lifecycle_state: superseded
 default_entry: false
 retrieval_priority: reference
 current_replacement:
-  - plugins/cutepower/contracts/
-  - plugins/cutepower/skills/
-  - plugins/cutepower/scripts/runtime-gates.js
-  - plugins/cutepower/README.md
+  - /mnt/d/cutepower/contracts/
+  - /mnt/d/cutepower/skills/
+  - /mnt/d/cutepower/scripts/runtime-gates.js
+  - /mnt/d/cutepower/README.md
 scope: 适用于追溯 cutepower P1 三个核心能力的设计收敛边界，不再作为当前 plugin 实现或测试入口。
 related_plugins:
-  - plugins/cutepower
+  - cutepower
 sources:
   - 02_Projects/Agent Workflow/cutepower_p0_implementation_baseline.md
   - 02_Projects/Agent Workflow/cutepower P1插件落地与运行时门禁收敛记录-2026-04-17.md
-  - plugins/cutepower/contracts/role-contracts.yaml
-  - plugins/cutepower/contracts/gate-matrix.yaml
-  - plugins/cutepower/contracts/review-boundaries.yaml
-  - plugins/cutepower/contracts/writeback-levels.yaml
-  - plugins/cutepower/contracts/routing-table.yaml
+  - /mnt/d/cutepower/contracts/role-contracts.yaml
+  - /mnt/d/cutepower/contracts/gate-matrix.yaml
+  - /mnt/d/cutepower/contracts/review-boundaries.yaml
+  - /mnt/d/cutepower/contracts/writeback-levels.yaml
+  - /mnt/d/cutepower/contracts/routing-table.yaml
   - 01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式.md
   - 01_Knowledge/Agent Workflow/运行时门禁与独立审查边界模式.md
 updated_at: 2026-04-17
 ---
 
 > Status note:
-> 本文件已降级为历史 baseline。cutepower 当前 active truth 以 `plugins/cutepower/contracts/`、`skills/`、`runtime-gates.js` 与安装/README 文档为准；后续测试不应再将本文件当作默认实现输入。
+> 本文件已降级为历史 baseline。cutepower 当前 active truth 以 `/mnt/d/cutepower/contracts/`、`skills/`、`runtime-gates.js` 与安装/README 文档为准；后续测试不应再将本文件当作默认实现输入。
 
 # 1 目标与范围
 

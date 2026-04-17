@@ -17,13 +17,13 @@ merged_into: []
 current_replacement: []
 related_code: []
 related_plugins:
-  - plugins/cutepower
+  - cutepower
 sources:
-  - plugins/cutepower/.codex-plugin/plugin.json
-  - plugins/cutepower/README.md
-  - plugins/cutepower/contracts/contract-index.yaml
-  - plugins/cutepower/scripts/validate-contracts.js
-  - plugins/cutepower/scripts/test-runtime-gates.js
+  - /mnt/d/cutepower/.codex-plugin/plugin.json
+  - /mnt/d/cutepower/README.md
+  - /mnt/d/cutepower/contracts/contract-index.yaml
+  - /mnt/d/cutepower/scripts/validate-contracts.js
+  - /mnt/d/cutepower/scripts/test-runtime-gates.js
   - 02_Projects/Agent Workflow/cutepower P1插件落地与运行时门禁收敛记录-2026-04-17.md
 scope: 适用于快速定位当前 cutepower 资产写在哪些 plugin 和项目文件中。
 risks:
@@ -33,44 +33,44 @@ updated_at: 2026-04-17
 
 ## 0.1 Plugin-side Mapping
 
-- 插件根目录：`plugins/cutepower`
-- plugin manifest：`plugins/cutepower/.codex-plugin/plugin.json`
-- 极薄入口：`plugins/cutepower/AGENTS.md`
-- 安装入口：`plugins/cutepower/README.codex.md`、`plugins/cutepower/.codex/INSTALL.md`
+- 仓库根目录：`/mnt/d/cutepower`
+- plugin manifest：`/mnt/d/cutepower/.codex-plugin/plugin.json`
+- 极薄入口：`/mnt/d/cutepower/AGENTS.md`
+- 安装入口：`/mnt/d/cutepower/README.codex.md`、`/mnt/d/cutepower/.codex/INSTALL.md`
 - active governance truth：
-  - `plugins/cutepower/contracts/contract-index.yaml`
-  - `plugins/cutepower/contracts/gate-matrix.yaml`
-  - `plugins/cutepower/contracts/role-contracts.yaml`
-  - `plugins/cutepower/contracts/review-boundaries.yaml`
-  - `plugins/cutepower/contracts/writeback-levels.yaml`
-  - `plugins/cutepower/contracts/routing-table.yaml`
+  - `/mnt/d/cutepower/contracts/contract-index.yaml`
+  - `/mnt/d/cutepower/contracts/gate-matrix.yaml`
+  - `/mnt/d/cutepower/contracts/role-contracts.yaml`
+  - `/mnt/d/cutepower/contracts/review-boundaries.yaml`
+  - `/mnt/d/cutepower/contracts/writeback-levels.yaml`
+  - `/mnt/d/cutepower/contracts/routing-table.yaml`
 - validation / runtime gate：
-  - `plugins/cutepower/scripts/validate-contracts.js`
-  - `plugins/cutepower/scripts/runtime-gates.js`
-  - `plugins/cutepower/scripts/test-runtime-gates.js`
+  - `/mnt/d/cutepower/scripts/validate-contracts.js`
+  - `/mnt/d/cutepower/scripts/runtime-gates.js`
+  - `/mnt/d/cutepower/scripts/test-runtime-gates.js`
 
 ## 0.2 Active Skill Mapping
 
 P0：
 
-- `plugins/cutepower/skills/using-cutepower/SKILL.md`
-- `plugins/cutepower/skills/cute-scope-plan/SKILL.md`
-- `plugins/cutepower/skills/cute-repo-change/SKILL.md`
-- `plugins/cutepower/skills/cute-code-review/SKILL.md`
-- `plugins/cutepower/skills/cute-writeback/SKILL.md`
+- `/mnt/d/cutepower/skills/using-cutepower/SKILL.md`
+- `/mnt/d/cutepower/skills/cute-scope-plan/SKILL.md`
+- `/mnt/d/cutepower/skills/cute-repo-change/SKILL.md`
+- `/mnt/d/cutepower/skills/cute-code-review/SKILL.md`
+- `/mnt/d/cutepower/skills/cute-writeback/SKILL.md`
 
 P1：
 
-- `plugins/cutepower/skills/cute-board-run/SKILL.md`
-- `plugins/cutepower/skills/cute-functional-review/SKILL.md`
-- `plugins/cutepower/skills/cute-incident-investigation/SKILL.md`
+- `/mnt/d/cutepower/skills/cute-board-run/SKILL.md`
+- `/mnt/d/cutepower/skills/cute-functional-review/SKILL.md`
+- `/mnt/d/cutepower/skills/cute-incident-investigation/SKILL.md`
 
 thin agent descriptors：
 
-- `plugins/cutepower/agents/scope-plan.toml`
-- `plugins/cutepower/agents/repo-change.toml`
-- `plugins/cutepower/agents/code-review.toml`
-- `plugins/cutepower/agents/writeback.toml`
+- `/mnt/d/cutepower/agents/scope-plan.toml`
+- `/mnt/d/cutepower/agents/repo-change.toml`
+- `/mnt/d/cutepower/agents/code-review.toml`
+- `/mnt/d/cutepower/agents/writeback.toml`
 
 ## 0.3 Project-side Mapping
 
@@ -99,7 +99,7 @@ record：
 - 原三侧项目记录
 - Chaospower 项目记录
 - 原三侧正式知识文档
-- `plugins/chaospower` 作为当前实现入口
+- legacy Chaospower 路径作为当前实现入口
 
 ## 0.5 Current Recovery Note
 

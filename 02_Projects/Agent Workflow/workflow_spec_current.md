@@ -17,12 +17,12 @@ merged_into: []
 current_replacement: []
 related_code: []
 related_plugins:
-  - plugins/cutepower
+  - cutepower
 sources:
-  - plugins/cutepower/contracts/contract-index.yaml
-  - plugins/cutepower/contracts/writeback-levels.yaml
-  - plugins/cutepower/contracts/review-boundaries.yaml
-  - plugins/cutepower/scripts/runtime-gates.js
+  - /mnt/d/cutepower/contracts/contract-index.yaml
+  - /mnt/d/cutepower/contracts/writeback-levels.yaml
+  - /mnt/d/cutepower/contracts/review-boundaries.yaml
+  - /mnt/d/cutepower/scripts/runtime-gates.js
   - 01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式.md
   - 01_Knowledge/Agent Workflow/运行时门禁与独立审查边界模式.md
 scope: 适用于定义 cutepower 当前项目区同步规则、真相源优先级与禁止行为，不替代 plugin contracts 本身。
@@ -34,8 +34,8 @@ updated_at: 2026-04-17
 
 ## 0.1 Required Behaviors
 
-- cutepower 的运行治理必须优先读取 `plugins/cutepower/contracts/`
-- 运行时高风险拒绝路径必须以 `plugins/cutepower/scripts/runtime-gates.js` 为准
+- cutepower 的运行治理必须优先读取 `/mnt/d/cutepower/contracts/`
+- 运行时高风险拒绝路径必须以 `/mnt/d/cutepower/scripts/runtime-gates.js` 为准
 - skills、`AGENTS.md`、`agents/*.toml` 只能作为薄桥接，不得复制治理正文
 - 任何影响当前态语义的 cutepower 变更，必须同步更新 current 组
 - 任何 cutepower-specific 实施或硬化事件，必须写入 cutepower-specific record
@@ -74,10 +74,10 @@ updated_at: 2026-04-17
 
 优先级从高到低：
 
-1. `plugins/cutepower/contracts/`
-2. `plugins/cutepower/scripts/runtime-gates.js`
-3. `plugins/cutepower/skills/`
-4. `plugins/cutepower/README.md`、`AGENTS.md`、`agents/*.toml`
+1. `/mnt/d/cutepower/contracts/`
+2. `/mnt/d/cutepower/scripts/runtime-gates.js`
+3. `/mnt/d/cutepower/skills/`
+4. `/mnt/d/cutepower/README.md`、`AGENTS.md`、`agents/*.toml`
 5. `02_Projects/Agent Workflow/workflow_*_current.md`
 6. `02_Projects/Agent Workflow/cutepower_*_baseline.md`
 7. `02_Projects/Agent Workflow/cutepower P1插件落地与运行时门禁收敛记录-2026-04-17.md`

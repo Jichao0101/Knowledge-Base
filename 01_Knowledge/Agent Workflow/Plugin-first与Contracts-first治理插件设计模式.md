@@ -7,10 +7,10 @@ topic: Plugin-first与Contracts-first治理插件设计模式
 sources:
   - 02_Projects/Agent Workflow/cutepower_p0_implementation_baseline.md
   - 02_Projects/Agent Workflow/cutepower_p1_board_functional_incident_baseline.md
-  - plugins/cutepower/contracts/contract-index.yaml
-  - plugins/cutepower/contracts/role-contracts.yaml
-  - plugins/cutepower/contracts/gate-matrix.yaml
-  - plugins/cutepower/contracts/routing-table.yaml
+  - /mnt/d/cutepower/contracts/contract-index.yaml
+  - /mnt/d/cutepower/contracts/role-contracts.yaml
+  - /mnt/d/cutepower/contracts/gate-matrix.yaml
+  - /mnt/d/cutepower/contracts/routing-table.yaml
 scope: 适用于需要把运行治理从长篇文档压缩为插件 contracts、技能边界与薄桥接层的工程协作系统，不绑定具体知识库或仓库目录语义。
 risks:
   - 把 host workspace 的目录结构误写进 plugin contracts
@@ -83,4 +83,3 @@ skills、`AGENTS.md` 和 `agents/*.toml` 只应承担以下职责：
 - 一旦模糊就会造成权限漂移或 review 失效
 
 若一个说明只用于背景理解、迁移记录或历史决策追溯，应留在项目文档，而不是回流为 plugin truth。
-
