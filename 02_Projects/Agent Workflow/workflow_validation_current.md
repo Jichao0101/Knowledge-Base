@@ -27,8 +27,7 @@ sources:
 scope: 适用于判断当前 cutepower 哪些边界已被验证，哪些仍需后续验收。
 risks:
   - 若把 isolated vault 自测当作完整安装验收，会高估当前验证成熟度。
-  - 若忽略 `plugins/agent-workflow-migrator` 的 legacy 残留，后续仍可能混入旧体系。
-updated_at: 2026-04-17
+updated_at: 2026-04-20
 ---
 
 ## 0.1 Validated
@@ -51,7 +50,6 @@ updated_at: 2026-04-17
 
 - 还未完成一次真实 Codex 会话中的插件发现与技能触发端到端验收
 - `.agents/plugins/marketplace.json` 仍未将 cutepower 纳入当前知识库默认安装入口
-- `plugins/agent-workflow-migrator` 仍保留 legacy payload
 - 当前 current 组尚未经过独立 review
 
 ## 0.3 Current Review Target
@@ -67,4 +65,4 @@ updated_at: 2026-04-17
 
 - 在 isolated vault 中做一次真实插件发现与任务触发验证
 - 再执行一次 implementation / bug_fix 主链，验证 route、review、writeback 是否按当前 contracts 工作
-- 评估是否需要清理 `plugins/agent-workflow-migrator`
+- 验证移除 legacy marketplace entry 后的插件发现结果是否只剩 cutepower

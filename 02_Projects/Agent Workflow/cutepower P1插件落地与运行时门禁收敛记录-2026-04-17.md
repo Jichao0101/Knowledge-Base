@@ -32,7 +32,7 @@ scope: 适用于追溯 cutepower P1 插件实现、运行时门禁加固、隔�
 risks:
   - 当前记录尚未经过独立 review。
   - isolated vault 验证仍不等于完整插件发现链路验收。
-updated_at: 2026-04-17
+updated_at: 2026-04-20
 ---
 
 # 1 cutepower P1插件落地与运行时门禁收敛记录
@@ -94,5 +94,5 @@ updated_at: 2026-04-17
 ## 1.6 Remaining Risks
 
 - 当前 current 组与本记录都仍需独立 review。
-- `plugins/agent-workflow-migrator` 仍保留 legacy payload，可能在后续清理中引入歧义。
+- legacy `agent-workflow-migrator` marketplace entry 已移除，但仍需一次真实发现链路验收确认无回归。
 - 若未来再次把项目区长文当成 active truth，会削弱 contracts-first 主轴。

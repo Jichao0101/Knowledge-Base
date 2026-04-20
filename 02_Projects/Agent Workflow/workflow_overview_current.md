@@ -43,7 +43,7 @@ scope: 适用于恢复 Agent Workflow 当前围绕 cutepower 的默认入口、�
 risks:
   - 若把 baseline 或 README 当作高于 contracts 的规则源，会重新造成真相源分裂。
   - 若后续继续把非 cutepower 项目记录写回本目录，会再次污染当前恢复链。
-updated_at: 2026-04-17
+updated_at: 2026-04-20
 ---
 
 ## 0.1 Current Scope
@@ -112,7 +112,7 @@ Agent Workflow 当前不再维护原三侧文档体系，也不再维护 Chaospo
 
 - isolated vault 下的完整 Codex 发现链路仍未做端到端验证
 - `.agents/plugins/marketplace.json` 仍未将 cutepower 设为当前知识库默认可安装插件
-- `plugins/agent-workflow-migrator` 仍保留 legacy payload，尚未清理
+- legacy `agent-workflow-migrator` marketplace entry 已移除，仍需补一次发现链路验收
 
 ## 0.8 Historical Mapping
 

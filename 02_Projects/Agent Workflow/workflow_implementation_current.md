@@ -28,7 +28,7 @@ sources:
 scope: 适用于快速定位当前 cutepower 资产写在哪些 plugin 和项目文件中。
 risks:
   - 若继续把 legacy plugin 或 legacy project record 视为实现入口，会恢复错误落点。
-updated_at: 2026-04-17
+updated_at: 2026-04-20
 ---
 
 ## 0.1 Plugin-side Mapping
@@ -100,6 +100,7 @@ record：
 - Chaospower 项目记录
 - 原三侧正式知识文档
 - legacy Chaospower 路径作为当前实现入口
+- `.agents/plugins/marketplace.json` 中的 `agent-workflow-migrator` 入口
 
 ## 0.5 Current Recovery Note
 

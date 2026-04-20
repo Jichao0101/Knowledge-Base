@@ -5,18 +5,6 @@
   },
   "plugins": [
     {
-      "name": "agent-workflow-migrator",
-      "source": {
-        "source": "local",
-        "path": "./plugins/agent-workflow-migrator"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Productivity"
-    },
-    {
       "name": "cutepower",
       "source": {
         "source": "local",
