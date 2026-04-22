@@ -1,195 +1,207 @@
-## 0.1 Role
-你负责协助维护一个基于 Obsidian 的工程知识库，并在项目实现过程中使用受限知识检索、受控网络采集、审核后入库的流程工作。
 
-## 0.2 Primary goals
-1. 在实现项目时，只访问允许的知识目录获取背景信息。
-2. 将网络获取的信息先写入候选区，禁止直接写入正式知识区。
-3. 只将经过审核、可复用、边界清晰的信息沉淀到正式知识库。
-4. 保持知识库结构清晰：正式知识、项目工作区、候选区、来源区分离。
+## 0.1 Scope
+本文件只定义知识库使用边界，不定义主代理运行治理，不定义多角色调度规则，不定义 plugin 路由顺序。
+
+本文件负责：
+- 知识目录语义
+- 目录访问授权
+- 文件写入分层
+- 外部信息入库约束
+- 正式知识提升条件
+
+本文件不负责：
+- 主代理角色约束
+- workflow-orchestrator 行为规范
+- reviewer 独立性控制
+- rework 轮次控制
+- plugin 启动与路由规则
+- 代码执行链调度
+
+这些运行治理要求应由 cutepower 或对应 workflow plugin 负责。
+
+---
+
+## 0.2 Core principles
+1. **只在授权范围内读取**
+   未授权目录不得读取，不因文件系统可见而视为可读。
+
+2. **先分层，再写入**
+   内容写入前，先判断属于正式知识、项目内容、候选内容还是原始来源。
+
+3. **外部信息不得直接入正式知识区**
+   网络信息、网页摘录、外部摘要、未审整理结果，必须先进入候选区或来源区。
+
+4. **正式知识必须可复用且边界清晰**
+   若内容没有明确来源、适用范围、风险或不适用范围，则不得进入正式知识区。
+
+5. **项目内容优先留在项目区**
+   与当前项目强绑定、尚未抽象为通用知识的内容，应优先写入项目区。
+
+---
 
 ## 0.3 Directory semantics
-- `01_Knowledge/`：正式知识区。只存已审核、可复用、可引用的知识。
-- `02_Projects/`：项目工作区。存需求、设计、实验、实现、调试、决策。
-- `03_Inbox/`：候选输入区。存网络采集结果、临时笔记、待审核内容。
-- `04_Sources/`：原始来源区。存网页摘录、论文摘要、PDF 摘录、原始证据。
-- `90_Archive/`：归档区。存失效或历史内容。
+- `01_Knowledge/`：正式知识区。仅存已审核、可复用、边界清晰的知识。
+- `02_Projects/`：项目工作区。存需求、设计、实验、实现、调试、决策、阶段性审查结果。
+- `03_Inbox/`：候选区。存待分类、待审核、待整理内容。
+- `04_Sources/`：来源区。存外部原始摘录、网页信息、论文摘要、PDF阅读记录、证据卡片。
+- `90_Archive/`：归档区。存历史、冻结、失效或不再维护内容。
 
-## 0.4 Global rules
-1. 禁止将网络信息直接写入 `01_Knowledge/`。
-2. 禁止将未经验证或未经审核的结论写入正式知识区。
-3. 项目相关的临时方案、调试记录、假设和实验结果优先写入 `02_Projects/`。
-4. 原始网页信息、外部摘录和参考材料优先写入 `04_Sources/` 或 `03_Inbox/`。
-5. 如果一个结论没有明确来源、适用边界和复用价值，则不要写入正式知识区。
-6. 双侧闭环任务中，主代理默认承担 `workflow-orchestrator` 职责：维护状态、决定角色顺序、控制 reviewer 独立性、控制返工轮次、维护 `run_log / audit_log`。
-7. 主代理不得直接替代执行层角色改代码、做质量裁决、绕过 review 进入 writeback、把未审内容直接提升为正式知识。
-8. 所有新建或更新的知识条目都必须包含：标题、摘要、来源、适用范围、不适用范围或风险、状态（`draft / pending_review / verified`）。
+---
 
-## 0.5 Default workflow
-每次任务默认按以下步骤执行：
+## 0.4 Access rules
 
-### 0.5.1 Step 1: identify task profile
-先识别正式任务表达：
-- `primary_type`: `implementation / bug_fix / audit / optimization / knowledge_task`
-- `task_modifiers`: 按需组合 `requires_web / read_only / code_change_allowed / writeback_required / review_required / promotion_review / functional_scope`
+### 0.4.1 Read scope
+读取本地内容时，只能读取已授权目录。
 
-常见组合示例：
-- 背景检索：`knowledge_task` + `read_only`
-- 联网研究：`knowledge_task` + `requires_web` + `read_only`
-- 项目实现：`implementation` + `code_change_allowed` + `review_required`
-- 缺陷修复：`bug_fix` + `code_change_allowed` + `review_required`
-- 受控优化：`optimization` + `code_change_allowed` + `review_required`
-- 功能审核：`audit` + `functional_scope` + `read_only`
-- 知识提升：`knowledge_task` + `promotion_review` + `writeback_required`
+默认读取顺序建议为：
+1. 当前任务直接相关的 `02_Projects/...`
+2. 已授权的 `01_Knowledge/...`
+3. 已授权的 `04_Sources/...`
+4. 必要时读取已授权的 `03_Inbox/...`
 
-### 0.5.2 Step 2: retrieve local context
-先从本地知识库中检索相关内容，顺序如下：
-1. 当前项目目录 `02_Projects/...`
-2. 项目允许访问的正式知识目录
-3. 项目允许访问的来源目录
+若某目录未被授权：
+- 不得读取
+- 不得基于其内容做事实性判断
+- 不得声称“按该目录中的内容执行过”
 
-如果当前任务没有指定允许访问目录，则先停止并要求明确访问范围。
+### 0.4.2 Missing authorization
+若当前任务缺少目录授权信息：
+- 可以说明缺少哪些授权
+- 可以请求补充授权范围
+- 不得擅自扩大读取范围
 
-### 0.5.3 Step 3: act within allowed scope
-只在允许目录范围内读取背景信息。
-不要读取未授权目录，不要基于未读取内容做推断。
+是否允许在无授权下进行任务画像、route_resolution 或 intake，由运行时 workflow/plugin 决定，不由本文件规定。
 
-### 0.5.4 Step 4: plan and gate
-形成最小 `plan_state`，至少包含：
-- `primary_type`
-- `task_modifiers`
-- `allowed_paths`
-- `implementation_plan`
-- `verification_tier`
-- `verification_plan`
-- `non_goals`
-- `open_uncertainties`
+---
+## 0.5 Runtime discovery exception
+本文件仅约束知识内容读取、写入分层与正式入库，不限制用户级 Codex / agent 运行时配置与能力发现。
 
-若缺少上述关键项，不进入后续执行或回写。
+以下路径若用于 runtime discovery、plugin/skill/config 读取、能力启用状态判断，可访问：
+- `~/.codex/`
+- `~/.codex/config.toml`
+- 用户级 Codex skills / plugins / agents 相关目录
+- 当前项目及上级目录中的 `.codex/`
+- 当前项目及上级目录中的 `AGENTS.md`
+- 本地工作流约定的用户级 agent runtime 目录（如 `~/.agents/`、`~/.agents/plugins/`、`~/.agents/skills/`，若本地环境实际采用）
 
-### 0.5.5 Step 5: external information ingestion
-当本地知识不足且任务明确允许联网时：
-1. 从网络检索信息
-2. 提取关键信息
-3. 写入 `03_Inbox/Web_Candidates/`
-4. 标记为 `pending_review`
-5. 给出建议目标路径，但不要直接写入正式知识区
-
-### 0.5.6 Step 6: review gate
-只有在任务明确要求“审核并入库”且候选内容满足以下条件时，才允许写入 `01_Knowledge/`：
-- 来源可靠
-- 与目标主题强相关
-- 具有复用价值
-- 适用边界明确
-- 内容不是纯新闻或营销说法
-- 已给出引用来源
-
-### 0.5.7 Step 7: finalize
-完成任务后，输出：
-1. 读取了哪些目录
-2. 新建或更新了哪些文件
-3. 哪些内容进入候选区
-4. 哪些内容建议审核后转正
-5. 未解决的不确定项
+限制：
+- 这些路径仅用于 runtime 配置发现、能力判断、plugin/skill/agent 启用状态确认
+- 不得将其中内容默认视为项目知识背景
+- 若要把其中内容作为知识上下文引用，仍需满足知识访问授权规则
+- 不得因此扩大为对整个用户目录的自由读取
+---
 
 ## 0.6 File placement rules
-### 0.6.1 正式知识
-以下内容写入 `01_Knowledge/`：
+
+### 0.6.1 Write to `01_Knowledge/`
+只有满足以下条件时，才允许写入正式知识区：
+- 内容已审核
+- 来源明确
+- 具有复用价值
+- 适用范围明确
+- 风险或不适用范围明确
+
+适合写入正式知识区的内容包括：
 - 已验证机制
 - 稳定设计模式
-- 常见问题模式
+- 常见失败模式
+- 可复用验证模式
+- 稳定集成约束
 - 高复用经验总结
-- 结构化背景知识
+- 决策启发式总结
 
-### 0.6.2 项目区
-以下内容写入 `02_Projects/`：
+### 0.6.2 Write to `02_Projects/`
+以下内容优先写入项目区：
 - 需求拆解
 - 设计方案
 - 实验记录
 - 实现计划
-- 调试日志
+- 调试记录
+- 阶段性分析
 - 决策记录
-- 与当前项目强绑定但不具备泛化性的内容
+- 与当前项目强绑定、尚未抽象为通用知识的内容
 
-### 0.6.3 候选区
-以下内容写入 `03_Inbox/`：
+### 0.6.3 Write to `03_Inbox/`
+以下内容优先写入候选区：
 - 网络信息候选
-- 临时捕获的想法
+- 临时摘录
 - 待分类内容
-- 未审核摘要
+- 待审核摘要
+- 尚未确认是否值得沉淀的外部信息
 
-### 0.6.4 来源区
-以下内容写入 `04_Sources/`：
+### 0.6.4 Write to `04_Sources/`
+以下内容优先写入来源区：
 - 原始网页摘录
 - 文献摘要
-- PDF 阅读笔记
-- 外部来源的证据卡片
-
-## 0.7 Required metadata templates
-
-### 0.7.1 Candidate note template
----
-type: web_candidate
-status: pending_review
-unit_type:
-topic:
-subtopic:
-source_title:
-source_url:
-retrieved_at:
-source_task:
-evidence: []
-reusable_why:
-not_applicable:
-target_paths: []
-relevance:
+- PDF阅读笔记
+- 外部来源证据卡片
+- 需要保留原始出处的信息整理
 
 ---
 
-### 0.7.2 Knowledge note template
----
-type: knowledge
-status: verified
-unit_type:
-domain:
-topic:
-sources: []
-scope:
-risks:
-source_task:
-evidence: []
-updated_at:
+## 0.7 External information rules
+当任务允许联网且本地上下文不足时，外部信息处理遵循以下规则：
+
+1. 外部信息先进入 `03_Inbox/` 或 `04_Sources/`
+2. 不得直接写入 `01_Knowledge/`
+3. 若后续需要正式沉淀，必须经过审核与结构化整理
+4. 对外部信息的整理结果应保留来源信息
 
 ---
 
-## 0.8 Decision rules for promotion
-只有在以下条件满足时，才允许把候选内容提升为正式知识：
-1. 已完成人工审核，或任务中明确要求你执行审核整理
-2. 至少有一个可信来源
-3. 摘要不是逐句复制，而是结构化总结
-4. 已写明适用边界和风险
-5. 文件路径与知识主题一致
-6. 候选属于以下沉淀单元之一：`failure_mode / design_pattern / workflow_pattern / verification_pattern / integration_constraint / decision_heuristic`
+## 0.8 Promotion rules
+只有满足以下条件时，才允许将内容提升到 `01_Knowledge/`：
 
-## 0.9 Output format
-每次任务结束时，使用以下结构输出：
+1. 已完成审核
+2. 至少有可信来源或明确内部依据
+3. 内容不是原文堆叠，而是经过结构化总结
+4. 具有明确复用价值
+5. 已写明适用范围
+6. 已写明风险、不适用范围或边界条件
 
-### 0.9.1 Summary
-- primary_type:
-- task_modifiers:
+若不满足上述条件，则内容应保留在：
+- `02_Projects/`
+- `03_Inbox/`
+- `04_Sources/`
+
+---
+
+## 0.9 Minimal metadata expectations
+
+### 0.9.1 Candidate content
+候选内容建议至少包含：
+- 标题
+- 摘要
+- 来源
+- 状态（如 `draft` / `pending_review`）
+- 可能的目标路径
+- 适用范围或主题说明
+
+### 0.9.2 Knowledge content
+正式知识建议至少包含：
+- 标题
+- 摘要
+- 来源
+- 适用范围
+- 风险或不适用范围
+- 状态（如 `verified`）
+
+---
+
+## 0.10 Output expectations
+涉及知识库读写的任务结束时，建议至少说明：
+
+### 0.10.1 Summary
 - allowed_paths:
 - files_read:
 - files_written:
 
-### 0.9.2 Review status
+### 0.10.2 Placement
 - candidate_created:
-- promoted_to_knowledge:
 - source_notes_created:
+- promoted_to_knowledge:
 
-### 0.9.3 Risks / uncertainties
-- ...
-
-### 0.9.4 Runtime log
-- verification_tier:
-- roles_invoked:
-- rework_rounds:
-- stop_reason:
+### 0.10.3 Risks / uncertainties
+- missing_authorization:
+- promotion_blockers:
+- unresolved_items:

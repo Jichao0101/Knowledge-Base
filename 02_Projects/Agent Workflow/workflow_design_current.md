@@ -1,6 +1,6 @@
 ---
 title: Agent Workflow Design Current
-summary: 当前 Agent Workflow 主题只围绕 cutepower 维护；本文件定义 plugin、project current、baseline、record 与通用知识之间的分层和边界。
+summary: 当前 Agent Workflow 主题只围绕 cutepower 维护；当前设计已把 repo-local run state、phase machine 与 closure artifacts 收进 plugin 内部，而不是留在宿主提示层。
 status: pending_review
 doc_role: current
 truth_role: current
@@ -11,6 +11,7 @@ sync_required_when:
   - cutepower 分层变化
   - current / baseline / record 的职责边界变化
   - P0/P1 active 能力集合变化
+  - 默认入口接入方式变化
 retrieval_priority: current
 supersedes: []
 merged_into: []
@@ -21,14 +22,18 @@ related_plugins:
 sources:
   - 02_Projects/Agent Workflow/workflow_overview_current.md
   - /mnt/d/cutepower/README.md
-  - /mnt/d/cutepower/contracts/role-contracts.yaml
-  - /mnt/d/cutepower/contracts/routing-table.yaml
-  - 01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式.md
+  - /mnt/d/cutepower/docs/runtime-hardening.md
+  - /mnt/d/cutepower/.codex-plugin/plugin.json
+  - /mnt/d/cutepower/agents/openai.yaml
+  - /mnt/d/cutepower/scripts/task-intake.js
+  - /mnt/d/cutepower/scripts/host-runtime.js
+  - /mnt/d/cutepower/scripts/runtime-gates.js
+  - /mnt/d/cutepower/scripts/run-artifacts.js
 scope: 适用于恢复当前 cutepower 的项目分层、角色边界与项目区资产职责分工。
 risks:
   - 若把 project current 扩写成 contracts 替代品，会削弱 contracts-first 主轴。
   - 若把 cutepower record 写成旧式制度说明，会重新膨胀项目区。
-updated_at: 2026-04-17
+updated_at: 2026-04-22
 ---
 
 ## 0.1 Current Goal
@@ -45,14 +50,28 @@ updated_at: 2026-04-17
 - `/mnt/d/cutepower/contracts/`
   - 当前治理真相源
   - 承接 role / gate / review / writeback / routing
-- `/mnt/d/cutepower/skills/` 与 `scripts/`
+- `/mnt/d/cutepower/.codex-plugin/plugin.json`、`/mnt/d/cutepower/agents/openai.yaml`
+  - 默认入口 classifier / discovery metadata
+- `/mnt/d/cutepower/scripts/task-intake.js`
+  - 默认入口 intake / preflight 层
+  - 分配 `session_id` 并写入 preflight artifacts
+- `/mnt/d/cutepower/scripts/host-runtime.js`
+  - 宿主桥接层
+  - 签发 session capability
+- `/mnt/d/cutepower/scripts/runtime-gates.js`
+  - capability / phase / artifact admission 层
+- `/mnt/d/cutepower/scripts/run-artifacts.js` 与 `schemas/run-artifacts/`
+  - repo-local run state
+  - stable artifact schema
+  - closure artifact validation
+- `/mnt/d/cutepower/skills/` 与其余 `scripts/`
   - 当前运行与校验资产
   - 消费 contracts，不复制治理正文
 - `02_Projects/Agent Workflow/workflow_*_current.md`
   - 当前项目态说明与恢复入口
 - `02_Projects/Agent Workflow/cutepower_*_baseline.md`
   - 历史实施基线
-- `02_Projects/Agent Workflow/cutepower P1插件落地与运行时门禁收敛记录-2026-04-17.md`
+- `02_Projects/Agent Workflow/cutepower *_记录*.md`
   - cutepower 事件记录
 - `01_Knowledge/Agent Workflow/*.md`
   - 只保留通用模式知识，不承接 active truth
@@ -68,7 +87,7 @@ updated_at: 2026-04-17
   - 某一轮实施前冻结的边界
   - 不作为默认实现入口
 - `record`
-  - 某次 cutepower 收敛、实现、验证或硬化事件
+  - 某次 cutepower 收敛、实现、验证或 hardening 事件
   - 只做事件追溯，不承担当前规则正文
 
 ## 0.4 Non-goals
@@ -109,7 +128,10 @@ P1 active skills：
 
 - plugin-first
 - contracts-first
+- default-entry through intake
 - thin bridge
+- repo-local run state
+- capability + phase + artifact enforcement
 - repo review / functional review / writeback 独立
 - runtime gate 优先阻断越权路径
 
