@@ -1,0 +1,27 @@
+{
+  "entry_skill": "using-cutepower",
+  "task_goal": "按cutepower分析代码 docker exec -it eyestatus_gpu 是否符合睁闭眼模型对照实验设计",
+  "primary_type": "audit",
+  "primary_type_status": "needs_clarification",
+  "task_modifiers": [
+    "functional_scope",
+    "read_only"
+  ],
+  "route_id": null,
+  "route_status": "needs_clarification",
+  "resolved_skill_chain": [],
+  "requires_dispatch": true,
+  "route_reasoning": {
+    "matched_route_modifiers": [],
+    "dispatcher_skill": "using-cutepower"
+  },
+  "inferred_context": {},
+  "missing_context": [],
+  "requires_clarification": true,
+  "inference_trace": {
+    "primary_type_terms": [],
+    "modifier_terms": {}
+  },
+  "explicit_mode": true,
+  "governance_signal": true
+}

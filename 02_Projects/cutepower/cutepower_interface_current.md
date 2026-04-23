@@ -1,6 +1,6 @@
 ---
 title: cutepower Interface Current
-summary: 当前 cutepower 的宿主入口以 `agents/openai.yaml` 为 surface metadata，再由 `task-intake`、`host-runtime`、`runtime-gates` 和 repo-local artifacts 组成正式前门；旧 hook 文件链已退出主线。
+summary: 当前 cutepower 的宿主入口以 `agents/openai.yaml` 为 surface metadata，再由 `task-intake`、`host-runtime`、`runtime-gates` 和 repo-local artifacts 组成正式前门；dispatcher-first routing 已成为当前主线。
 status: pending_review
 doc_role: current
 truth_role: current
@@ -30,7 +30,7 @@ sources:
   - /mnt/d/cutepower/contracts/task-normalization.yaml
   - /mnt/d/cutepower/contracts/gate-matrix.yaml
   - 02_Projects/cutepower/cutepower_overview_current.md
-scope: 适用于说明当前 cutepower 如何被宿主显式启用，以及默认入口如何落到 artifact-driven runtime。
+scope: 适用于说明当前 cutepower 如何被宿主显式启用，以及默认入口如何落到 dispatcher-first runtime。
 risks:
   - `agents/openai.yaml` 仍是宿主协议字段，不能误删。
   - 如果把旧 hooks 配置当入口，会误读当前实现边界。
@@ -41,7 +41,7 @@ updated_at: 2026-04-23
 
 当前入口分两层：
 
-- 默认层：工程任务默认先尝试走 `scripts/task-intake.js`
+- 默认层：governed engineering task 默认先尝试走 `scripts/task-intake.js`
 - 显式层：当任务明确要求按 cutepower 执行时，宿主通过 `agents/openai.yaml` 中的 `session_context_hook` 调用 `scripts/host-runtime.js`
 
 当前主线不再依赖以下旧资产：
@@ -55,9 +55,10 @@ updated_at: 2026-04-23
 
 1. `task-intake` 解析 prompt，分配 `session_id`
 2. preflight artifacts 写入 `.cutepower/run/<session_id>/`
-3. `host-runtime` 读取 `runtime_gate` 并签发 `session_capability`
-4. `runtime-gates` 根据 capability、phase、artifact existence 决定后续动作是否放行
-5. 完成态依赖 closure artifacts，而不是旧 `Stop hook` 语义
+3. `dispatch_manifest` 指明当前 skill 与下一合法 skill
+4. `host-runtime` 读取 `runtime_gate` 并签发 `session_capability`
+5. `runtime-gates` 根据 capability、phase、artifact existence 与 skill order 决定后续动作是否放行
+6. 完成态依赖 closure artifacts，而不是旧 `Stop hook` 语义
 
 ## 0.3 Install Boundary
 

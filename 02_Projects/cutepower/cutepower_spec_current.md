@@ -1,6 +1,6 @@
 ---
 title: cutepower Spec Current
-summary: 当前项目级强规则是：cutepower 的 current 只能描述现状，contracts 是唯一治理真相源，artifact-driven runtime 是唯一主线执行模型，知识库项目名也固定为 cutepower。
+summary: 当前项目级强规则是：cutepower 的 current 只能描述现状，contracts 是唯一治理真相源，skill-first dispatcher + runtime-gate enforcement 是当前主线执行模型，知识库项目名也固定为 cutepower。
 status: pending_review
 doc_role: current
 truth_role: current
@@ -9,7 +9,7 @@ lifecycle_state: active
 default_entry: false
 sync_required_when:
   - 真相源优先级变化
-  - runtime entry 或 capability model 变化
+  - dispatcher / runtime entry 或 capability model 变化
   - 项目区 current / baseline / record 规则变化
 retrieval_priority: current
 supersedes: []
@@ -36,10 +36,11 @@ updated_at: 2026-04-23
 ## 0.1 Required Behaviors
 
 - cutepower 的运行治理优先读取 `/mnt/d/cutepower/contracts/`
-- 工程类自然语言请求默认先走 `/mnt/d/cutepower/scripts/task-intake.js`
+- governed engineering task 默认先走 `/mnt/d/cutepower/scripts/task-intake.js`
+- `using-cutepower` 是 governed route 的 mandatory dispatcher
 - 显式模式下的宿主上下文注入以 `/mnt/d/cutepower/agents/openai.yaml` 和 `/mnt/d/cutepower/scripts/host-runtime.js` 为准
 - 高风险动作准入以 `/mnt/d/cutepower/scripts/runtime-gates.js` 为准
-- repo-local run state 与 `schemas/run-artifacts/` 是当前 runtime source of truth
+- repo-local run state 与 `dispatch_manifest` / `runtime_gate` 是当前 runtime source of truth
 - current、baseline、record 必须放在 `02_Projects/cutepower/`
 
 ## 0.2 Prohibited Behaviors
@@ -48,4 +49,5 @@ updated_at: 2026-04-23
 - 不允许恢复 `codex-hooks.js` / `codex-host-adapter.js` / `test-codex-hooks.js` 为 current truth
 - 不允许把 `.codex/hooks.json` 视为 install 成功判定或 uninstall 清理对象
 - 不允许把 README、baseline 或 record 提升为高于 contracts 的规则源
+- 不允许把 skill prose 误当 runtime enforcement
 - 不允许把 cuteagents 提前混入当前 cutepower current 语义

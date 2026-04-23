@@ -1,6 +1,6 @@
 ---
 title: cutepower Validation Current
-summary: 当前 cutepower 已验证 artifact-driven runtime、host runtime capability、install/uninstall 脱钩旧 hook 配置，以及主线去 hook 化后的本地测试链。
+summary: 当前 cutepower 已验证 contracts-first routing、dispatcher preflight、skill order gating、host runtime capability 与 skill discipline 文档完整性；核心 runtime read path 已与 `analysis` phase 的当前主线对齐。
 status: pending_review
 doc_role: current
 truth_role: current
@@ -9,7 +9,7 @@ lifecycle_state: active
 default_entry: false
 sync_required_when:
   - validation 结论变化
-  - install / uninstall 覆盖面变化
+  - dispatcher / skill route matrix 覆盖面变化
   - host runtime / runtime gate 语义变化
 retrieval_priority: current
 supersedes: []
@@ -20,23 +20,19 @@ related_plugins:
   - cutepower
 sources:
   - /mnt/d/cutepower/scripts/validate-contracts.js
+  - /mnt/d/cutepower/scripts/task-profile.js
   - /mnt/d/cutepower/scripts/task-intake.js
   - /mnt/d/cutepower/scripts/host-runtime.js
   - /mnt/d/cutepower/scripts/runtime-gates.js
-  - /mnt/d/cutepower/scripts/governance-response.js
   - /mnt/d/cutepower/scripts/run-artifacts.js
-  - /mnt/d/cutepower/scripts/install-plugin.js
-  - /mnt/d/cutepower/scripts/uninstall-plugin.js
   - /mnt/d/cutepower/scripts/test-task-profile.js
   - /mnt/d/cutepower/scripts/test-task-intake.js
   - /mnt/d/cutepower/scripts/test-host-runtime.js
   - /mnt/d/cutepower/scripts/test-runtime-gates.js
-  - /mnt/d/cutepower/scripts/test-install-plugin.js
-  - /mnt/d/cutepower/scripts/test-uninstall-plugin.js
+  - /mnt/d/cutepower/scripts/test-skill-routing.js
+  - /mnt/d/cutepower/scripts/test-skill-docs.js
   - /mnt/d/cutepower/README.md
-  - /mnt/d/cutepower/docs/runtime-hardening.md
-  - 02_Projects/cutepower/cutepower 主线去hook化与知识库项目收口记录-2026-04-23.md
-scope: 适用于判断当前 cutepower 哪些边界已被验证，以及哪些历史 hook 假设已经失效。
+scope: 适用于判断当前 cutepower 哪些 dispatcher、routing、runtime gate 边界已被验证。
 risks:
   - 当前验证仍以本地 repo tests 为主，不等于所有宿主表面的真实验收。
 updated_at: 2026-04-23
@@ -44,15 +40,25 @@ updated_at: 2026-04-23
 
 ## 0.1 Validated
 
-- install 不创建旧 runtime 配置文件
-- uninstall 不依赖旧 runtime 配置文件清理
-- `task-intake` 不再把 hook integration repair 当主线路由
-- `host-runtime` 仍能从 persisted `runtime_gate` 生成 session capability
-- `runtime-gates` 以 capability、phase、artifact existence 判定动作准入
-- completion gate 文案与语义已从旧 `Stop hook` 收口到 completion gate
-- `plugin.json` 已移除 runtime hook metadata，宿主入口保留在 `agents/openai.yaml`
+- `validate-contracts` 会校验 `routing-table`、`skill_route_matrix`、`protected_execution_skills` 的一致性
+- `task-profile` 会产出 route 与 governed skill chain
+- `task-intake` 会持久化 `dispatch_manifest` 并让 governed route 从 dispatcher 开始
+- `host-runtime` 会携带新的 preflight artifact contract
+- `runtime-gates` 会基于 capability、phase、artifact continuity 与 `dispatch_manifest.next_skill` 判定准入
+- read-only audit 的 authorized read path 已与当前 `analysis` phase 对齐
+- skill 文档完整性由 `test-skill-docs.js` 覆盖
 
-## 0.2 Not Validated Here
+## 0.2 Validation Entries
+
+- `node scripts/validate-contracts.js`
+- `node scripts/test-task-profile.js`
+- `node scripts/test-task-intake.js`
+- `node scripts/test-host-runtime.js`
+- `node scripts/test-runtime-gates.js`
+- `node scripts/test-skill-routing.js`
+- `node scripts/test-skill-docs.js`
+
+## 0.3 Not Validated Here
 
 - 所有 Codex 宿主表面对 `agents/openai.yaml` 的真实兼容性
 - future cuteagents 与 cutepower 并列后的跨项目恢复链
