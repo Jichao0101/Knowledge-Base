@@ -5,8 +5,8 @@ unit_type: design_pattern
 domain: 工程工作流
 topic: Plugin-first与Contracts-first治理插件设计模式
 sources:
-  - 02_Projects/Agent Workflow/cutepower_p0_implementation_baseline.md
-  - 02_Projects/Agent Workflow/cutepower_p1_board_functional_incident_baseline.md
+  - 02_Projects/cutepower/cutepower_p0_implementation_baseline.md
+  - 02_Projects/cutepower/cutepower_p1_board_functional_incident_baseline.md
   - /mnt/d/cutepower/contracts/contract-index.yaml
   - /mnt/d/cutepower/contracts/role-contracts.yaml
   - /mnt/d/cutepower/contracts/gate-matrix.yaml

@@ -16,8 +16,8 @@ scope: 适用于追溯 cutepower P1 三个核心能力的设计收敛边界，�
 related_plugins:
   - cutepower
 sources:
-  - 02_Projects/Agent Workflow/cutepower_p0_implementation_baseline.md
-  - 02_Projects/Agent Workflow/cutepower P1插件落地与运行时门禁收敛记录-2026-04-17.md
+  - 02_Projects/cutepower/cutepower_p0_implementation_baseline.md
+  - 02_Projects/cutepower/cutepower P1插件落地与运行时门禁收敛记录-2026-04-17.md
   - /mnt/d/cutepower/contracts/role-contracts.yaml
   - /mnt/d/cutepower/contracts/gate-matrix.yaml
   - /mnt/d/cutepower/contracts/review-boundaries.yaml

@@ -1,0 +1,12 @@
+{
+  "primary_type": "general_task",
+  "task_modifiers": [],
+  "explicit_mode": true,
+  "requested_capability": "unknown",
+  "requested_outputs": [
+    "task_profile",
+    "route_resolution",
+    "runtime_gate"
+  ],
+  "governance_signal": true
+}

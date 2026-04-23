@@ -9,9 +9,9 @@ lifecycle_state: pending_merge
 default_entry: false
 retrieval_priority: evidence_only
 target_current_docs:
-  - 02_Projects/Agent Workflow/workflow_interface_current.md
-  - 02_Projects/Agent Workflow/workflow_implementation_current.md
-  - 02_Projects/Agent Workflow/workflow_validation_current.md
+  - 02_Projects/cutepower/cutepower_interface_current.md
+  - 02_Projects/cutepower/cutepower_implementation_current.md
+  - 02_Projects/cutepower/cutepower_validation_current.md
 related_plugins:
   - cutepower
 sources:

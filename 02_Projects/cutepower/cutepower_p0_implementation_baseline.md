@@ -16,11 +16,11 @@ related_plugins:
   - cutepower
 sources:
   - 01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式.md
-  - 02_Projects/Agent Workflow/workflow_overview_current.md
-  - 02_Projects/Agent Workflow/workflow_design_current.md
-  - 02_Projects/Agent Workflow/workflow_spec_current.md
-  - 02_Projects/Agent Workflow/workflow_implementation_current.md
-  - 02_Projects/Agent Workflow/cutepower P1插件落地与运行时门禁收敛记录-2026-04-17.md
+  - 02_Projects/cutepower/cutepower_overview_current.md
+  - 02_Projects/cutepower/cutepower_design_current.md
+  - 02_Projects/cutepower/cutepower_spec_current.md
+  - 02_Projects/cutepower/cutepower_implementation_current.md
+  - 02_Projects/cutepower/cutepower P1插件落地与运行时门禁收敛记录-2026-04-17.md
 updated_at: 2026-04-17
 ---
 

@@ -9,11 +9,11 @@ lifecycle_state: pending_merge
 default_entry: false
 retrieval_priority: evidence_only
 target_current_docs:
-  - 02_Projects/Agent Workflow/workflow_overview_current.md
-  - 02_Projects/Agent Workflow/workflow_design_current.md
-  - 02_Projects/Agent Workflow/workflow_spec_current.md
-  - 02_Projects/Agent Workflow/workflow_implementation_current.md
-  - 02_Projects/Agent Workflow/workflow_validation_current.md
+  - 02_Projects/cutepower/cutepower_overview_current.md
+  - 02_Projects/cutepower/cutepower_design_current.md
+  - 02_Projects/cutepower/cutepower_spec_current.md
+  - 02_Projects/cutepower/cutepower_implementation_current.md
+  - 02_Projects/cutepower/cutepower_validation_current.md
 related_plugins:
   - cutepower
 sources:
@@ -26,8 +26,8 @@ sources:
   - /mnt/d/cutepower/scripts/validate-contracts.js
   - /mnt/d/cutepower/scripts/runtime-gates.js
   - /mnt/d/cutepower/scripts/test-runtime-gates.js
-  - 02_Projects/Agent Workflow/cutepower_p0_implementation_baseline.md
-  - 02_Projects/Agent Workflow/cutepower_p1_board_functional_incident_baseline.md
+  - 02_Projects/cutepower/cutepower_p0_implementation_baseline.md
+  - 02_Projects/cutepower/cutepower_p1_board_functional_incident_baseline.md
 scope: 适用于追溯 cutepower P1 插件实现、运行时门禁加固、隔离测试与项目区收口的边界与残余风险。
 risks:
   - 当前记录尚未经过独立 review。
@@ -80,11 +80,11 @@ updated_at: 2026-04-20
 
 - sync_mode: `current_patch`
 - current_files_updated:
-  - `workflow_overview_current`
-  - `workflow_design_current`
-  - `workflow_spec_current`
-  - `workflow_implementation_current`
-  - `workflow_validation_current`
+  - `cutepower_overview_current`
+  - `cutepower_design_current`
+  - `cutepower_spec_current`
+  - `cutepower_implementation_current`
+  - `cutepower_validation_current`
 - project_records_removed:
   - `Agent Workflow-current与修改记录分工收敛记录-2026-04-13.md`
   - `Agent Workflow-DMS Tracking 文档体系诊断记录-2026-04-13.md`
