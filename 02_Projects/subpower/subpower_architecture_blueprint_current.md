@@ -5,15 +5,14 @@ domain: 工程工作流
 topic: subpower 架构蓝图
 project: subpower
 created_at: 2026-04-27
-updated_at: 2026-04-27
+updated_at: 2026-04-28
 source_repos:
   - /mnt/d/subpower
-  - /mnt/d/cutepower
   - /mnt/d/knowledgeBase/plugins/agent-workflow-migrator
 scope: 独立的 subagent-first 三侧工作流编排 runtime 设计蓝图。
 risks:
   - 将 subpower 过早膨胀为固定端到端 workflow engine
-  - 将 subpower 主状态耦合到 cutepower run artifacts
+  - 将 subpower 主状态耦合到外部 orchestration runtime artifacts
   - runtime gate 承担业务语义判断
   - reviewer 独立性只停留在文档约束而缺少 invocation 与 artifact 检查
 ---
@@ -22,14 +21,7 @@ risks:
 
 ## 1.1 摘要
 
-`subpower` 是一个独立的 subagent-first 三侧工作流编排 runtime。它不是 `cutepower` 的替代品。
-
-```text
-cutepower = skill-first governance plugin
-subpower = subagent-first orchestration runtime
-```
-
-`cutepower` 负责约束主代理是否遵守合法技能流程、contracts、runtime admission gate、review/writeback/board evidence 等治理边界。
+`subpower` 是一个独立的 subagent-first 三侧工作流编排 runtime。
 
 `subpower` 负责约束哪个子代理在什么状态下可以接手任务，知识库 / 代码库 / 板端三侧状态如何同步，子代理之间如何交接 artifact，板端失败如何进入独立评估，主代理如何基于评估动态选择返工路径。
 
@@ -41,18 +33,7 @@ workflow patterns + decision points + runtime gates + run artifacts
 
 workflow 是可复用执行模式，不是固定写死的端到端脚本。
 
-## 1.2 与 cutepower 的边界
-
-`cutepower` 已经解决：
-
-- `contracts/` 作为治理真源；
-- `skills/` 作为 skill-first 流程纪律层；
-- `AGENTS.md` 与 `agents/*.toml` 作为薄 runtime bridge；
-- `scripts/runtime-gates.js` 作为 action-front admission check；
-- `.cutepower/run/<session_id>/` 作为 repo-local run-state；
-- procedural review、writeback、board evidence gate。
-
-`cutepower` 不应膨胀为完整 subagent orchestration system。原因是它当前的抽象核心是 skill chain admission，而不是 agent identity、handoff packet、side-state、board failure assessment 和动态返工路由。
+## 1.2 独立性边界
 
 `subpower` 独立负责：
 
@@ -64,13 +45,15 @@ workflow 是可复用执行模式，不是固定写死的端到端脚本。
 - main route decision；
 - closure matrix 与 writeback precondition。
 
-兼容结论：
+边界结论：
 
 - `.subpower/run/<session_id>/` 是 subpower authoritative state。
-- `.cutepower/run/<session_id>/` 只能通过 optional adapter 只读导入。
-- 导入后的 cutepower 上游上下文写入 `upstream_cutepower_context.json`，不得作为 live runtime state 反复读取。
-- `task_profile`、`evidence_manifest`、`review_decision` 可以共享 schema 概念。
+- subpower 不读取外部 orchestration runtime 的 run-state。
+- subpower 不生成外部上游 context artifact。
+- subpower 不保留外部 runtime adapter。
+- `task_profile`、`evidence_manifest`、`review_decision` 可以采用相似概念，但 schema 必须由 subpower 独立定义。
 - `agent_invocation_manifest`、`side_state`、`handoff_packet`、`board_failure_review`、`main_route_decision`、`closure_matrix` 必须由 subpower 独立定义。
+- subpower README 与仓库 docs 面向用户保持自包含，不写入外部实现依赖或兼容说明。
 
 ## 1.3 硬约束
 
@@ -98,7 +81,9 @@ subpower/
 ├── agents/
 ├── contracts/
 ├── schemas/
+│   ├── contracts/
 │   └── run-artifacts/
+├── fixtures/
 ├── scripts/
 ├── skills/
 └── docs/
@@ -110,7 +95,8 @@ subpower/
 - `agents/`：可实例化子代理骨架，只引用 contracts，不作为 policy truth。
 - `contracts/`：active truth source，定义角色、workflow pattern、decision point、gate、artifact requirement、side-state、route policy、closure policy。
 - `schemas/`：run artifact 与 contract 的 schema。
-- `scripts/`：runtime gate、artifact IO、contract validation、optional cutepower adapter、负向测试。
+- `fixtures/`：可回归验证的真实工作流 artifact 样例。
+- `scripts/`：runtime gate、artifact IO、contract validation、staging install、负向测试与回归入口。
 - `skills/`：主代理入口与使用纪律，不复制 contracts 规则文本。
 - `.subpower/run/<session_id>/`：subpower repo-local runtime state，必须被 ignore，不进入插件包的版本历史。
 
@@ -124,12 +110,15 @@ MVP agent：
 - `repo-reviewer`：独立审查代码、验证证据、board failure assessment。
 - `board-runner`：board target 绑定、执行、artifact 采集、validation result 输出。
 
-延后 agent：
+第二阶段已纳入的 post-MVP agent：
 
 - `failure-analyst`：复杂根因分析或多轮返工不收敛。
 - `verification-manager`：复杂验证矩阵。
+- `knowledge-closer`：closure 通过后的知识写回执行。
+
+仍延后 agent：
+
 - `knowledge-auditor`：候选知识转正审查。
-- `knowledge-closer`：完整知识写回执行。
 - `source-ingestor`：外部来源采集。
 
 ## 1.6 MVP workflow patterns
@@ -227,6 +216,7 @@ MVP 必需：
 - `main_route_decision.json`（decision point route 时）
 - `evidence_manifest.json`
 - `closure_matrix.json`
+- `board_session.json`（板端执行会话记录，可选但已具备 schema）
 
 延后：
 
@@ -235,7 +225,6 @@ MVP 必需：
 - `next_workflow_recommendation.json`
 - `writeback_receipt.json`
 - `writeback_declined.json`
-- `upstream_cutepower_context.json`
 
 ## 1.10 三侧状态模型
 
@@ -271,6 +260,9 @@ subpower 仓库既是本地开发源，也是未来插件分发源。实现上�
 - `skills/`、`agents/`、`contracts/`、`schemas/`、`scripts/`、`docs/` 必须可随插件一起分发；
 - `.subpower/run/`、临时日志、coverage、依赖目录不得进入版本库；
 - 不应在版本库 `.gitignore` 中全局忽略 `.codex/`，避免未来需要发布 `.codex/INSTALL.md` 或其他安装文档时被误忽略。
+- `scripts/install-plugin.js` 只是 staging utility，不代表正式发布流程；
+- 默认不得覆盖已有 target，只有 `--force` 可覆盖；
+- staging package 不得包含 `.subpower/run/`、`node_modules/`、`coverage/`、`logs/`、`tmp/`。
 
 ## 1.12 第一阶段实现切片
 
@@ -287,3 +279,33 @@ task_profile
 ```
 
 这个切片验证 subpower 的核心价值：独立子代理交接、三侧 evidence、失败评估、主代理动态路由和结构化 runtime gate。
+
+## 1.13 第二阶段实现状态
+
+第二阶段已完成：
+
+- 移除外部 runtime adapter 与兼容文档，subpower 仓库文档保持自包含；
+- 新增 `scripts/install-plugin.js`，支持 personal / repo scope staging、dry-run、force、结构化 JSON summary；
+- 新增 `scripts/schema-validator.js`，实现轻量 JSON schema subset：`type`、`required`、`properties`、`enum`、`items`、`additionalProperties`、nested object、arrays；
+- `runtime-gates.js` 已调用 schema validator，不再只做 required-field 粗检；
+- 增强 `board_failure_review`、`main_route_decision`、`closure_matrix` 等 artifact schema；
+- 新增 `failure-analyst`、`verification-manager`、`knowledge-closer` 及对应 role / gate / workflow optional participant 边界；
+- 新增 `fixtures/bugfix-board-failure-rework/`，覆盖板端失败后 reviewer assessment 再 route 的 coder/planner rework 路径；
+- 新增 `scripts/test-all.js` 作为全量回归入口；
+- 新增无外部 runtime dependency 的负向扫描测试。
+
+当前验证命令：
+
+```bash
+node scripts/validate-contracts.js
+node scripts/test-runtime-gates.js
+node scripts/test-decision-points.js
+node scripts/test-agent-boundaries.js
+node scripts/test-run-artifacts.js
+node scripts/test-schema-validator.js
+node scripts/test-install-plugin.js
+node scripts/test-fixtures.js
+node scripts/test-all.js
+```
+
+以上在 2026-04-28 第二阶段收尾时已通过。
