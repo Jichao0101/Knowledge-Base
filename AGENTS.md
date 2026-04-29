@@ -89,6 +89,20 @@
 - 不得将其中内容默认视为项目知识背景
 - 若要把其中内容作为知识上下文引用，仍需满足知识访问授权规则
 - 不得因此扩大为对整个用户目录的自由读取
+
+### 0.5.1 Current 文档组维护入口
+维护项目区 current 文档组时，默认先按 lifecycle 规则识别 creation / hardening_refactor / patch / rewrite 场景。
+
+Hard stop：
+- 不得默认 full rewrite current 文档组
+- 不得把已删除的三侧同步规范作为 active dependency
+- 不得在未完成 recoverability verification 时新增或保留 `single_pass_recoverable: true`
+
+完整机制参见：
+- `01_Knowledge/Agent Workflow/Current文档组生命周期维护与可恢复性规则.md`
+
+本节只作为入口级 thin bridge，不复制 current 维护流程、review/writeback 规则或运行治理规则。
+
 ---
 
 ## 0.6 File placement rules
