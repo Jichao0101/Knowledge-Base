@@ -5,7 +5,7 @@ domain: 工程工作流
 topic: subpower 架构蓝图
 project: subpower
 created_at: 2026-04-27
-updated_at: 2026-04-28
+updated_at: 2026-05-02
 source_repos:
   - /mnt/d/subpower
   - /mnt/d/knowledgeBase/plugins/agent-workflow-migrator
@@ -15,6 +15,8 @@ risks:
   - 将 subpower 主状态耦合到外部 orchestration runtime artifacts
   - runtime gate 承担业务语义判断
   - reviewer 独立性只停留在文档约束而缺少 invocation 与 artifact 检查
+  - 用户明确要求 subpower 时，主线程绕过 artifact spine 与角色分离直接完成关键职责
+  - synthetic fixture、declared-only evidence、host-only fallback 或 structural report 被误报为完整 subagent-first execution
 ---
 
 # 1 subpower 架构蓝图 current
@@ -58,6 +60,10 @@ workflow 是可复用执行模式，不是固定写死的端到端脚本。
 ## 1.3 硬约束
 
 - 主代理是 workflow composer / routing decision owner。
+- 用户明确要求 `use subpower` / `按 subpower 处理` 时，默认进入 subagent-first orchestration。
+- 主代理默认只做编排、证据收集、gate enforcement 和最终汇总，不替代 repo implementation、independent review、board validation、failure analysis 或 knowledge writeback assessment。
+- 如果 runtime 无法实际派生子代理，只能进入 degraded / non-complete host-only fallback，不能声称 complete subpower execution。
+- 主代理参与任何关键职责必须写入 `subagent_execution_status.json` 的 host participation 记录；关键职责参与会限制 complete claim。
 - 主代理不得伪造 reviewer 结论。
 - coder 不得自审通过。
 - reviewer 不得直接修改代码。
@@ -66,6 +72,7 @@ workflow 是可复用执行模式，不是固定写死的端到端脚本。
 - board validation failed 后，必须先产生 `board_failure_review.json`，再由主代理产生 `main_route_decision.json`。
 - runtime gate 只判断结构合法性：role、phase、artifact、schema、independence、board target、evidence、route、closure、writeback。
 - runtime gate 不判断业务语义、根因正确性、实现质量优劣或验收标准是否合理。
+- declared-only evidence、synthetic fixture、host-only fallback、demo、structural validation 或单纯测试通过，只能作为结构证据，不能支持完整 subagent-first execution claim。
 
 ## 1.4 仓库架构
 
@@ -182,6 +189,7 @@ MVP gates：
 - `artifact_gate`
 - `schema_gate`
 - `independence_gate`
+- `subagent_execution_gate`
 - `board_target_gate`
 - `evidence_gate`
 - `route_gate`
@@ -192,7 +200,14 @@ gate 的职责是阻断结构非法动作，例如：
 
 - coder 自己生成 `review_decision.json` 并 close；
 - reviewer 直接修改代码；
+- explicit subpower invocation 缺少 `subagent_execution_status.json`；
+- `subagent_execution_status.json` 与 prompt/task/workflow 中的 subpower marker 冲突；
+- host-only fallback 声称 complete subpower execution；
+- synthetic fixture、declared-only、host-only、insufficient evidence 被用于 complete claim；
+- 主线程 critical host participation 未披露，或披露后仍声称 complete subagent-first execution；
+- duplicate role invocation 通过“干净的第一个 role invocation”掩盖实际 artifact producer 与其他关键角色 actor 重合；
 - board-runner 没有 `board_target.json` 就执行；
+- `board_validation_result.json` 存在但缺少 `board_session.json`；
 - board validation failed 后没有 `board_failure_review.json` 就进入 coder rework；
 - `main_route_decision` 指向非法 route；
 - 没有 evidence 就 close；
@@ -211,12 +226,15 @@ MVP 必需：
 - `code_change_manifest.json`
 - `review_decision.json`
 - `board_target.json`（需要板端时）
+- `board_session.json`（执行板端时）
 - `board_validation_result.json`（执行板端时）
 - `board_failure_review.json`（板端失败时）
 - `main_route_decision.json`（decision point route 时）
 - `evidence_manifest.json`
 - `closure_matrix.json`
-- `board_session.json`（板端执行会话记录，可选但已具备 schema）
+- `subagent_execution_status.json`
+- `writeback_plan.json`
+- `writeback_receipt.json` 或 `writeback_declined.json`
 
 延后：
 
@@ -309,3 +327,56 @@ node scripts/test-all.js
 ```
 
 以上在 2026-04-28 第二阶段收尾时已通过。
+
+## 1.14 真实任务治理加固状态
+
+2026-05-02 已完成一轮面向真实任务执行偏差的治理加固。
+
+触发问题：
+
+- 用户明确要求 `按 subpower 处理` 时，主线程仍可能直接执行 implementation、review、board validation、failure analysis 或 knowledge writeback assessment；
+- 执行前未建立完整或最小 artifact spine；
+- 未记录 repo-implementer、repo-reviewer、board-runner、verification-manager、knowledge-closer 等角色派生证据；
+- 主线程参与关键职责后缺少结构化披露；
+- host-only fallback、declared-only evidence、synthetic fixture、structural validation 或 demo 可能被包装成完整 subagent-first execution。
+
+本轮收紧后的核心语义：
+
+- `prompt_context`、`task_profile`、`workflow_plan` 中的 subpower marker 会与 `subagent_execution_status.subpower_invoked` 交叉校验；
+- `execution_evidence_status: complete` 只表示 spawned subagents + concrete runtime handoff/spawn evidence + non-degraded status；
+- `synthetic_fixture`、`declared_only`、`host_only`、`insufficient` 与 `host_only_fallback` 均为 non-complete / degraded execution evidence；
+- runtime report 同时输出 structural gate readiness 与 complete execution support，避免把结构通过误读为流程完成；
+- complete claim 必须有 `agent_invocation_manifest.json` 中关键角色的 concrete producer evidence；
+- `board_validation_result.json` 存在时，closure/writeback/complete claim 必须同时具备 `board_session.json`；
+- writeback candidate、plan、receipt、declined 均必须由 `knowledge-closer` 角色生产；
+- critical host participation 即使已披露，也不能支持 complete subagent-first execution claim；
+- critical actor separation 检查基于实际生产关键 artifact 的 invocation，而不是只看某个 role 的第一个 invocation，从而阻断 duplicate role invocation 绕过。
+
+本轮新增或更新的回归覆盖：
+
+- explicit subpower 缺少 execution status；
+- status artifact 与 explicit invocation marker 冲突；
+- host-only fallback 声称 complete execution；
+- declared-only / synthetic fixture / non-concrete producer evidence 支持 complete claim；
+- board validation result 缺少 board session；
+- writeback plan 或 terminal artifact 由错误角色生产；
+- 主线程 critical role participation 披露后仍声称 complete claim；
+- board-runner、knowledge-closer、verification-manager 通过 duplicate invocation 复用 implementer/reviewer actor。
+
+已验证命令：
+
+```bash
+node scripts/subpower.js validate
+node scripts/subpower.js test
+node scripts/test-all.js
+node scripts/test-subagent-execution.js
+git diff --check
+```
+
+上述命令在 2026-05-02 治理加固后通过。
+
+仍存在的边界：
+
+- 仓库只能验证 artifact 中记录的 evidence type、producer、actor 与 gate 关系；
+- 仓库自身不能加密证明某个 `runtime_spawn` / `runtime_handoff` evidence ref 一定来自真实 runtime；
+- 真实子代理派生证据仍需要外层 Codex / agent runtime 提供可信 invocation record。
