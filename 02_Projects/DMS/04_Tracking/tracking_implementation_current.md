@@ -31,13 +31,14 @@ sources:
   - 02_Projects/DMS/04_Tracking/多目标跟踪手部连续性优化闭环记录-2026-03-31.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md
   - 02_Projects/DMS/04_Tracking/跟踪框越界导致板端coredump调查与修复闭环记录-2026-04-07.md
+  - 02_Projects/DMS/04_Tracking/2m摄像头后排head误绑定主驾修复闭环记录-2026-05-08.md
   - /home/jichao/dms/include/utils/track.h
   - /home/jichao/dms/source/utils/track.cpp
   - /home/jichao/dms/etc/track_params.json
 scope: 适用于恢复当前 Tracking 在代码中的主要实现结构、接口事实与行为，不覆盖全部调试历史。
 risks:
-  - 本文档基于代码静态读取恢复当前实现，没有在本轮重新编译确认。
-updated_at: 2026-04-07
+  - 本文档基于代码静态读取与 2026-05-08 本地编译/板端日志证据恢复当前实现；仍不等价于完整代表性样本集验收。
+updated_at: 2026-05-08
 ---
 
 ## 0.1 Core Entry
@@ -83,6 +84,7 @@ updated_at: 2026-04-07
   - hand：命中检测后最终输出框直接使用检测框；2026-04-07 起 miss 时不再沿 `predBox` 向下游输出
   - body：命中检测后改为检测主导融合；当预测与检测出现反向/过冲时，直接回到检测框并重建运动状态
 - 2026-04-07 起 body / face / hand 在写入 `AtomicResult::*TrackResultMap` 前统一经过 track 内部 sanitize/clamp；非法框直接丢弃，不再透传给下游
+- 2026-05-08 起，已有 face track 在 first pass 被当前稳定 body 重新关联时，会先通过 face 自身预测连续性门控；driver 相关 face 绑定使用更严格的 `distanceLoss <= 0.45`，非 driver 使用 `0.65`。
 
 配置来自 `/home/jichao/dms/etc/track_params.json`，按 `DEFAULT` 或车型节点加载 body / face / hand 的 threshold 与 kalman 参数。
 
@@ -92,11 +94,12 @@ updated_at: 2026-04-07
 - 配置读取与 `DEFAULT` / 车型覆盖 -> `loadConfigFromJson`
 - body id 分配 -> `allocateBodyTrackId`
 - body 主流程 -> `updateBodyTracks`
-- face orphan cleanup / fallback / driver small-face filtering -> `updateFaceTracks`
+- face orphan cleanup / fallback / driver small-face filtering / initialized-face continuity gate -> `updateFaceTracks`
 - hand 左右槽位、second pass、miss 不输出策略 -> `updateHandTracks`
 - 统一输出 sanitize/clamp 与非法框过滤 -> `SanitizeDetectBoxToImage` / `PublishSanitizedTrack`
 - 导出兼容层 -> `fuse_algorithm.cpp`、`handpose_model.cpp`、`humanpose_model.cpp`
 - 预测残留抑制 -> body / face / hand 命中更新路径中的 detection-dominant update 与 motion-state 重建点；实现上落在各自命中更新分支，而不是独立的统一导出层
+- 2m 宽 body 下 head 误绑定抑制 -> `PassFaceTrackContinuityGate`、`continuityRejectedFaceTracks`、driver second-pass strict gate
 
 ## 0.5 Matching And Lifecycle
 
@@ -111,7 +114,10 @@ updated_at: 2026-04-07
 
 - face 在 body 邻域内优先匹配。
 - 若已有 face 轨迹，优先按预测框与检测框匹配。
+- 已有 face 轨迹在 first pass 中必须通过 `PassFaceTrackContinuityGate`：driver 相关绑定使用 `distanceLoss <= 0.45`，其他绑定使用 `distanceLoss <= 0.65`，且总分必须小于 face `dummyLoss`。
+- 被 first pass 连续性门控明确拒绝的 face track 会记录到 `continuityRejectedFaceTracks`，同帧 second pass 不再允许其绕回匹配。
 - 若没有当前 body 命中，也会对未匹配 face 做全局二次匹配。
+- second pass 不是纯 orphan 策略：它同时覆盖 true orphan face 和 body 仍存在但 first pass 未命中的 face 自维持；其中 driver face 使用与 true orphan 相同的严格 `0.45` distance gate。
 - face 命中检测后，输出框完全使用检测框；若出现明显反向/过冲，则重建 CV state，避免下一帧继续沿旧方向外推。
 
 ### 0.5.3 hand
@@ -127,7 +133,7 @@ updated_at: 2026-04-07
 
 - face / hand 的 key 语义仍围绕 `bodyId` 建模，说明当前系统仍以 body 为统一身份锚点。
 - retired body 只作为 handoff 和 orphan child 清理的历史锚点，不直接对外输出。
-- 当前实现为了保留解耦 child，会有 orphan face / hand 兜底输出路径，这也是区域级唯一性尚未完全闭合的直接原因。
+- 当前实现为了保留解耦 child，会有 face / hand 兜底输出路径；face second pass 已对 driver 相关重绑定做连续性门控，但区域级唯一性仍未完全闭合。
 - `m_humanTrackResultMap` 只在导出层作为 body 兼容映射，不是 tracking 上游事实源。
 - 当前实现并未把 `tracking_interfaces_evidence` 提升为默认实现输入；其接口事实已经并入本文件和 spec。
 
@@ -144,6 +150,7 @@ updated_at: 2026-04-07
 - 03-31 delta 收敛了 hand continuity 优化与短 miss 输出。
 - 04-05 delta 收敛了快速运动恢复阶段的预测残留抑制。
 - 04-07 delta 收敛了 tracking 输出框统一 sanitize/clamp，并把 hand miss 输出语义对齐到 face/body。
+- 05-08 delta 在不重构 tracker 的前提下，为 2m 摄像头宽 body 场景增加 initialized-face continuity gate 和 driver second-pass strict gate，避免后排 head 借异常 body ROI 误绑定到主驾 track。
 - 原 `tracking_interfaces_evidence` 的当前有效接口事实已并入本文件。
 
 ## 0.9 Current Sync Rule
