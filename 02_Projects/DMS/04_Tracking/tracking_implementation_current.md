@@ -1,6 +1,6 @@
 ---
 title: Tracking Implementation Current
-summary: Tracking 当前实现文档，记录代码入口、关键状态载体、spec-to-code mapping、兼容层与未闭合点。
+summary: Tracking 当前实现文档，记录 body-first 代码事实、关键状态载体、兼容层与未闭合点；head-first 为下一阶段目标，尚未在代码中实现。
 status: verified
 doc_role: current
 truth_role: current
@@ -23,6 +23,7 @@ related_code:
   - /home/jichao/dms/include/utils/track.h
   - /home/jichao/dms/source/utils/track.cpp
   - /home/jichao/dms/etc/track_params.json
+  - /home/jichao/dms/etc/track_params_2m.json
 sources:
   - 02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
   - 02_Projects/DMS/04_Tracking/多目标跟踪实现闭环记录-2026-03-24.md
@@ -35,10 +36,14 @@ sources:
   - /home/jichao/dms/include/utils/track.h
   - /home/jichao/dms/source/utils/track.cpp
   - /home/jichao/dms/etc/track_params.json
+  - /home/jichao/dms/etc/track_params_2m.json
+  - 02_Projects/DMS/04_Tracking/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
+  - 02_Projects/DMS/04_Tracking/head-first渐进跟踪方案.md
+  - 02_Projects/DMS/04_Tracking/head-first渐进跟踪实现.md
 scope: 适用于恢复当前 Tracking 在代码中的主要实现结构、接口事实与行为，不覆盖全部调试历史。
 risks:
   - 本文档基于代码静态读取与 2026-05-08 本地编译/板端日志证据恢复当前实现；仍不等价于完整代表性样本集验收。
-updated_at: 2026-05-08
+updated_at: 2026-05-09
 ---
 
 ## 0.1 Core Entry
@@ -51,6 +56,8 @@ updated_at: 2026-05-08
   3. `updateFaceTracks`
   4. `updateHandTracks`
 - 配置入口固定从 `/home/jichao/dms/etc/track_params.json` 读取，并先应用 `DEFAULT`，再按车型节点覆盖。
+- 代码尚未实现 head-first driver selection、2m/5m 运行时模式选择、head-bound body/torso 或 hand owner source 日志。
+- head-first 代码实现前必须读取 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪方案]] 与 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪实现]]；本文只记录当前实现事实。
 
 ## 0.2 Current State Containers
 
@@ -94,12 +101,13 @@ updated_at: 2026-05-08
 - 配置读取与 `DEFAULT` / 车型覆盖 -> `loadConfigFromJson`
 - body id 分配 -> `allocateBodyTrackId`
 - body 主流程 -> `updateBodyTracks`
-- face orphan cleanup / fallback / driver small-face filtering / initialized-face continuity gate -> `updateFaceTracks`
+- face orphan 清理 / fallback / driver small-face filtering / initialized-face continuity gate -> `updateFaceTracks`
 - hand 左右槽位、second pass、miss 不输出策略 -> `updateHandTracks`
 - 统一输出 sanitize/clamp 与非法框过滤 -> `SanitizeDetectBoxToImage` / `PublishSanitizedTrack`
 - 导出兼容层 -> `fuse_algorithm.cpp`、`handpose_model.cpp`、`humanpose_model.cpp`
 - 预测残留抑制 -> body / face / hand 命中更新路径中的 detection-dominant update 与 motion-state 重建点；实现上落在各自命中更新分支，而不是独立的统一导出层
 - 2m 宽 body 下 head 误绑定抑制 -> `PassFaceTrackContinuityGate`、`continuityRejectedFaceTracks`、driver second-pass strict gate
+- head-first 主线 -> 尚未实现；当前只存在局部 face continuity 防护。
 
 ## 0.5 Matching And Lifecycle
 
@@ -131,17 +139,21 @@ updated_at: 2026-05-08
 
 ## 0.6 Current Implementation Constraints
 
-- face / hand 的 key 语义仍围绕 `bodyId` 建模，说明当前系统仍以 body 为统一身份锚点。
+- face / hand 的 key 语义仍围绕 `bodyId` 建模，说明当前代码仍以 body 为统一身份锚点。
+- 该 bodyId/key 语义是当前代码事实和 legacy ABI 兼容边界，不再代表下一阶段推荐身份主线。
 - retired body 只作为 handoff 和 orphan child 清理的历史锚点，不直接对外输出。
 - 当前实现为了保留解耦 child，会有 face / hand 兜底输出路径；face second pass 已对 driver 相关重绑定做连续性门控，但区域级唯一性仍未完全闭合。
 - `m_humanTrackResultMap` 只在导出层作为 body 兼容映射，不是 tracking 上游事实源。
 - 当前实现并未把 `tracking_interfaces_evidence` 提升为默认实现输入；其接口事实已经并入本文件和 spec。
+- 仓内存在 `track_params_2m.json`，但当前 `loadConfigFromJson` 固定读取 `track_params.json`，尚未实现显式 2m/5m profile 选择。
 
 ## 0.7 Known Gaps
 
 - 代码里存在“body 关联最佳 child + orphan child fallback 输出”的双路径。
 - 运行级验证仍待补。
 - 仅靠本文件和 code facts 可以恢复当前实现框架，但不能把运行级区域唯一性当成已闭合结论。
+- head-first 仍是未实现目标；任何后续实现前必须保持“代码事实”和“推荐主线”分离。
+- HumanPose 当前由 driver body map 触发并产出 `m_humanPoseResult`；这不是 OccupantTrack，也不是 person/part 状态层。
 
 ## 0.8 Historical Mapping
 
@@ -151,6 +163,7 @@ updated_at: 2026-05-08
 - 04-05 delta 收敛了快速运动恢复阶段的预测残留抑制。
 - 04-07 delta 收敛了 tracking 输出框统一 sanitize/clamp，并把 hand miss 输出语义对齐到 face/body。
 - 05-08 delta 在不重构 tracker 的前提下，为 2m 摄像头宽 body 场景增加 initialized-face continuity gate 和 driver second-pass strict gate，避免后排 head 借异常 body ROI 误绑定到主驾 track。
+- 05-09 decision record 将 body-first 归档为 legacy 主线，并要求下一阶段不再把 raw body detection box 作为 driver/person identity 主锚点。
 - 原 `tracking_interfaces_evidence` 的当前有效接口事实已并入本文件。
 
 ## 0.9 Current Sync Rule
@@ -161,6 +174,7 @@ updated_at: 2026-05-08
   - `AtomicResult` 四类 tracking map 或 body 兼容映射变化
   - hand miss 输出策略、统一 sanitize/clamp 或 orphan fallback / hand second pass 逻辑变化
   - `track_params.json` 的 DEFAULT 读取或车型覆盖规则变化
+  - head-first driver selection、profile 选择、head-bound body/torso、hand owner source 任一实现落地
 - absorbs_history_from:
   - `座舱多目标跟踪实现.md`
   - `多目标跟踪实现闭环记录-2026-03-24.md`

@@ -1,0 +1,29 @@
+{
+  "artifact_type": "writeback_plan",
+  "workflow": "knowledge_writeback",
+  "created_at": "2026-05-09",
+  "logical_destinations": [
+    "DMS Tracking head-first design plan",
+    "DMS Tracking head-first implementation plan",
+    "DMS Tracking current overview",
+    "DMS Tracking current design",
+    "DMS Tracking current spec",
+    "DMS Tracking current implementation",
+    "DMS Tracking current validation",
+    "DMS Tracking head-first decision record",
+    "DMS Tracking baseline/history notes"
+  ],
+  "writeback_intent": "Make head-first the sole recommended next implementation line, split the head-first design and implementation plans, keep body-first as legacy/history, classify OccupantTrack as evaluated but not adopted, and record HumanPose-assisted hand association as the preferred future hand-tracking enhancement path.",
+  "claim_classes_allowed": [
+    "verified_runtime_fact",
+    "project_decision"
+  ],
+  "denied_actions": [
+    "production_code_write",
+    "test_run",
+    "board_validation",
+    "promote_to_01_Knowledge",
+    "claim_head_first_implemented",
+    "make_OccupantTrack_default_future_route"
+  ]
+}

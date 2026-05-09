@@ -1,0 +1,28 @@
+{
+  "artifact_type": "writeback_plan",
+  "workflow": "knowledge_writeback",
+  "execution_mode": "subpower_host_orchestrated_with_role_agents",
+  "created_at": "2026-05-09",
+  "logical_destinations": [
+    "DMS Tracking current overview",
+    "DMS Tracking current design",
+    "DMS Tracking current spec",
+    "DMS Tracking current implementation",
+    "DMS Tracking current validation",
+    "DMS Tracking architecture decision record",
+    "DMS Tracking body-first baseline note"
+  ],
+  "claim_classes_allowed": [
+    "verified_runtime_fact",
+    "project_decision"
+  ],
+  "writeback_intent": "Record head-first as the next recommended implementation line, archive body-first as legacy, record OccupantTrack as evaluated but not adopted, and classify it as a non-target option unless a new decision reopens it.",
+  "denied_actions": [
+    "production_code_write",
+    "test_run",
+    "board_validation",
+    "promote_to_01_Knowledge",
+    "claim_head_first_implemented",
+    "make_OccupantTrack_phase_one_target"
+  ]
+}

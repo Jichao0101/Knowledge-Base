@@ -1,6 +1,6 @@
 ---
 title: Tracking Validation Current
-summary: Tracking 当前验证状态文档，记录已具备的证据、缺失证据、已证明与未证明边界、当前审查结论和下一轮验证。
+summary: Tracking 当前验证状态文档，记录 body-first 代码事实证据、2m 局部修复证据、head-first 决策边界、缺失证据和下一轮验证路径。
 status: verified
 doc_role: current
 truth_role: current
@@ -31,11 +31,14 @@ sources:
   - 02_Projects/DMS/04_Tracking/多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md
   - 02_Projects/DMS/04_Tracking/跟踪框越界导致板端coredump调查与修复闭环记录-2026-04-07.md
   - 02_Projects/DMS/04_Tracking/2m摄像头后排head误绑定主驾修复闭环记录-2026-05-08.md
+  - 02_Projects/DMS/04_Tracking/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
+  - 02_Projects/DMS/04_Tracking/head-first渐进跟踪方案.md
+  - 02_Projects/DMS/04_Tracking/head-first渐进跟踪实现.md
   - /home/jichao/dms/source/utils/track.cpp
 scope: 适用于判断 Tracking 当前有哪些证据已经成立、哪些结论仍需更高等级验证；为默认实现输入链提供验证边界，不承接设计或规范正文。
 risks:
   - 本文档已整合 2026-05-08 的 2m dump 板端日志验证，但仍不等价于完整代表性视频集验收。
-updated_at: 2026-05-08
+updated_at: 2026-05-09
 ---
 
 ## 0.1 Evidence Status
@@ -54,6 +57,9 @@ updated_at: 2026-05-08
 - track 输出在写入四类 track map 前已有统一 sanitize/clamp 与非法框过滤
 - initialized face first pass 已有连续性门控；driver 相关 face 绑定使用更严格的 `distanceLoss <= 0.45`
 - first pass 被连续性门控明确拒绝的 face track，同帧不会再通过 second pass 绕回匹配
+- 当前代码仍是 body-first：driver identity 来自 body center ROI 投票，face/hand 仍围绕 bodyId 组织。
+- head-first 尚未实现，当前没有编译、回放或板端证据证明其运行效果。
+- head-first 设计方案已落点到 `head-first渐进跟踪方案.md`，实现方案已落点到 `head-first渐进跟踪实现.md`，但两者均无代码实现、回放或板端证据。
 
 ### 0.1.2 由历史记录支撑但本轮未重新执行
 
@@ -127,6 +133,7 @@ updated_at: 2026-05-08
 - DMS 主驾打哈欠误报修复属于 accepted with risks 的项目闭环，不应被提升为正式知识，也不应表述为已完成根因级彻底消除
 - 跟踪框越界 coredump 的当前 route 已收敛为 `bug_fix(track-only)`，本轮证据足以关闭 incident，但还不构成“所有 hand 相关功能指标已重新验收通过”
 - 2m 摄像头后排 head 误绑定主驾的临时修复已完成板端日志验证，可作为该问题的项目级闭环；但它不关闭整体 face 区域级唯一输出缺口。
+- 2026-05-09 架构决策将 head-first 定为下一阶段推荐主线；该结论是项目决策，不是运行验证结果。
 - 当前 current 组已能在不依赖 baseline 作为默认入口、也不依赖两篇及以上 delta 作为当前态补洞的前提下恢复 Tracking 主态；但运行效果仍未闭合
 
 ## 0.3 Required Next Verification
@@ -138,6 +145,12 @@ updated_at: 2026-05-08
   4. 快速运动恢复样本，验证 body/face/hand 的 `predBox / detection / updated box` 三者关系是否按预期收敛
 - 若后续要重新评估 DMS driver false-yawn 的根因消除，建议补更长窗口 replay，专门量化 identity-swap 风险
 - 若后续继续优化 2m 场景，建议补更长 2m 视频集，对 `driver face reject`、`driver face match`、`driver second-pass face match orphan=` 做计数型统计，而不是只依赖抽样日志。
+- 若后续进入 head-first 实现，必须补：
+  1. 2m profile 下 body/hand disabled 且不发布 stale body/hand 的回放验证；
+  2. 5m profile 下 driver head-bound body/torso 的 owner 稳定性验证；
+  3. hand owner source、left/right slot、orphan takeover 在手部大幅运动和多人干扰下的序列统计；
+  4. driver identity source 日志，区分 `head_first`、`body_fallback` 与 reject reason。
+- 若后续使用 HumanPose-assisted hand association，需要单独验证 wrist 已有证据链，以及 elbow/shoulder/arm direction 对 hand owner、left/right、miss recovery 的增益。
 - 若后续继续沿用本轮 sanitize/clamp 方案，建议补一次日志降噪，避免 `track sanitize clamp` 在板端形成噪声洪泛
 - 若后续代码再次触及 `track.cpp`、`AtomicResult` 或导出链路，应重新跑 `knowledge_sync_check`，并再次判断 `single_pass_recoverable`
 
@@ -165,6 +178,7 @@ updated_at: 2026-05-08
 - 2026-04-05 DMS 主驾打哈欠误报修复的 accepted-with-risks 结论已收敛到本文件，但仍保留残余风险描述
 - 2026-04-05 后排乘客头部误跟踪修复的 pass-with-risks 结论已收敛到本文件
 - 2026-05-08 2m 摄像头后排 head 误绑定主驾修复的板端日志证据已收敛到本文件
+- 2026-05-09 head-first over body-first 决策已收敛到本文件，但不提升为已验证运行事实
 - 当前 validation 仅负责证据与边界判定，不承担设计职责或实现职责
 
 ## 0.7 Current Sync Rule
@@ -176,6 +190,7 @@ updated_at: 2026-05-08
   - 默认恢复所需的验证边界变化
   - DMS driver false-yawn 的 acceptance standard 或风险边界变化
   - 2m 摄像头 head/body association 的 gate、日志证据或风险边界变化
+  - head-first 实现、回放或板端验证证据状态变化
 - absorbs_history_from:
   - `多目标跟踪功能审核记录-2026-03-27.md`
   - `多目标跟踪设计失配修复未闭环记录-2026-03-27.md`
