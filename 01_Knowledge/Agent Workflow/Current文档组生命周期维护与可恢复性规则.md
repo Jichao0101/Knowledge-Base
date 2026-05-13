@@ -54,8 +54,28 @@ current 维护的具体记录应放在：
 - recoverability review 记录。
 - rewrite escalation 证据包。
 - writeback decision 记录。
+- current 维护过程中产生的代码评估、修复、验证、review、closure 记录。
 
 正式可复用规则沉淀前，应先从 records 中抽象，满足来源明确、适用范围明确、风险明确后，再进入 `01_Knowledge/Agent Workflow/`。
+
+### 0.2.4 Current 主题根目录布局
+
+current 主题根目录应只保留：
+
+- active current 文件组，例如 `overview_current`、`design_current`、`spec_current`、`implementation_current`、`validation_current`。
+- 必要的主入口源文档或稳定需求文档。
+- 少量索引或 README 类入口文件。
+
+current 维护过程产生的支撑记录不得与 active current 文件并列堆放。以下内容必须进入 `Current Maintenance Records/`：
+
+- 代码评估记录。
+- 修复记录。
+- 验证记录。
+- review / closure 记录。
+- migration / hardening / rewrite 记录。
+- writeback decision 记录。
+
+maintenance record 必须显式列出本轮关联的支撑记录。若支撑记录先被误放在主题根目录，应作为 current maintenance 的整理动作移动到 `Current Maintenance Records/`，并同步更新 source inventory、default read order 或 related records 引用。
 
 ## 0.3 Current 组合默认恢复职责
 

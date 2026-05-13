@@ -2,8 +2,6 @@
 # 1 文档目的
 
 本文档基于 FaceID 功能时序流程图，整理 A核侧需求流程。
-
-- A核不直接接收 `VCU FaceID Function Request`；
 - A核只根据 R核下发的信号执行对应功能；
 - A核执行完成后，将执行结果返回给 R核。
 
@@ -23,72 +21,30 @@
 
 ---
 
-## 2.2 信号链路说明
-
-### 2.2.1 User / VCU 与 R核链路
-
-信号包括：
-
-``````text
-VCU FaceID Function Request
-Restore User Data Request
-VCU FaceID Identifier Number Signal Group
-``````
-
-这些信号不经过 A核，A核不应直接依赖这些请求作为功能触发源。
-
----
-
-### 2.2.2 R核与 A核链路
-
-R核向 A核下发：
-
-``````text
-ADASFaceIDSysSta
-ADASFaceIDAtySta
-VCU2FaceId
-``````
-
-A核向 R核返回：
-
-``````text
-FaceId2DSCaptureStatus
-FaceIdDSRecognitionStatus
-FaceId2DSDeleteStatus
-FaceId2DScheckStatus
-FaceId2DSUnbinedStatus
-FaceId2VCU
-ADASFaceIDFuncRes
-statusCode
-``````
-
----
-
 # 3 A核通用输入输出定义
 
 ## 3.1 A核输入信号
 
-| 信号 | 来源 | 含义 |
-|---|---|---|
-| `ADASFaceIDSysSta` | R核 | FaceID 系统状态 |
-| `ADASFaceIDAtySta` | R核 | FaceID 当前动作状态 |
-| `VCU2FaceId` | R核 | R核转发给 A核的目标 Face ID |
-| `VCU FaceID Identifier Number Signal Group` | R核间接转发 | 目标 Face ID 编号信号组，A核侧通常体现为 `VCU2FaceId` |
+| 信号                                          | 来源     | 含义                                     |
+| ------------------------------------------- | ------ | -------------------------------------- |
+| `ADASFaceIDSysSta`                          | R核     | FaceID 系统状态                            |
+| `ADASFaceIDAtvSta`                          | R核     | FaceID 当前动作状态                          |
+| `VCU2FaceId`                                | R核     | R核转发给 A核的目标 Face ID                    |
+
 
 ---
 
 ## 3.2 A核输出信号
 
-| 信号 | 目标 | 含义 |
-|---|---|---|
-| `FaceId2DSCaptureStatus` | R核 | 录入结果状态 |
-| `FaceIdDSRecognitionStatus` | R核 | 登录识别结果状态 |
-| `FaceId2DSDeleteStatus` | R核 | 删除 / 恢复出厂设置结果状态 |
-| `FaceId2DScheckStatus` | R核 | check 查询结果状态 |
-| `FaceId2DSUnbinedStatus` | R核 | 解绑结果状态 |
-| `FaceId2VCU` | R核 | A核返回给 R核的 Face ID 标识符 |
-| `ADASFaceIDFuncRes` | R核 | FaceID 功能执行结果 |
-| `statusCode` | R核 | 失败原因或状态码 |
+| 信号                           | 目标  | 含义                    |
+| ---------------------------- | --- | --------------------- |
+| `FaceId2DSCaptureStatus`     | R核  | 录入结果状态                |
+| `FaceId2DSRecognitionStatus` | R核  | 登录识别结果状态              |
+| `FaceId2DSDeleteStatus`      | R核  | 删除 / 恢复出厂设置结果状态       |
+| `FaceId2DScheckStatus`       | R核  | check 查询结果状态          |
+| `FaceId2DSUnbinedStatus`     | R核  | 解绑结果状态                |
+| `FaceId2VCU`                 | R核  | A核返回给 R核的 Face ID 标识符 |
+| `statusCode`                 | R核  | 失败原因或状态码              |
 
 ---
 
@@ -96,61 +52,32 @@ statusCode
 
 ## 4.1 FaceID 系统状态
 
-| 信号                 |  取值 | 含义               |
-| ------------------ | --: | ---------------- |
-| `ADASFaceIDSysSta` | `2` | FaceID active 状态 |
-| `ADASFaceIDSysSta` | `1` | 恢复出厂设置           |
+| 信号                 |  取值 | 含义  |
+| ------------------ | --: | --- |
+| `ADASFaceIDSysSta` | `2` | 激活  |
+| `ADASFaceIDSysSta` | `1` | 待机  |
 
 ---
 
 ## 4.2 FaceID 动作状态
 
-| 信号 | 取值 | 功能含义 |
-|---|---:|---|
-| `ADASFaceIDAtySta` | `1` | 录入 capture |
-| `ADASFaceIDAtySta` | `2` | 登录 recognition |
-| `ADASFaceIDAtySta` | `3` | 解绑 / 数据同步相关识别比对 |
-| `ADASFaceIDAtySta` | `4` | 删除账号 delete |
-| `ADASFaceIDAtySta` | `5` | check 查询 |
-| `ADASFaceIDAtySta` | `7` | 登录取消 / 录入取消，图中标注为 `RecognitionCancel` |
-| `ADASFaceIDAtySta` | `8` | 解绑取消 |
-| `ADASFaceIDAtySta` | `9` | 恢复出厂设置 |
+| 信号                 |  取值 | 功能含义         |
+| ------------------ | --: | ------------ |
+| `ADASFaceIDAtvSta` | `1` | 录入 capture   |
+| `ADASFaceIDAtvSta` | `2` | 登录 recognize |
+| `ADASFaceIDAtvSta` | `3` | 解绑 unbine    |
+| `ADASFaceIDAtvSta` | `4` | 删除账号 delete  |
+| `ADASFaceIDAtvSta` | `5` | 查询 check     |
+| `ADASFaceIDAtvSta` |   6 | 录入取消         |
+| `ADASFaceIDAtvSta` | `7` | 登录取消         |
+| `ADASFaceIDAtvSta` | `8` | 解绑取消         |
+| `ADASFaceIDAtvSta` | `9` | 恢复出厂设置       |
 
 ---
 
 # 5 A核通用处理原则
 
-## 5.1 功能触发原则
-
-A核不直接接收 User / VCU 的功能请求。
-
-A核应根据 R核下发的状态组合触发功能：
-
-``````text
-ADASFaceIDSysSta == 2
-ADASFaceIDAtySta == 对应功能值
-``````
-
-
----
-
-## 5.2 结果返回原则
-
-A核执行完成后，应将结果返回给 R核。
-
-结果至少包括：
-
-``````text
-成功 / 失败状态
-Face ID 标识符
-失败原因 statusCode
-``````
-
-具体输出信号根据功能不同而不同。
-
----
-
-## 5.3 数据一致性原则
+## 5.1 数据一致性原则
 
 A核涉及本地 FaceID 数据操作，包括：
 
@@ -184,7 +111,7 @@ A核涉及本地 FaceID 数据操作，包括：
 
 ``````text
 ADASFaceIDSysSta == 2
-ADASFaceIDAtySta == 1
+ADASFaceIDAtvSta == 1
 ``````
 
 ### 6.1.2 A核执行流程
@@ -229,7 +156,7 @@ statusCode = 失败原因
 
 A核在录入时需要避免同一人重复生成多个 Face ID。
 
-判断逻辑建议为：
+逻辑建议为：
 
 ``````text
 当前人脸与本地已有 Face ID 比对
@@ -239,7 +166,7 @@ A核在录入时需要避免同一人重复生成多个 Face ID。
 
 ### 6.1.6 绑定不成功
 
-在绑定失败时，R核会返回 ADASFaceIDAtySta == 6，A核应该在收到后删除临时数据
+在绑定失败时，R核会返回 ADASFaceIDAtvSta = 4 和 VCU2FaceId，A核应该在收到后删除该id对应的人脸数据
 
 ## 6.2 录入取消流程
 
@@ -249,7 +176,7 @@ A核在录入时需要避免同一人重复生成多个 Face ID。
 
 ``````text
 ADASFaceIDSysSta == 2
-ADASFaceIDAtySta == 7
+ADASFaceIDAtvSta == 6
 ``````
 
 则 A核应终止当前录入流程。
@@ -277,7 +204,7 @@ A核当前处于录入流程时，收到取消状态后，应执行：
 
 ``````text
 ADASFaceIDSysSta == 2
-ADASFaceIDAtySta == 2
+ADASFaceIDAtvSta == 2
 ``````
 
 ### 6.3.2 A核执行流程
@@ -296,7 +223,7 @@ A核应执行：
 登录成功时，A核向 R核输出：
 
 ``````text
-FaceIdDSRecognitionStatus = success
+FaceId2DSRecognitionStatus = success
 FaceId2VCU = matched_face_id
 ``````
 
@@ -318,11 +245,6 @@ A核只应清理当前识别过程中的临时数据，例如：
 - 当前比对结果缓存。
 
 ---
-### 6.3.5 绑定不成功
-
-在绑定失败时==R核会返回== ，A核应该在收到后删除临时数据
-
----
 
 ## 6.4 取消登录流程
 
@@ -332,7 +254,7 @@ A核只应清理当前识别过程中的临时数据，例如：
 
 ``````text
 ADASFaceIDSysSta == 2
-ADASFaceIDAtySta == 7
+ADASFaceIDAtvSta == 7
 ``````
 
 则 A核应终止当前登录流程。
@@ -361,7 +283,7 @@ A核当前处于登录识别流程时，收到取消状态后，应执行：
 
 ``````text
 ADASFaceIDSysSta == 2
-ADASFaceIDAtySta == 4
+ADASFaceIDAtvSta == 4
 VCU2FaceId = 待删除 Face ID
 ``````
 
@@ -412,7 +334,7 @@ statusCode = 失败原因
 当 R核根据恢复出厂设置请求向 A核下发：
 
 ``````text
-ADASFaceIDAtySta == 9
+ADASFaceIDAtvSta == 9
 ADASFaceIDSysSta == 2 或 1
 ``````
 
@@ -470,7 +392,7 @@ statusCode = 失败原因
 
 ``````text
 ADASFaceIDSysSta == 2
-ADASFaceIDAtySta == 5
+ADASFaceIDAtvSta == 5
 VCU2FaceId = 待查询 Face ID
 ``````
 
@@ -491,14 +413,15 @@ A核应执行：
 查询成功时，A核向 R核输出：
 
 ``````text
-FaceId2DScheckStatus = success
+FaceId2DSCheckStatus = success
 FaceId2VCU = queried_face_id
 ``````
 
 查询失败时，A核向 R核输出：
 
 ``````text
-FaceId2DScheckStatus = fail
+FaceId2DSCheckStatus = fail
+statusCode = 失败原因
 ``````
 
 
@@ -512,7 +435,7 @@ FaceId2DScheckStatus = fail
 
 ``````text
 ADASFaceIDSysSta == 2
-ADASFaceIDAtySta == 3
+ADASFaceIDAtvSta == 3
 VCU2FaceId = 待解绑 Face ID
 ``````
 
@@ -530,17 +453,16 @@ A核应执行：
 6. 若比对失败，则返回解绑失败；
 7. 返回解绑结果。
 
-### 6.8.3 ==6.8.3 A核输出==
+### 6.8.3 A核输出
 
-==解绑成功时，A核向 R核输出：==
+解绑成功时，A核向 R核输出：
 
 ``````text
 FaceId2DSUnbinedStatus = success
-ADASFaceIDFuncRes = 1
-FaceId2VCU = unbind_face_id
+FaceId2VCU = face_id
 ``````
 
-==解绑失败时，A核向 R核输出：==
+解绑失败时，A核向 R核输出：
 
 ``````text
 FaceId2DSUnbinedStatus = fail
@@ -551,22 +473,10 @@ statusCode = 失败原因
 
 解绑与删除账号需要区分。
 
-| 操作 | 语义 |
-|---|---|
-| 删除账号 | 删除 A核本地指定 Face ID 及对应人脸特征 |
-| 解绑 | 解除 Face ID 与用户账号 / VCU 侧关系，是否删除本地特征需进一步定义 |
-
-当前图中未明确解绑成功后是否删除本地 Face ID 数据。
-
-因此需要确认：
-
-``````text
-解绑成功后，A核是否删除本地 Face ID 特征？
-``````
-
-若解绑仅解除关系，则 A核应保留特征数据，只更新绑定状态。
-
-若解绑等价于删除，则 A核应删除对应 Face ID 特征和映射关系。
+| 操作   | 语义                                     |
+| ---- | -------------------------------------- |
+| 删除账号 | 删除 A核本地指定 Face ID 及对应人脸特征              |
+| 解绑   | 解除 Face ID 与用户账号 / VCU 侧关系，A核只负责查询，不删除 |
 
 ---
 
@@ -578,7 +488,7 @@ statusCode = 失败原因
 
 ``````text
 ADASFaceIDSysSta == 2
-ADASFaceIDAtySta == 8
+ADASFaceIDAtvSta == 8
 ``````
 
 A核应终止当前解绑流程。
@@ -602,131 +512,172 @@ A核当前处于解绑流程时，收到取消解绑状态后，应执行：
 
 # 7 A核功能流程汇总表
 
-| 功能       | R核下发给 A核的条件                          | A核执行动作                       | A核返回给 R核                                               |
-| -------- | ------------------------------------ | ---------------------------- | ------------------------------------------------------ |
-| 正常录入     | `SysSta=2`, `AtySta=1`               | 采集人脸，提取特征，生成或复用 Face ID，保存数据 | `FaceId2DSCaptureStatus`, `FaceId2VCU`/`statusCode`    |
-| 录入取消     | `SysSta=2`, `AtySta=7`，且当前处于录入流程     | 终止录入，清理临时数据，不保存 Face ID      |                                                        |
-| 正常登录     | `SysSta=2`, `AtySta=2`               | 采集人脸，与本地 Face ID 特征库比对       | `FaceIdDSRecognitionStatus`, `FaceId2VCU`/`statusCode` |
-| 取消登录     | `SysSta=2`, `AtySta=7`，且当前处于登录流程     | 终止登录识别，清理临时缓存                |                                                        |
-| 请求删除     | `SysSta=2`, `AtySta=4`, `VCU2FaceId` | 删除指定 Face ID 数据              | `FaceId2DSDeleteStatus`, `FaceId2VCU`/`statusCode`     |
-| 恢复出厂设置   | `AtySta=9`                           | 删除全部 FaceID 用户数据             | `FaceId2DSDeleteStatus`, `FaceId2VCU`/`statusCode`     |
-| check 查询 | `SysSta=2`, `AtySta=5`, `VCU2FaceId` | 查询指定 Face ID 是否存在            | `FaceId2DScheckStatus`, `FaceId2VCU`                   |
-| 一般解绑     | `SysSta=2`, `AtySta=3`, `VCU2FaceId` | 识别当前人脸，与目标 Face ID 比对，执行解绑   | `FaceId2DSUnbinedStatus`, `FaceId2VCU`/`statusCode`    |
-| 取消解绑     | `SysSta=2`, `AtySta=8`，且当前处于解绑流程     | 终止解绑，不修改绑定状态                 |                                                        |
+| 功能       | R核下发给 A核的条件                          | A核执行动作                       |
+| -------- | ------------------------------------ | ---------------------------- |
+| 正常录入     | `SysSta=2`, `AtvSta=1`               | 采集人脸，提取特征，生成或复用 Face ID，保存数据 |
+| 录入取消     | `SysSta=2`, `AtvSta=6`，且当前处于录入流程     | 终止录入，清理临时数据，不保存 Face ID      |
+| 正常登录     | `SysSta=2`, `AtvSta=2`               | 采集人脸，与本地 Face ID 特征库比对       |
+| 取消登录     | `SysSta=2`, `AtvSta=7`，且当前处于登录流程     | 终止登录识别，清理临时缓存                |
+| 请求删除     | `SysSta=2`, `AtvSta=4`, `VCU2FaceId` | 删除指定 Face ID 数据              |
+| 恢复出厂设置   | `AtySta=9`                           | 删除全部 FaceID 用户数据             |
+| check 查询 | `SysSta=2`, `AtvSta=5`, `VCU2FaceId` | 查询指定 Face ID 是否存在            |
+| 一般解绑     | `SysSta=2`, `AtvSta=3`, `VCU2FaceId` | 识别当前人脸，与目标 Face ID 比对        |
+| 取消解绑     | `SysSta=2`, `AtvSta=8`，且当前处于解绑流程     | 终止解绑，不修改绑定状态                 |
 
 ---
 
-# 8 A核内部状态机建议
+# 8 失败原因
 
-## 8.1 状态定义
+A核通过 `statusCode` 向 R核返回失败原因。
 
-A核内部建议抽象以下状态：
+A核只保留少量通用错误码。具体失败细节可以通过内部日志记录，不一定全部透传到 R核。
 
-``````text
-IDLE
-CAPTURING
-RECOGNIZING
-DELETING
-FACTORY_RESETTING
-CHECKING
-UNBINDING
-CANCELING
-ERROR
-``````
+```
+enum class ErrorCode {
 
----
+    ERROR_UNKNOWN = 0,
 
-## 8.2 状态转移
+    ERROR_NO_FACE = 2,              
 
-### 8.2.1 正常功能转移
+    ERROR_HEAD_UP = 3,            
 
-``````text
-IDLE
- ├─ SysSta=2, AtySta=1             -> CAPTURING
- ├─ SysSta=2, AtySta=2             -> RECOGNIZING
- ├─ SysSta=2, AtySta=3, VCU2FaceId -> UNBINDING
- ├─ SysSta=2, AtySta=4, VCU2FaceId -> DELETING
- ├─ SysSta=2, AtySta=5, VCU2FaceId -> CHECKING
- └─ AtySta=9                       -> FACTORY_RESETTING
-``````
+    ERROR_HEAD_DOWN = 4,            
 
----
+    ERROR_HEAD_LEFT = 5,            
 
-### 8.2.2 取消类转移
+    ERROR_HEAD_RIGHT = 6,          
 
-``````text
-CAPTURING
- └─ AtySta=7 -> CANCELING -> IDLE
+    ERROR_FACE_OCCLUDED  = 8,      
 
-RECOGNIZING
- └─ AtySta=7 -> CANCELING -> IDLE
+    ERROR_INVALID_INPUT = 9,
 
-UNBINDING
- └─ AtySta=8 -> CANCELING -> IDLE
-``````
+    ERROR_BUSY = 10,
 
----
+    ERROR_NOT_MATCHED = 11,
 
-### 8.2.3 删除类状态建议
+    ERROR_FACE_ID_NOT_FOUND = 12,
 
-删除账号与恢复出厂设置属于破坏性操作。
+    ERROR_STORAGE_FAIL = 13,
 
-建议删除落盘阶段不允许取消：
+    ERROR_INTERNAL = 14,
 
-``````text
-DELETING
- └─ 执行完成后 -> IDLE
+};
+```
 
-FACTORY_RESETTING
- └─ 执行完成后 -> IDLE
-``````
+--- 
+# 9 状态机
 
-原因是删除过程中若允许取消，容易产生：
+A核内部维护 FaceID 状态机，用于控制录入、登录、解绑、删除、check、恢复出厂设置和取消流程。
 
-- 特征已删除但映射未删除；
-- 映射已删除但特征残留；
-- 返回失败但本地已部分删除；
-- R核与 A核状态不一致。
+A核侧 R核信号接收、FaceID 算法处理存在异步更新关系，因此不能只在流程开始时判断一次 R核状态。A核应在 FaceID 处理链路的关键步骤之间重复执行状态判断，防止取消信号到达后继续执行保存、登录成功返回或解绑成功返回。
+
+核心原则为：
+
+```
+A核根据 R核最新信号更新内部状态。每个关键子步骤执行前后都调用 JudgeState()。如果收到取消信号，则切换到对应取消状态，清理当前流程缓存，并回到待机。取消后不得继续提交当前流程的成功结果。
+```
 
 ---
 
-# 9 失败原因建议
+## 9.1 内部状态定义
 
-A核可通过 `statusCode` 返回失败原因。
-
-建议至少区分以下失败类型：
-
-| 场景 | 建议失败原因 |
+|状态|含义|
 |---|---|
-| 未检测到人脸 | `NO_FACE_DETECTED` |
-| 多人脸 | `MULTI_FACE_DETECTED` |
-| 人脸质量不满足 | `LOW_FACE_QUALITY` |
-| 特征提取失败 | `FEATURE_EXTRACT_FAILED` |
-| 活体检测失败 | `LIVENESS_FAILED` |
-| 与已有 Face ID 比对失败 | `FACE_NOT_MATCHED` |
-| Face ID 不存在 | `FACE_ID_NOT_FOUND` |
-| 本地保存失败 | `SAVE_FAILED` |
-| 本地删除失败 | `DELETE_FAILED` |
-| 本地查询失败 | `QUERY_FAILED` |
-| 流程被取消 | `CANCELLED` |
-| 状态非法 | `INVALID_STATE` |
-| 输入 Face ID 非法 | `INVALID_FACE_ID` |
-| 存储异常 | `STORAGE_ERROR` |
-
----
-# 10 删除和恢复出厂设置的并发保护
-
-删除和恢复出厂设置期间，需要阻止其他流程并发执行。
-
-例如：
-
-- 删除过程中不应同时录入；
-- 恢复出厂设置过程中不应同时登录；
-- 解绑过程中不应同时删除同一 Face ID；
-- check 查询过程中如果发生删除，需要保证结果一致性。
-
-建议 A核内部增加 FaceID 数据锁或任务互斥机制。
+|`STANDBY`|待机，当前无 FaceID 流程执行|
+|`CAPTURE`|正在录入|
+|`RECOGNIZE`|正在登录识别|
+|`UNBIND`|正在解绑|
+|`DELETE_ID`|正在删除指定 Face ID|
+|`CHECK_ID`|正在查询 Face ID|
+|`FACTORY_RESET`|正在恢复出厂设置|
+|`CANCEL_CAPTURE`|正在取消录入|
+|`CANCEL_RECOGNIZE`|正在取消登录|
+|`CANCEL_UNBIND`|正在取消解绑|
+|`ERROR`|内部异常状态|
 
 ---
 
+## 9.2 R核信号到内部状态映射
 
+A核根据 R核下发的 `ADASFaceIDAtvSta` 更新内部状态。
+
+|R核输入|功能|A核目标状态|
+|---|---|---|
+|`AtvSta=1`|录入|`CAPTURE`|
+|`AtvSta=2`|登录|`RECOGNIZE`|
+|`AtvSta=3`|解绑|`UNBIND`|
+|`AtvSta=4`|删除账号|`DELETE_ID`|
+|`AtvSta=5`|check 查询|`CHECK_ID`|
+|`AtvSta=6`|录入取消|`CANCEL_CAPTURE`|
+|`AtvSta=7`|登录取消|`CANCEL_RECOGNIZE`|
+|`AtvSta=8`|解绑取消|`CANCEL_UNBIND`|
+|`AtvSta=9`|恢复出厂设置|`FACTORY_RESET`|
+
+---
+
+## 9.3 JudgeState 机制
+
+A核提供`JudgeState()` 方法，用于根据 R核最新信号和当前内部状态决定是否继续执行当前流程。
+
+核心逻辑：
+
+```
+读取 R核最新 SysSta / AtvSta / VCU2FaceId
+判断当前 R核请求是否与当前 A核状态一致    
+如果是正常业务请求：    - 待机状态下进入对应业务状态    - 当前已在相同业务状态下则继续执行    - 当前正在其他业务中则返回 busy 或忽略新请求    
+如果是取消请求：    - 若取消请求与当前业务匹配，则进入对应取消状态    - 执行取消清理    - 回到 STANDBY    
+如果是恢复出厂设置：    - 优先进入 FACTORY_RESET
+```
+
+---
+
+## 9.4 状态切换表
+
+| 当前状态               | R核输入       | 下一状态                | A核动作                  |
+| ------------------ | ---------- | ------------------- | --------------------- |
+| `STANDBY`          | `AtvSta=1` | `CAPTURE`           | 开始录入                  |
+| `STANDBY`          | `AtvSta=2` | `RECOGNIZE`         | 开始登录识别                |
+| `STANDBY`          | `AtvSta=3` | `UNBIND`            | 开始解绑                  |
+| `STANDBY`          | `AtvSta=4` | `DELETE_ID`         | 删除指定 Face ID          |
+| `STANDBY`          | `AtvSta=5` | `CHECK_ID`          | 查询指定 Face ID          |
+| `STANDBY`          | `AtvSta=9` | `FACTORY_RESET`     | 恢复出厂设置                |
+| `CAPTURE`          | `AtvSta=6` | `CANCEL_CAPTURE`    | 停止录入，清理录入缓存           |
+| `RECOGNIZE`        | `AtvSta=7` | `CANCEL_RECOGNIZE`  | 停止登录，清理识别缓存           |
+| `UNBIND`           | `AtvSta=8` | `CANCEL_UNBIND`     | 停止解绑，清理解绑缓存           |
+| `CAPTURE`          | `AtvSta=1` | `CAPTURE`           | 继续当前录入流程              |
+| `RECOGNIZE`        | `AtvSta=2` | `RECOGNIZE`         | 继续当前登录流程              |
+| `UNBIND`           | `AtvSta=3` | `UNBIND`            | 继续当前解绑流程              |
+| 非 `STANDBY`        | 新普通任务      | 原状态                 | 返回 `ERR_BUSY`，避免中途抢占  |
+| 任意状态               | `AtvSta=9` | `FACTORY_RESET`     | 进入恢复出厂设置流程，必要时先清理当前流程 |
+| `CANCEL_CAPTURE`   |            | `STANDBY`           |                       |
+| `CANCEL_RECOGNIZE` |            | `STANDBY`           |                       |
+| `CANCEL_UNBIND`    |            | `STANDBY`           |                       |
+| `CAPTURE`          | 录入成功 / 失败  | `STANDBY`           | 返回录入结果                |
+| `RECOGNIZE`        | 登录成功 / 失败  | `STANDBY`           | 返回登录结果                |
+| `UNBIND`           | 解绑成功 / 失败  | `STANDBY`           | 返回解绑结果                |
+| `DELETE_ID`        | 删除成功 / 失败  | `STANDBY`           | 返回删除结果                |
+| `CHECK_ID`         | 查询成功 / 失败  | `STANDBY`           | 返回查询结果                |
+| `FACTORY_RESET`    | 恢复成功 / 失败  | `STANDBY` 或 `ERROR` | 返回恢复结果                |
+
+---
+
+## 9.5 取消流程处理
+
+取消不是新的业务流程，而是当前业务流程的中止状态。
+
+由于 A核运行频率较高，例如 30Hz，取消清理通常会在一个或少数几个处理周期内完成，因此不需要额外引入复杂会话管理。
+
+---
+
+## 9.6 新请求处理规则
+
+当前状态不是 `STANDBY` 时，如果 R核下发新的普通业务请求，
+
+A核不应直接抢占当前流程。
+
+|情况|A核处理|
+|---|---|
+|当前状态与 R核请求一致|继续当前流程|
+|当前状态与 R核请求不一致|返回 `ERR_BUSY` 或忽略该请求|
+|当前为取消请求且与当前流程匹配|切换到对应取消状态|
+|当前为恢复出厂设置|作为高优先级请求处理|
