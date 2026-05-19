@@ -1,3 +1,25 @@
+---
+type: knowledge
+status: verified
+unit_type: concept_note
+domain: 多模态大模型系统
+topic: Agent系统工程分层
+sources:
+  - 04_Sources/Agent工程化/2026-05-19_Agent工程化边界核验.md
+  - https://modelcontextprotocol.io/docs/learn/architecture
+  - https://developers.openai.com/codex/skills
+  - https://developers.openai.com/api/docs/guides/agents
+  - https://developers.openai.com/api/docs/guides/agents/integrations-observability
+  - https://developers.openai.com/api/docs/guides/agent-evals
+  - https://openai.github.io/openai-agents-python/guardrails/
+  - https://openai.github.io/openai-agents-python/tracing/
+scope: 适用于区分 Agent、Model、Harness、Runtime、Workflow、Skill、Tool、MCP、Knowledge-Base、Eval/Tracing/Guardrails 等工程概念边界。
+risks:
+  - 不同框架会用不同术语封装相同职责，不能机械按类名映射概念
+  - 产品能力、SDK接口和官方文档会变化，工程实现细节应以当前版本文档为准
+  - 本文是系统分层知识，不替代具体项目的权限、审查、回写和验证合同
+updated_at: 2026-05-19
+---
 
 # 1 Agent 的定义
 
@@ -248,9 +270,43 @@ Agent 关注的是：
 - Framework：用于构建 Model 或 Harness 的抽象与平台
     
 - Skill：在既定 Framework / Harness 下可复用、可路由的窄能力包
+
+- MCP：连接模型应用与外部工具、资源、提示模板的数据/传输协议层，不等于 Tool 本身
+
+- Knowledge-Base：事实、长期规则、经验模式和来源证据的长期存储，不等于 Context Memory
     
 
 这样处理后，后文的 Memory、Tools、Planner / Controller 和 Runtime 才有稳定归属。
+
+## 3.5 工程策略：Skill-first，而不是 Agent-first
+
+在工程落地里，不应默认把每个重复问题都升级成一个新 Agent。更稳的顺序通常是：
+
+1. 先把重复出现、边界清楚、输入输出稳定的窄任务沉淀成 Skill
+2. 再用 Harness / Workflow / Subagent 把多个 Skill 和工具组合成任务链
+3. 只有当职责需要独立判断、独立上下文裁剪、独立权限或独立审查时，才把它提升为专门 Agent / Subagent
+
+这样做的原因是：
+
+- Skill 更容易复用、检索、触发和测试
+- Skill 的边界通常比 Agent 更窄，漂移风险更低
+- Agent 更适合承载角色责任和运行时判断，而不是承载所有过程知识
+- 多 Agent 编排应建立在清晰的 Skill、Tool、状态和门禁之上，而不是直接堆角色名
+
+因此，现代工程化 Agent 系统更推荐：
+
+`Knowledge-Base -> Skill -> Tool/MCP -> Workflow/Subagent -> Agent System`
+
+其中：
+
+- Knowledge-Base 保存事实、规则、来源和长期约束
+- Skill 保存可复用过程知识和操作步骤
+- Tool / MCP 提供可执行能力和外部连接
+- Workflow / Subagent 负责组合、隔离、审查和闭环
+
+这不是说 Agent 不重要，而是说：
+
+> Agent 是运行系统形态，Skill 才是更适合长期沉淀和复用的能力单元。
 
 ---
 
@@ -348,6 +404,28 @@ Memory 的作用不是“让模型记住更多东西”，而是：
 - 关键中间变量
     
 - 必要约束条件
+
+更工程化地说，Context Memory 需要拆成多个来源，而不是笼统地看成“一段 prompt”：
+
+- system prompt：最高优先级的角色、权限和行为边界
+- task prompt：本轮用户目标、范围、成功标准和例外
+- retrieved knowledge：从知识库、检索系统或来源区取出的事实和规则
+- tool descriptions：可用工具、参数 schema、权限和行为说明
+- memory snippets：经筛选的用户偏好、环境信息或历史任务摘要
+- intermediate observations：本轮工具调用、审查、验证和错误结果
+- artifact references：计划、证据、trace、评审、产物路径等可追溯引用
+- compressed state：经过压缩或裁剪后的当前状态摘要
+
+这些上下文的优先级和可信度不同。工程上必须防止：
+
+- 把低可信 observation 当成长期事实
+- 把一次性 task prompt 上提成长期规则
+- 把过时知识片段混入当前执行上下文
+- 让工具输出、网页摘录或用户转述直接污染 system-level 约束
+
+所以 Context Engineering 的核心不是“塞更多上下文”，而是：
+
+> 按来源、优先级、生命周期和可信度管理上下文。
     
 
 ## 5.2 Session Memory
@@ -409,6 +487,16 @@ Persistent Memory 不等于“无限记忆”。
 - 如何检索
     
 - 如何防止脏数据污染后续行为
+
+如果 Persistent Memory 对接知识库，还需要额外满足写回规则：
+
+- minimal patch：只改与本次证据直接相关的最小片段
+- evidence：写入内容必须能指向来源、验证结果或明确内部依据
+- deprecated conflict check：写入前检查是否会与已废弃或冲突规则并存
+- recoverability verification：确认修改后仍能从文档结构、来源和历史记录恢复决策依据
+- no silent promotion：外部信息、临时观察和未审总结不得静默提升为正式知识
+
+因此，Persistent Memory 的写入不是普通缓存写入，而是一次小型知识变更。
     
 
 ## 5.4 关键结论
@@ -500,6 +588,35 @@ Tool 是 Agent 和外部世界之间的执行端口。
 Model 决定“调用哪个工具、带什么参数”；  
 Harness 决定“这个调用是否允许、如何执行、如何超时、如何审计、失败后如何反馈”。
 
+## 6.4 Tool、MCP、Skill、Knowledge-Base 的边界
+
+工程系统里最容易混淆的是 Tool、MCP、Skill 和 Knowledge-Base。一个稳定边界可以这样划：
+
+| 层 | 主要回答 | 典型内容 | 不应承担 |
+| --- | --- | --- | --- |
+| Tool | 能执行什么动作 | 函数、命令、API、文件操作、数据库查询 | 长期过程知识、角色责任、事实库 |
+| MCP | 如何把外部工具/资源/提示模板连接给模型应用 | client/server、transport、capability negotiation、tools/resources/prompts | 具体业务流程本身 |
+| Skill | 如何可靠完成一类窄任务 | 触发条件、步骤、输入输出、脚本、参考资料 | 任意扩张成完整治理系统 |
+| Knowledge-Base | 什么事实、规则和经验长期成立 | 正式知识、来源证据、项目决策、失败模式 | 直接执行动作 |
+
+可以用一句话记：
+
+> Tool 是可执行接口，MCP 是连接协议，Skill 是过程知识包，Knowledge-Base 是长期事实与规则库。
+
+对权限和审计来说，这个边界很关键：
+
+- Tool 需要参数 schema、权限检查、幂等/回滚策略和执行审计
+- MCP 需要连接生命周期、服务能力发现、传输认证、server allowlist 和 prompt/resource/tool 暴露边界
+- Skill 需要清晰触发条件、输入输出、适用范围和不适用范围
+- Knowledge-Base 需要来源、状态、适用范围、冲突检查和提升门禁
+
+如果把这些层混在一起，常见后果是：
+
+- 把知识库里的事实当成可执行能力
+- 把 MCP server 暴露的 capability 当成已授权操作
+- 把 Skill 写成不可审计的超级流程
+- 把 Tool 描述当成长期知识或安全策略
+
 ---
 
 # 7 Planner / Controller：规划与控制
@@ -571,15 +688,15 @@ Controller 负责：
 - 跨角色、跨 agent、跨系统的顺序编排、审批门禁、交接包裁剪和返工控制，更接近 Workflow / Orchestration
     
 
-前者偏 Model，后者偏 Harness 或更上层的运行系统。
+前者偏 Model；后者在工程视角下归入宽口径 Harness 的全局编排控制层，也可能由平台或框架实现承载。
 
-可以结合本知识库里的 `Agent Workflow` 文档看一个更具体的例子：
+可以结合当前工程化 workflow 的角色分工看一个更具体的例子：
 
 - 若 `knowledge-planner` 在项目上下文中形成实施计划，这仍属于某个执行角色内部的 planning
     
-- 若主代理以 `workflow-orchestrator` 身份决定先调 `knowledge-planner`，再调 `repo-coder`，之后交给 `repo-reviewer`，最后再由 `knowledge-closer` 做回写，这已经不是单个 Agent 的局部 planning，而是 orchestration
+- 若主代理以 `workflow-orchestrator` 身份决定先调 `knowledge-planner`，再调 `repo-implementer`，之后交给 `repo-reviewer`，最后再由 `knowledge-closer` 形成写回计划，这已经不是单个 Agent 的局部 planning，而是 orchestration
     
-- 若系统还要控制 reviewer 独立性、决定是否插入 `source-ingestor` 或 `failure-analyst`、以及在 `stop / retry / replan / escalate / close` 之间做门禁决策，这更明确属于 workflow 层控制
+- 若系统还要控制 reviewer 独立性、决定是否插入 `failure-analyst`、`verification-manager` 或 `board-runner`、以及在 `stop / retry / replan / escalate / close` 之间做门禁决策，这更明确属于 workflow 层控制
     
 
 所以在工程实践里可以用一句话区分：
@@ -711,13 +828,13 @@ Harness 不仅包含局部执行承载，也包含全局流程编排控制。
     
 - 哪些条件下允许 stop / retry / replan / escalate / close
     
-- 是否在恰当阶段插入 source-ingestor、failure-analyst、verification-manager 等角色
+- 是否在恰当阶段插入 failure-analyst、verification-manager、board-runner 等角色
     
 
 这些问题不属于单个 Agent 内部 planner/controller，  
 它们属于更上位的 workflow / orchestration 控制，但从工程闭环角度看，仍然属于 Harness，因为它们同样是 Model 之外、保证系统受控运行的模型外控制机制。
 
-结合本知识库的 `Agent Workflow` 文档，可以把这一层理解为 `workflow-orchestrator` 所承担的职责模式：
+结合当前工程化多角色流程，可以把这一层理解为 `workflow-orchestrator` 所承担的职责模式：
 
 - 主代理维护状态机
     
@@ -732,21 +849,17 @@ Harness 不仅包含局部执行承载，也包含全局流程编排控制。
 - 维护 `run_log / audit_log`
     
 
-以及默认调用链：
+一个典型调用链是：
 
-`knowledge-planner -> repo-coder -> repo-reviewer -> knowledge-closer`
+`knowledge-planner -> repo-implementer -> repo-reviewer -> knowledge-closer`
 
 必要时按条件插入：
 
-- `source-ingestor`
-    
 - `failure-analyst`
     
 - `verification-manager`
     
-- `functional-reviewer`
-    
-- `knowledge-auditor`
+- `board-runner`
     
 
 因此，Workflow / Orchestration 不应被看成 Harness 外的一块漂浮概念。  
@@ -794,6 +907,53 @@ Skill 不是 Agent 本体，也不是 Runtime。
 
 这样区分后，`Agent` 的定义会更稳定，`Harness` 也不会继续被 `Runtime` 或 `Framework` 吞掉。
 
+## 8.7 Eval、Tracing 与 Observability
+
+长期运行的 Agent 系统不能只依赖人工读日志。日志和 audit 是基础，但还不够；工程上应把可观测性和评测拆成独立模块。
+
+### 8.7.1 Tracing
+
+Tracing 记录一次 workflow / run 的端到端轨迹，至少应覆盖：
+
+- model calls
+- tool calls
+- handoffs
+- guardrail checks
+- human approvals
+- custom spans
+- artifact references
+
+Trace 的作用不是替代日志，而是让系统能回答：
+
+- 哪个 step 做出了错误决策
+- 哪个工具调用改变了状态
+- 哪次 handoff 丢失了关键上下文
+- 哪个 guardrail 没有在正确层级生效
+
+### 8.7.2 Evals
+
+Agent eval 不应只看最终回答，还应覆盖执行轨迹和产物完整性。
+
+常见评测面包括：
+
+- trajectory eval：整条轨迹是否符合预期流程
+- tool-call eval：工具选择、参数、时机和权限是否正确
+- artifact completeness eval：计划、证据、评审、产物是否完整
+- regression eval：prompt、skill、tool、workflow 改动后是否引入退化
+- replay eval：能否用历史 trace 或固定 fixture 重放关键路径
+- judge calibration：评审器或 grader 的标准是否稳定
+
+### 8.7.3 和 Harness 的关系
+
+Observability 不只是“多打一行日志”。它应成为 Harness 的横切能力：
+
+- 局部执行承载层记录工具调用、状态写入、异常和权限结果
+- 全局编排控制层记录 handoff、route decision、review decision 和 closure gate
+- Skill 层记录输入、输出、脚本版本和引用资料
+- Knowledge writeback 层记录来源、变更原因、冲突检查和回写 receipt
+
+没有 trace/eval 的 Agent 系统，很难证明一次修复真的改善了系统，而不是只改善了某次对话。
+
 ---
 
 # 9 Agent 的统一执行闭环
@@ -829,6 +989,21 @@ $$
 ---
 
 # 10 常见执行范式
+
+本章列出的 ReAct、Plan-and-Execute、Reflect / Critic Loop、Multi-Agent 都是**执行策略**，不是默认架构。
+
+它们适合描述“某一段任务如何推进”，但不能替代工程系统里的：
+
+- bounded workflow
+- explicit state
+- structured action
+- tool / schema validation
+- permission gate
+- trace / eval
+- checkpoint / recovery
+- skill-first 能力沉淀
+
+如果把执行范式误当成架构，系统容易变成高自由度循环：看起来灵活，实际难审计、难复现、难恢复。
 
 ## 10.1 Single-Step Tool Calling
 
@@ -1000,7 +1175,7 @@ Thought
 
 工程里真正决定 Agent 上限的，通常不是“模型是否更聪明”，而是主导约束是什么。
 
-### 11.1.1 上下文窗口约束
+## 11.1 上下文窗口约束
 
 问题：
 
@@ -1132,13 +1307,35 @@ Thought
 - secret isolation
     
 - execution audit
+
+## 11.5 Guardrails、Policy 与 Permission 分层
+
+权限和安全不能只靠一段 prompt。更稳的做法是多层 guardrail 叠加：
+
+- prompt-level instruction：声明任务目标、禁止事项、角色边界和用户意图限制
+- schema-level validation：对结构化 action、tool input/output、artifact 做类型和字段校验
+- tool-level guardrail：在高风险工具执行前后检查参数、权限、输出和副作用
+- MCP-level boundary：限制可连接 server、可暴露 primitive、transport、认证和资源范围
+- runtime-level permission：通过 sandbox、allowlist、审批、secret isolation、timeout 限制真实执行面
+- workflow-level gate：在 handoff、review、rework、closure、knowledge writeback 前设置状态门禁
+- human approval：对不可逆、高权限、外发、删除、覆盖、部署等操作要求人工确认
+
+这几层的职责不同：
+
+- Prompt 负责让模型知道边界
+- Schema 负责让错误结构进不了执行层
+- Tool / MCP 负责让能力暴露可控
+- Runtime 负责让真实执行受限
+- Workflow 负责让阶段推进可审查
+
+因此，安全边界应写成可执行规则和可验证门禁，而不是只写成“模型应该小心”。
     
 
 ---
 
 # 12 常见失败模式
 
-### 12.1.1 目标漂移
+## 12.1 目标漂移
 
 系统在长链执行中偏离原始任务目标。  
 常见原因是：
@@ -1255,12 +1452,12 @@ Thought
 - 结果可复用
     
 
- 13.2.2 默认最小权限
+## 13.4 默认最小权限
 
 高能力加高不确定性，最后常常等于高事故率。  
 Agent 默认应只拿到当前任务所需的最小能力。
 
- 13.2.3 长任务必须支持恢复
+## 13.5 长任务必须支持恢复
 
 因为现实世界里：
 
@@ -1282,6 +1479,29 @@ Agent 默认应只拿到当前任务所需的最小能力。
 - partial commit
     
 - resume
+
+## 13.6 理论模块和代码实现不要机械一一对应
+
+Policy Core、Planner / Controller、Memory、Harness、Workflow 这些术语是分析边界，不是要求代码必须拆成同名类。
+
+真实系统里常见情况是：
+
+- 一个 `Runner` 同时承担 step loop、tool dispatch 和 trace 写入
+- 一个 `Agent` 配置对象同时包含 instructions、tools、guardrails 和 handoff 规则
+- 一个 workflow orchestrator 可能只是状态机、配置文件、脚本约定或主代理调度协议
+- Skill 可能是纯文档，也可能带脚本、模板和参考资料
+
+判断实现是否合理，不看类名是否贴合概念，而看：
+
+- 状态是否显式
+- 动作是否结构化
+- 工具是否可验证
+- 权限是否可执行
+- trace 是否可复现
+- eval 是否能发现退化
+- writeback 是否可恢复
+
+概念层用于定位责任和风险；代码层应服从工程边界、测试性和维护成本。
     
 
 ---
@@ -1316,7 +1536,8 @@ World Model 关注：
 > 做了动作之后世界会怎样变化？
 
 前者偏控制与任务执行，后者偏环境动态预测。
-### 14.2.1 Agent vs VLA
+
+## 14.3 Agent vs VLA
 
 VLA 主要学习：
 

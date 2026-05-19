@@ -5,6 +5,7 @@ unit_type: knowledge_map
 domain: 多模态大模型系统
 topic: Agent相关术语导航
 sources:
+  - 04_Sources/Agent工程化/2026-05-19_Agent工程化边界核验.md
   - 01_Knowledge/多模态大模型/02_system/Agent.md
   - 01_Knowledge/多模态大模型/02_system/OpenClaw.md
   - 01_Knowledge/多模态大模型/多模态大模型系统.md
@@ -15,8 +16,9 @@ risks:
 source_task: 根据 Agent 文档局部重构结果补充术语导航页，收敛相邻文档中的概念边界
 evidence:
   - Agent 主文档已采用 Agent = Model + Harness 的最上层分法
+  - Agent 主文档已补充 Skill-first、MCP、Tool、Knowledge-Base、Eval、Tracing 和 Guardrail 边界
   - OpenClaw 案例已按 Model / Harness / Platform-Framework 重新映射
-updated_at: 2026-04-11
+updated_at: 2026-05-19
 ---
 
 # 1 Agent 术语导航
@@ -41,7 +43,13 @@ updated_at: 2026-04-11
 
 `Framework / Platform = 用来搭和承载系统的抽象与控制面`
 
-`Skill = 在既定 Framework / Harness 下可路由调用的窄能力包`
+`Skill = 在既定 Framework / Harness 下可路由调用的窄能力包；工程沉淀优先级通常高于新增 Agent`
+
+`Tool = 可执行接口`
+
+`MCP = 工具、资源、提示模板等外部能力接入协议`
+
+`Knowledge-Base = 长期事实、规则、来源和经验模式`
 
 `Workflow / Orchestration = Harness 内的全局编排控制层`
 
@@ -84,25 +92,44 @@ updated_at: 2026-04-11
 
 - 关注点：一个可复用、可路由、边界清楚的窄能力包
 - 在本库中的角色：能力单元，不等于 Agent 本体，也不等于 Runtime
+- 工程策略：优先沉淀稳定 Skill，再由 Workflow / Subagent 组合执行
 - 首读文档：[[Codex Skill开发与脚本化边界规范]]
 
-### 1.3.7 Workflow / Orchestration
+### 1.3.7 Tool
+
+- 关注点：可执行接口及其输入输出 schema、权限、幂等性和审计
+- 在本库中的角色：Agent 触发外部动作的接口，不等于 Skill 或 Knowledge-Base
+- 首读文档：[[Agent]]
+
+### 1.3.8 MCP
+
+- 关注点：模型应用如何连接外部 tools、resources、prompts，并管理连接、能力发现和传输边界
+- 在本库中的角色：外部能力接入协议层，不等于工具本身，也不等于知识库
+- 首读文档：[[Agent]]
+
+### 1.3.9 Knowledge-Base
+
+- 关注点：长期事实、规则、来源、项目决策和经验模式如何保存、检索、审核和写回
+- 在本库中的角色：长期知识来源，不直接执行动作
+- 首读文档：[[Agent]]
+
+### 1.3.10 Workflow / Orchestration
 
 - 关注点：多步流程、角色顺序、审批、返工、多 agent 协同
 - 在本库中的角色：Harness 内的全局编排控制层
 - 它不是什么：不是单个 Agent 内部的局部 planning，也不是某个 Skill 的执行脚本
-- 首读文档：[[01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式|Plugin-first与Contracts-first治理插件设计模式]]
-- 配套运行文档：[[01_Knowledge/Agent Workflow/运行时门禁与独立审查边界模式|运行时门禁与独立审查边界模式]]
+- 首读文档：[[Agent]]
+- 扩展阅读：涉及授权路径外的 Agent Workflow 文档时，需要先获得对应目录读取授权；不得把已删除或历史治理规范作为 active dependency
 
 一个直接可用的例子是治理插件里的 `workflow-orchestrator`：
 
 - 主代理默认承担 `workflow-orchestrator` 职责
-- 它决定先调用 `scope-planner`
-- 再决定是否进入 `repo-coder`
+- 它决定先调用 `knowledge-planner`
+- 再决定是否进入 `repo-implementer`
 - 之后把结果裁剪后交给 `repo-reviewer`
-- 若存在板端证据需求，可插入 `board-operator`
-- 若存在需求符合度裁定，可插入 `functional-reviewer`
-- 若存在故障调查闭环，可插入 `incident-investigator`
+- 若存在板端证据需求，可插入 `board-runner`
+- 若存在故障调查闭环，可插入 `failure-analyst`
+- 若存在验证覆盖分析，可插入 `verification-manager`
 
 这里真正发生的是：
 
@@ -124,6 +151,9 @@ updated_at: 2026-04-11
 - 如果你在讨论“执行循环怎么跑、怎么中断、怎么恢复”，优先落到 Runtime。
 - 如果你在讨论“系统怎么搭、控制面怎么组织、平台如何承载多入口和多节点”，优先落到 Framework / Platform。
 - 如果你在讨论“一个能力包如何被触发、输入输出是什么、边界怎么收紧”，优先落到 Skill。
+- 如果你在讨论“具体能执行什么动作、参数是什么、是否可审计”，优先落到 Tool。
+- 如果你在讨论“外部工具、资源、提示模板如何被模型应用发现和连接”，优先落到 MCP。
+- 如果你在讨论“哪些事实、规则、来源和经验长期成立”，优先落到 Knowledge-Base。
 - 如果你在讨论“多个步骤、多个角色或多个 agent 如何排顺序和过门禁”，优先落到 Harness 的全局编排控制层，也就是 Workflow / Orchestration。
 
 ---
@@ -134,8 +164,8 @@ updated_at: 2026-04-11
 2. [[Agent]]
 3. [[OpenClaw]]
 4. [[Codex Skill开发与脚本化边界规范]]
-5. [[01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式|Plugin-first与Contracts-first治理插件设计模式]]
-6. [[01_Knowledge/Agent Workflow/运行时门禁与独立审查边界模式|运行时门禁与独立审查边界模式]]
+
+授权路径外的 Agent Workflow 文档只作为扩展阅读入口；阅读或引用其内容前，需要先确认目录授权和文档当前状态。
 
 ---
 
