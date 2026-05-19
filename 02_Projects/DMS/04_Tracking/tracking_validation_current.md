@@ -11,11 +11,11 @@ sync_required_when:
   - 证据状态变化
   - blocker 或 review 结论变化
   - 所需下一步验证变化
-  - single_pass_recoverable 判定依据变化
+  - recoverability 判定依据变化
 retrieval_priority: current
 supersedes:
-  - 02_Projects/DMS/04_Tracking/多目标跟踪功能审核记录-2026-03-27.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复未闭环记录-2026-03-27.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪功能审核记录-2026-03-27.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪设计失配修复未闭环记录-2026-03-27.md
 merged_into: []
 current_replacement: []
 related_code:
@@ -23,22 +23,22 @@ related_code:
   - /home/jichao/dms/include/utils/track.h
   - /home/jichao/dms/source/fuse_algos/fuse_algorithm.cpp
 sources:
-  - 02_Projects/DMS/04_Tracking/多目标跟踪功能审核记录-2026-03-27.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复未闭环记录-2026-03-27.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪手部连续性优化闭环记录-2026-03-31.md
-  - 02_Projects/DMS/04_Tracking/DMS主驾打哈欠误报修复闭环记录-2026-04-05.md
-  - 02_Projects/DMS/04_Tracking/后排乘客头部误跟踪为副驾驶修复闭环记录-2026-04-05.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md
-  - 02_Projects/DMS/04_Tracking/跟踪框越界导致板端coredump调查与修复闭环记录-2026-04-07.md
-  - 02_Projects/DMS/04_Tracking/2m摄像头后排head误绑定主驾修复闭环记录-2026-05-08.md
-  - 02_Projects/DMS/04_Tracking/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪功能审核记录-2026-03-27.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪设计失配修复未闭环记录-2026-03-27.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪手部连续性优化闭环记录-2026-03-31.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DMS主驾打哈欠误报修复闭环记录-2026-04-05.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/后排乘客头部误跟踪为副驾驶修复闭环记录-2026-04-05.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/跟踪框越界导致板端coredump调查与修复闭环记录-2026-04-07.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/2m摄像头后排head误绑定主驾修复闭环记录-2026-05-08.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪方案.md
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪实现.md
   - /home/jichao/dms/source/utils/track.cpp
 scope: 适用于判断 Tracking 当前有哪些证据已经成立、哪些结论仍需更高等级验证；为默认实现输入链提供验证边界，不承接设计或规范正文。
 risks:
   - 本文档已整合 2026-05-08 的 2m dump 板端日志验证，但仍不等价于完整代表性视频集验收。
-updated_at: 2026-05-09
+updated_at: 2026-05-13
 ---
 
 ## 0.1 Evidence Status
@@ -152,15 +152,15 @@ updated_at: 2026-05-09
   4. driver identity source 日志，区分 `head_first`、`body_fallback` 与 reject reason。
 - 若后续使用 HumanPose-assisted hand association，需要单独验证 wrist 已有证据链，以及 elbow/shoulder/arm direction 对 hand owner、left/right、miss recovery 的增益。
 - 若后续继续沿用本轮 sanitize/clamp 方案，建议补一次日志降噪，避免 `track sanitize clamp` 在板端形成噪声洪泛
-- 若后续代码再次触及 `track.cpp`、`AtomicResult` 或导出链路，应重新跑 `knowledge_sync_check`，并再次判断 `single_pass_recoverable`
+- 若后续代码再次触及 `track.cpp`、`AtomicResult` 或导出链路，应重新跑 `knowledge_sync_check`，并再次判断 recoverability 状态。
 
 ## 0.4 Current Boundary
 
 本文档只回答当前证据状态，不等价于重新执行完整审核。若后续代码变更 touching `track.cpp`、`AtomicResult` 或导出链路，应重新做 `knowledge_sync_check` 并更新本文件。
 
-## 0.5 Single-Pass Recoverability Verdict
+## 0.5 Recoverability Verdict
 
-- single_pass_recoverable: `true`
+- recoverability_status: `partial`
 - 判定依据：
   - 读取 `tracking_overview_current + tracking_design_current + tracking_spec_current + tracking_implementation_current + tracking_validation_current` 已能恢复当前 Tracking 的主要设计、默认实现约束、实现事实与验证边界。
   - 只需少量代码路径辅助核对事实源：`track.h`、`track.cpp`、`atomic_result.h`、`fuse_algorithm.cpp`、`humanpose_model.cpp`、`handpose_model.cpp`。
@@ -168,7 +168,8 @@ updated_at: 2026-05-09
   - 默认情况下不再要求拼接 baseline 或两篇及以上 delta 才能理解当前态。
   - 代码里仍存在 fallback 输出路径，但 current 文档已经明确把该风险归入验证边界，而不是恢复入口缺口。
 - 保留限制：
-  - 该判定只说明“当前态可单次恢复”，不等价于“运行效果已验证闭环”。
+  - 该判定只说明 current 组可恢复当前主态，不等价于运行效果已验证闭环。
+  - 由于仍存在 replay、区域级唯一性、ID 连续性和 head-first 落地验证缺口，本组不声明单次恢复完全闭环。
   - 若默认恢复 bundle、事实源代码路径或历史文档入口关系变化，必须重新判定本节。
 
 ## 0.6 Historical Mapping

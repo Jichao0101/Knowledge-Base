@@ -21,7 +21,7 @@ sources:
   - 02_Projects/DMS/04_Tracking/tracking_design_current.md
   - 02_Projects/DMS/04_Tracking/tracking_implementation_current.md
   - 02_Projects/DMS/04_Tracking/tracking_validation_current.md
-  - 02_Projects/DMS/04_Tracking/2m摄像头后排head误绑定主驾修复闭环记录-2026-05-08.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/2m摄像头后排head误绑定主驾修复闭环记录-2026-05-08.md
   - 02_Projects/DMS/04_Tracking/座舱乘员多目标跟踪方案.md
   - /home/jichao/dms/source/utils/track.cpp
   - /home/jichao/dms/include/utils/track.h

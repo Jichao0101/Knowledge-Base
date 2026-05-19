@@ -15,7 +15,7 @@ sources:
   - 02_Projects/DMS/04_Tracking/tracking_spec_current.md
   - 02_Projects/DMS/04_Tracking/tracking_implementation_current.md
   - 02_Projects/DMS/04_Tracking/tracking_validation_current.md
-  - 02_Projects/DMS/04_Tracking/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
   - 02_Projects/DMS/04_Tracking/座舱乘员多目标跟踪方案.md
   - 02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
   - /home/jichao/dms/source/utils/track.cpp

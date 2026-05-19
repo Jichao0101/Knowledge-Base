@@ -31,12 +31,12 @@ sources:
   - 02_Projects/DMS/04_Tracking/tracking_validation_current.md
   - 02_Projects/DMS/04_Tracking/座舱乘员多目标跟踪方案.md
   - 02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复闭环记录-2026-03-25.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪生命周期与手部关联设计失配修复闭环记录-2026-03-25.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪功能审核记录-2026-03-27.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪手部连续性优化闭环记录-2026-03-31.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md
-  - 02_Projects/DMS/04_Tracking/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪设计失配修复闭环记录-2026-03-25.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪生命周期与手部关联设计失配修复闭环记录-2026-03-25.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪功能审核记录-2026-03-27.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪手部连续性优化闭环记录-2026-03-31.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪方案.md
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪实现.md
   - /home/jichao/dms/include/utils/track.h
@@ -49,7 +49,7 @@ scope: 适用于按当前规范修改 Tracking 代码时作为默认规范输入
 risks:
   - 本规范只约束当前已收敛的设计与实现边界，不把仍未闭合的项伪装成已验收硬规则。
   - 若后续代码修改影响 `track.cpp`、`AtomicResult` 或导出链路，需先做 `knowledge_sync_check` 并同步更新本文件。
-updated_at: 2026-05-09
+updated_at: 2026-05-13
 ---
 
 ## 0.1 Spec Scope

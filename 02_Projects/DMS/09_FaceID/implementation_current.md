@@ -19,7 +19,8 @@ updated_at: 2026-05-13
 | 输出结果结构 | `/home/jichao/dms/include/fuse_algos/algorithm_result.h` |
 | DS 输出映射 | `/home/jichao/dms/source/utils/callback_manager.cpp` |
 | 单元测试 | `/home/jichao/dms/test/unit_test_face_id_algorithm.cpp` |
-| 测试目标入口 | `/home/jichao/dms/CMakeLists.txt` |
+| J6M_X86 测试入口 | `/home/jichao/dms/CMakeLists.txt` -> `add_subdirectory(test)` |
+| 统一测试目标 | `/home/jichao/dms/test/CMakeLists.txt` -> `gTestsdk` |
 
 # 2 Config Entry
 
@@ -52,9 +53,12 @@ updated_at: 2026-05-13
 - `FaceIdStorage` 使用二进制文件保存 `id -> feature vector` 映射。
 - 写入采用临时文件加 rename。
 - `Process()` 允许 `AtomicResult` 为空；无当前帧时，依赖人脸特征的 capture/recognize/unbind 会失败，但 delete/check/factory reset 可以执行。
-- 专项测试目标为 `face_id_algorithm_test`，由 `BUILD_DMS_TESTS=ON` 启用，不启用历史 `gTestsdk`。
+- J6M_X86 本地仿真测试入口为 `ELSEIF(J6M_X86_VERSION)` 下的 `add_subdirectory(test)`。
+- FaceID 单测应进入历史统一测试目标 `gTestsdk`，不再以根目录单开 `face_id_algorithm_test` 作为最终入口。
+- FaceID 单测运行时存储目录为 `/home/jichao/dms/test/face_id_algorithm_storage/`，仅保留目录说明文件，`.bin` 和 `.tmp` 由测试运行时生成并清理。
 
 # 5 Known Gaps
 
 - `FaceIdStorage::Unbind()` 仍保留旧接口，但当前 FaceID 算法解绑路径不再调用它。
 - 取消流程当前以状态机入口判定为主，未实现同一次处理链路中每个关键步骤后的二次判定。
+- J6M_X86 下 `gTestsdk` 全量构建当前被非 FaceID 问题阻塞，需先修复 protobuf 头版本混用、`camera_shelter.cpp` 和 `det_model.cpp` 编译问题。

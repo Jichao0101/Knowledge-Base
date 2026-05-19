@@ -18,17 +18,17 @@ current_files_must_update:
 history_files_to_mark:
   - 02_Projects/DMS/04_Tracking/座舱乘员多目标跟踪方案.md
   - 02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
-  - 02_Projects/DMS/04_Tracking/tracking_interfaces_evidence.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪实现闭环记录-2026-03-24.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复闭环记录-2026-03-25.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪生命周期与手部关联设计失配修复闭环记录-2026-03-25.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪功能审核记录-2026-03-27.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复未闭环记录-2026-03-27.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪手部连续性优化闭环记录-2026-03-31.md
-  - 02_Projects/DMS/04_Tracking/后排乘客头部误跟踪为副驾驶修复闭环记录-2026-04-05.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md
-  - 02_Projects/DMS/04_Tracking/跟踪框越界导致板端coredump调查与修复闭环记录-2026-04-07.md
-single_pass_recoverable: true
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/tracking_interfaces_evidence.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪实现闭环记录-2026-03-24.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪设计失配修复闭环记录-2026-03-25.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪生命周期与手部关联设计失配修复闭环记录-2026-03-25.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪功能审核记录-2026-03-27.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪设计失配修复未闭环记录-2026-03-27.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪手部连续性优化闭环记录-2026-03-31.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/后排乘客头部误跟踪为副驾驶修复闭环记录-2026-04-05.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/跟踪框越界导致板端coredump调查与修复闭环记录-2026-04-07.md
+recoverability_status: partial
 sync_required_when:
   - 默认恢复顺序变化
   - 默认实现输入链变化
@@ -50,29 +50,29 @@ related_code:
 sources:
   - 02_Projects/DMS/04_Tracking/座舱乘员多目标跟踪方案.md
   - 02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪实现闭环记录-2026-03-24.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复闭环记录-2026-03-25.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪生命周期与手部关联设计失配修复闭环记录-2026-03-25.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪功能审核记录-2026-03-27.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复未闭环记录-2026-03-27.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪手部连续性优化闭环记录-2026-03-31.md
-  - 02_Projects/DMS/04_Tracking/后排乘客头部误跟踪为副驾驶修复闭环记录-2026-04-05.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md
-  - 02_Projects/DMS/04_Tracking/跟踪框越界导致板端coredump调查与修复闭环记录-2026-04-07.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪实现闭环记录-2026-03-24.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪设计失配修复闭环记录-2026-03-25.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪生命周期与手部关联设计失配修复闭环记录-2026-03-25.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪功能审核记录-2026-03-27.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪设计失配修复未闭环记录-2026-03-27.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪手部连续性优化闭环记录-2026-03-31.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/后排乘客头部误跟踪为副驾驶修复闭环记录-2026-04-05.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/跟踪框越界导致板端coredump调查与修复闭环记录-2026-04-07.md
   - /home/jichao/dms/include/utils/track.h
   - /home/jichao/dms/source/utils/track.cpp
   - /home/jichao/dms/include/models/atomic_result.h
   - /home/jichao/dms/source/models/handpose_model.cpp
   - /home/jichao/dms/source/models/humanpose_model.cpp
   - /home/jichao/dms/source/fuse_algos/fuse_algorithm.cpp
-  - 02_Projects/DMS/04_Tracking/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪方案.md
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪实现.md
 scope: 适用于恢复当前 Tracking 模块的整体目标、边界、入口文档与当前真相源，不展开全部历史过程。
 risks:
   - 当前态判断基于本次允许范围内的代码静态读取与既有项目记录，没有补做新的编译或运行回放。
   - 对“效果性目标”如 ID 连续性，只能记录当前机制与证据边界，不能把静态机制等同于最终效果验收。
-updated_at: 2026-05-09
+updated_at: 2026-05-13
 ---
 
 ## 0.1 Current Scope
@@ -94,7 +94,7 @@ updated_at: 2026-05-09
 3. [[02_Projects/DMS/04_Tracking/tracking_implementation_current]]
 4. [[02_Projects/DMS/04_Tracking/tracking_validation_current]]
 
-[[02_Projects/DMS/04_Tracking/tracking_interfaces_evidence]] 只保留为接口补充证据，不进入默认恢复顺序，也不进入默认实现输入链。
+[[02_Projects/DMS/04_Tracking/Current Maintenance Records/tracking_interfaces_evidence]] 只保留为接口补充证据，不进入默认恢复顺序，也不进入默认实现输入链。
 
 ## 0.2 Default Recovery Bundle
 
@@ -158,7 +158,7 @@ Tracking 当前推荐下一阶段实现主线为 head-first 渐进方案：drive
   - [[02_Projects/DMS/04_Tracking/tracking_implementation_current]]
   - [[02_Projects/DMS/04_Tracking/tracking_validation_current]]
 - evidence/reference only：
-  - [[02_Projects/DMS/04_Tracking/tracking_interfaces_evidence]]
+  - [[02_Projects/DMS/04_Tracking/Current Maintenance Records/tracking_interfaces_evidence]]
 - merged delta：
   - 2026-03-24 实现闭环
   - 2026-03-25 两篇设计失配修复闭环
@@ -182,7 +182,7 @@ Tracking 当前推荐下一阶段实现主线为 head-first 渐进方案：drive
 - 需要核对 current 文档中的历史映射
 
 若只为按规范实施代码，默认也不再需要回读 baseline；只有在需要追溯原始设计动机时才回读 [[02_Projects/DMS/04_Tracking/座舱乘员多目标跟踪方案]]。
-若仍需要依赖 baseline、两篇及以上 delta 或长段代码阅读才能恢复关键机制、实现落点或验证边界，则本组 current 不能标记为 `single_pass_recoverable: true`。
+若仍需要依赖 baseline、两篇及以上 delta 或长段代码阅读才能恢复关键机制、实现落点或验证边界，则本组 current 不能声明单次恢复完全闭环。
 
 ## 0.7 Known Gaps
 
@@ -218,4 +218,4 @@ Tracking 当前推荐下一阶段实现主线为 head-first 渐进方案：drive
   - `多目标跟踪手部连续性优化闭环记录-2026-03-31.md`
   - `多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md`
 - default_entry_verified: `true`
-- single_pass_recoverable: `true`
+- recoverability_status: `partial`

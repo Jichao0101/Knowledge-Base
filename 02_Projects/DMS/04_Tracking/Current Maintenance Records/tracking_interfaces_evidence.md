@@ -28,8 +28,8 @@ target_current_docs:
   - 02_Projects/DMS/04_Tracking/tracking_spec_current.md
 decision_scope: DMS Tracking interface evidence consolidation
 sources:
-  - 02_Projects/DMS/04_Tracking/多目标跟踪设计失配修复闭环记录-2026-03-25.md
-  - 02_Projects/DMS/04_Tracking/多目标跟踪生命周期与手部关联设计失配修复闭环记录-2026-03-25.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪设计失配修复闭环记录-2026-03-25.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪生命周期与手部关联设计失配修复闭环记录-2026-03-25.md
   - /home/jichao/dms/include/models/atomic_result.h
   - /home/jichao/dms/source/models/handpose_model.cpp
   - /home/jichao/dms/source/models/humanpose_model.cpp
