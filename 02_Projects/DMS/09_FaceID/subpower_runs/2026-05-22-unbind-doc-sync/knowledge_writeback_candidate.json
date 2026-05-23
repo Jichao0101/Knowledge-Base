@@ -1,0 +1,16 @@
+{
+  "destination_ref": "project:DMS/09_FaceID/A核FaceID功能需求流程文档.md",
+  "claim_classification": "verified_runtime_fact",
+  "claims": [
+    "UNBIND no longer requires VCU2FaceId as a local feature lookup key.",
+    "UNBIND extracts the current face feature, matches it against stored Face ID features, and returns the matched id.",
+    "UNBIND does not delete local A-core FaceID features; DELETE_ID remains the feature removal flow."
+  ],
+  "evidence_refs": [
+    "/home/jichao/dms/source/fuse_algos/face_id_algorithm.cpp:80",
+    "/home/jichao/dms/source/fuse_algos/face_id_algorithm.cpp:446",
+    "/home/jichao/dms/source/fuse_algos/face_id_algorithm.cpp:465",
+    "/home/jichao/dms/source/fuse_algos/face_id_algorithm.cpp:477"
+  ],
+  "writeback_allowed": true
+}

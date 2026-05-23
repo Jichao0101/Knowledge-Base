@@ -1,0 +1,11 @@
+{
+  "status": "ready_to_close",
+  "repo_path": "/home/jichao/dms",
+  "code_changes_made": true,
+  "board_validation_required": true,
+  "compile_result": "passed",
+  "board_result": "passed",
+  "unit_test_result": "16 FaceIdAlgorithmTest tests passed on board",
+  "knowledge_writeback": "project_record_only",
+  "remaining_blockers": []
+}

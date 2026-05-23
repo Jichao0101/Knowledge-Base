@@ -55,7 +55,7 @@ EyeStatus crop 逻辑保持为方形 eye crop：先构造 `CV_8UC1` 方形输入
 
 本次成功标准“板端日志 eye status 模型不报错”已满足。当前记录属于 DMS EyeStatus 部署实现与验证记录，尚未抽象为通用知识，因此保留在项目区，不提升到正式知识区。
 
-## 1.4.1 延迟复查：固定 max size 与 face landmark 对比
+## 1.5 延迟复查：固定 max size 与 face landmark 对比
 
 复查背景：
 
@@ -80,7 +80,7 @@ EyeStatus crop 逻辑保持为方形 eye crop：先构造 `CV_8UC1` 方形输入
 - EyeStatus 的最高运行期样本主要由单次 `resize_op` 变慢带动，例如 line 13281 附近 `resize_op` 7880us、EyeStatus resize 8619us。
 - 部分高耗时附近出现 `Wait for model result`、`fill 4, available 0`、`Drop one image since Pipeline is too slow!`，更符合 VP 调度或整体 pipeline 压力下的尾延迟，而不是 EyeStatus 个例。
 
-## 1.5 风险与边界
+## 1.6 风险与边界
 
 - 板端 `bash run.sh` 不可用，验证使用 `sh run.sh`。
 - 板端存在与本次 EyeStatus 改动无关的日志，如 ZMQ bind 失败、部分其他模型 ROI resize 报错、后续 J6M PIC 图像源耗尽。

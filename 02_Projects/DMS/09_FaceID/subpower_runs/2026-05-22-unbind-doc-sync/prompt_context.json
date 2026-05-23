@@ -1,0 +1,16 @@
+{
+  "task": "sync FaceID unbind documentation with code behavior",
+  "observed_symptom": "Document describes unbind as searching by VCU2FaceId and comparing against that feature, while code matches the current face against stored database entries and returns the matched id.",
+  "repo_scope": "/home/jichao/dms",
+  "knowledge_scope": "02_Projects/DMS/09_FaceID/A核FaceID功能需求流程文档.md",
+  "code_changes_allowed": true,
+  "code_changes_requested": false,
+  "board_validation": {
+    "required": false,
+    "reason": "User stated board validation is not involved."
+  },
+  "success_criteria": [
+    "compile passes",
+    "knowledge base is synchronized"
+  ]
+}

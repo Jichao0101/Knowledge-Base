@@ -1,0 +1,11 @@
+{
+  "logical_destination_ref": "project:DMS/09_FaceID/A核FaceID功能需求流程文档.md",
+  "writeback_type": "project_document_sync",
+  "planned_updates": [
+    "Remove VCU2FaceId from unbind trigger condition.",
+    "Replace target-id feature lookup flow with current-face-to-database matching flow.",
+    "Update unbind/delete distinction and summary table."
+  ],
+  "external_write_performed_by_subpower": false,
+  "external_write_to_be_performed_by": "host"
+}

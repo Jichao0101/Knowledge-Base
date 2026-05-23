@@ -1,0 +1,15 @@
+{
+  "workflow_pattern": "knowledge_writeback",
+  "requires_code_modification": false,
+  "requires_code_assessment": true,
+  "requires_document_writeback": true,
+  "requires_board_validation": false,
+  "authorized_read_paths": [
+    "/home/jichao/dms",
+    "02_Projects/DMS/09_FaceID/A核FaceID功能需求流程文档.md"
+  ],
+  "authorized_write_paths": [
+    "02_Projects/DMS/09_FaceID/A核FaceID功能需求流程文档.md",
+    "02_Projects/DMS/09_FaceID/subpower_runs/2026-05-22-unbind-doc-sync/"
+  ]
+}

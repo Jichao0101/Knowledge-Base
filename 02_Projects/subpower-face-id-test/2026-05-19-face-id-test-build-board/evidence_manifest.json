@@ -1,0 +1,27 @@
+{
+  "evidence": [
+    {
+      "type": "compile",
+      "command": "bash scripts/compile_j6b.sh",
+      "result": "passed",
+      "artifacts": [
+        "/home/jichao/dms/build/bin/aarch64/face_id_test",
+        "/home/jichao/dms/build/bin/aarch64/test_face_quality_model"
+      ]
+    },
+    {
+      "type": "board_deploy",
+      "commands": [
+        "scp build/bin/aarch64/face_id_test root@192.168.2.10:/userdata/dms/face_id_test",
+        "scp etc/face_id_params.json root@192.168.2.10:/userdata/dms/etc/face_id_params.json"
+      ],
+      "result": "passed"
+    },
+    {
+      "type": "board_test",
+      "command": "ssh root@192.168.2.10 'cd /userdata/dms && export VISION_ROOT_PATH=/userdata/dms && ./face_id_test --gtest_filter=FaceIdAlgorithmTest.*'",
+      "result": "passed",
+      "summary": "16 tests from FaceIdAlgorithmTest passed"
+    }
+  ]
+}

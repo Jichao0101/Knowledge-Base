@@ -1,0 +1,16 @@
+{
+  "invocations": [
+    {
+      "role": "repo-reviewer",
+      "agent_id": "019e4f12-d1d0-77f2-99bd-cc0e4c4ae505",
+      "status": "spawned",
+      "task": "Assess current FaceID unbind implementation without editing files."
+    },
+    {
+      "role": "knowledge-closer",
+      "agent_id": "019e4f12-e4f1-7592-a2bd-41cc5207a4c4",
+      "status": "spawned",
+      "task": "Prepare writeback candidate and plan without editing external KB docs."
+    }
+  ]
+}

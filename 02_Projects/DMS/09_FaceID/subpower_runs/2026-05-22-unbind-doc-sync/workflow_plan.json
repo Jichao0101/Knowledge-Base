@@ -1,0 +1,24 @@
+{
+  "mode": "subagent_first",
+  "roles": [
+    {
+      "role": "repo-reviewer",
+      "responsibility": "Read-only assessment of current FaceID unbind implementation."
+    },
+    {
+      "role": "knowledge-closer",
+      "responsibility": "Plan knowledge writeback without directly modifying external knowledge content."
+    },
+    {
+      "role": "host",
+      "responsibility": "Apply allowed project documentation writeback and run compile verification."
+    }
+  ],
+  "steps": [
+    "Inspect code behavior for unbind.",
+    "Compare target documentation against code behavior.",
+    "Update project documentation only.",
+    "Run compile verification.",
+    "Record writeback receipt and closure state."
+  ]
+}
