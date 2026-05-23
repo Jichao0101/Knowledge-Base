@@ -1,0 +1,14 @@
+{
+  "agents": [
+    {
+      "role": "repo-explorer",
+      "agent_id": "019e53c3-6c66-7e63-9e6e-9b398ef46fa2",
+      "task": "Downstream interface and ABI constraints for head-first tracking refactor."
+    },
+    {
+      "role": "verification-review-explorer",
+      "agent_id": "019e53c3-8306-76e2-8d6f-e9ff556e8aab",
+      "task": "Refactor risks and static verification checkpoints."
+    }
+  ]
+}

@@ -1,17 +1,19 @@
 ---
 title: DMS Head-first 渐进跟踪实现
-summary: DMS Tracking head-first 设计的下一阶段实现方案。文档参考历史 baseline 实现文档结构，说明输入输出、状态复用、卡尔曼模型复用、函数落点、阶段性改造顺序与验证入口；不修改现有 ABI，不引入 OccupantTrack。
+summary: DMS Tracking head-first 第一轮实现记录与后续验证入口。2026-05-23 已完成代码落地：head/face 持有唯一 trackId，body/torso/hand 作为 head-bound evidence 投影到 legacy map；不修改现有 ABI，不引入 OccupantTrack。
 status: verified
 doc_role: implementation_plan
-truth_role: plan
+truth_role: implementation_record
 lifecycle_state: active
 default_entry: false
 retrieval_priority: implementation_when_head_first
-implementation_state: not_implemented
+implementation_state: implemented_compile_verified_no_board
 decision_scope: DMS Tracking head-first implementation plan
 sources:
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪方案.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first双阶段body-torso匹配静态分析记录-2026-05-23.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first跟踪代码重构闭环记录-2026-05-23.md
   - 02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
   - 02_Projects/DMS/04_Tracking/tracking_implementation_current.md
   - /home/jichao/dms/source/utils/track.cpp
@@ -20,20 +22,33 @@ sources:
   - /home/jichao/dms/source/models/humanpose_model.cpp
   - /home/jichao/dms/source/models/handpose_model.cpp
   - /home/jichao/dms/source/fuse_algos/handoff_algorithm.cpp
-scope: 适用于下一阶段 head-first 代码实现拆解、review 和验证准备；不声称代码已实现。
+scope: 适用于 head-first 第一轮代码实现复核、review 和后续验证准备；已完成本地编译，未做板端验证。
 risks:
-  - 本文档为实现计划，不包含代码 patch、测试结果或板端验证。
-  - 当前代码仍为 body-first，任何实现前必须重新检查最新代码。
-updated_at: 2026-05-09
+  - 本文档记录第一轮实现，不替代代码 diff、运行日志或板端验证。
+  - 当前证据为静态分析和本地编译，尚不能证明实车效果。
+updated_at: 2026-05-23
 ---
 
-> 文档状态：本文件是 head-first 的实现方案。设计依据见 `head-first渐进跟踪方案.md`；当前代码事实见 `tracking_implementation_current.md`。
+> 文档状态：本文件记录 head-first 第一轮实现。设计依据见 `head-first渐进跟踪方案.md`；当前代码事实见 `tracking_implementation_current.md`；验证边界见 `tracking_validation_current.md`。
+
+# 0 2026-05-23 Implementation Delta
+
+- `DmsTrack::Update` 主顺序已改为 `updateFaceTracks -> selectDriverHead -> updateBodyTracks -> updateHandTracks`。
+- `head/face trackId` 成为 tracking identity 的唯一分配来源；body id 分配入口已删除。
+- `m_bodyTracks` 以 head trackId 为 key，body/torso 只作为 head-owned evidence 维护。
+- `updateBodyTracks` 由 head 发起：
+  - 已有 body evidence 的 head 先尝试 body motion tracking match；
+  - tracking match 失败后落入 head geometry acquisition；
+  - 新 head 或未绑定 body 的 head 直接使用同一套 acquisition 逻辑。
+- driver head 选择中 small face 直接拒绝，front passenger ROI 直接拒绝，历史 driver 的 size continuity 是硬门控，综合分数为 `3.0 * sizeLoss + positionLoss + continuityBonus`。
+- hand 仍使用 legacy left/right map，但 owner key 已是 head trackId；hand 不再创建独立 identity。
+- 本地编译命令 `bash scripts/compile_j6b.sh` 已通过，最终输出 `[100%] Built target sdk`。
 
 # 1 基本框架
 
 ## 1.1 目标
 
-在不破坏现有四类 map ABI 的前提下，将当前 `DmsTrack` 从 body-first 执行顺序逐步改造为 head-first 决策主线：
+在不破坏现有四类 map ABI 的前提下，当前 `DmsTrack` 已从 body-first 执行顺序完成第一轮 head-first 改造，主线为：
 
 `head/face -> driver identity -> head-bound body/torso evidence -> hand association`
 
@@ -153,23 +168,26 @@ head-first 的区别是：
 
 ## 3.1 当前函数事实
 
-当前 `DmsTrack::Update` 顺序为：
+2026-05-23 后当前 `DmsTrack::Update` 顺序为：
 
 ```text
 clear output maps
-updateBodyTracks
 updateFaceTracks
+selectDriverHead
+updateBodyTracks
 updateHandTracks
 ```
 
 关键函数事实：
 
-- `computePersonType` 当前使用 body center ROI 投票；
+- `computePersonType` 当前仍用于 face/head 初始 person type 先验；
 - `FaceBelongsToBody` / `FaceAnchorLoss` 当前使用 body 几何约束 face；
 - `HandBelongsToBody` / `HandAnchorLoss` 当前使用 body 几何约束 hand；
-- `updateFaceTracks` 当前 face key 复用 bodyId；
-- `updateHandTracks` 当前 hand 按 bodyId 下 left/right slot 维护；
-- orphan face/hand 清理已有局部防护，但仍围绕 body anchor。
+- `updateFaceTracks` 当前独立维护 head/face trackId；
+- `selectDriverHead` 当前以 driver ROI、small face reject、front passenger reject、size continuity 和 position loss 选择 driver head；
+- `updateBodyTracks` 当前由 head 发起 body/torso evidence tracking/acquisition，并写入 `m_bodyTracks[headId]`；
+- `updateHandTracks` 当前按 head-owned body evidence key 维护 left/right slot，legacy 变量名仍保留 bodyId。
+- 当前 body/torso second stage 是 head 发起的 acquisition，不再是 body track 反向申请 identity。
 
 ## 3.2 目标函数组织
 
@@ -232,7 +250,7 @@ head id 到 legacy key 的投影必须集中处理，避免散落在 face/body/h
 - 增加从现有车型/摄像头配置或 pipeline 上游读取业务模式语义的入口；
 - 记录当前是否启用 body evidence、hand tracking、body fallback、兼容 body 发布；
 - 不新增 tracking 自定义配置字段名；
-- 保持默认行为可回退到当前 body-first。
+- 历史 body-first 默认行为已不再作为本轮实现主线；若需要回退，应通过代码版本管理而不是在当前逻辑中保留双主线。
 
 验证：
 
@@ -281,11 +299,14 @@ head id 到 legacy key 的投影必须集中处理，避免散落在 face/body/h
 - 新增 driver head 到 body evidence 的绑定；
 - `computePersonType` 不再单独决定 driver identity；
 - body miss 不清空 driver head。
+- 若保留 second pass，发起主体必须是已选 driver head，输出只能是 body/torso evidence 或 legacy body map 投影；
+- unmatched body track 不得在剩余 head/face detection 中寻找 identity 归属。
 
 验证：
 
 - 主驾手伸中控导致 body 扩大时 driver 不切换；
 - body evidence 失败时不发布不可信 driver body。
+- body miss / reappear 时 driver head id 不被 body id 反向改写。
 
 ## 5.5 P5 Hand Owner Gate
 
@@ -396,4 +417,4 @@ Handoff 可继续消费 face/body/hand/handpose/humanpose，但不得把 raw bod
 - 不新增 handTrackId 或 occupantId；
 - 不在 track 内部发明车型配置字段名；
 - 不把 HumanPose 作为第一阶段必需依赖；
-- 不声称 head-first 已实现。
+- 不声称 head-first 运行效果已验收；第一轮代码实现和本地编译证据已由 current 文档与闭环记录承接。

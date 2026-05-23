@@ -1,0 +1,11 @@
+{
+  "mode": "subagent_first_with_host_implementation",
+  "degraded": false,
+  "critical_host_participation": [
+    "workflow orchestration",
+    "repository patch integration",
+    "compile command execution",
+    "knowledge-base writeback"
+  ],
+  "execution_evidence_status": "subagents_spawned_for_read_only_interface_and_review_exploration"
+}

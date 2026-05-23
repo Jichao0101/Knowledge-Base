@@ -1,0 +1,15 @@
+{
+  "date": "2026-05-23",
+  "decision": "pass_with_risks",
+  "review_basis": [
+    "Repo reviewer identified stale hand owner output as must-fix.",
+    "Host changed hand output to publish only under the current driver head-owned body evidence id.",
+    "Local compile passed."
+  ],
+  "remaining_risks": [
+    "No board validation or video replay was executed.",
+    "2m/5m runtime profile selection is still not implemented.",
+    "Callback/fusion same-key behavior needs runtime confirmation.",
+    "ID continuity and region-level uniqueness still need representative replay evidence."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "owner": "host repo implementer",
+  "files_expected_to_change": [
+    "/home/jichao/dms/include/utils/track.h",
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "plan": [
+    "Add head-first state and helper structures to DmsTrack.",
+    "Replace Update order with face/head first, then body evidence, then hand owner-gated update.",
+    "Rewrite face update to match face detections against face tracks directly and select one driver face/head.",
+    "Keep body tracking mechanics but make driver/body publication depend on selected driver head binding.",
+    "Restrict hand update/publication to selected driver body evidence.",
+    "Remove or suppress orphan output paths that act as body-first fallback."
+  ],
+  "non_goals": [
+    "No OccupantTrack/PersonTrack public ABI.",
+    "No board validation.",
+    "No detection model format changes."
+  ]
+}

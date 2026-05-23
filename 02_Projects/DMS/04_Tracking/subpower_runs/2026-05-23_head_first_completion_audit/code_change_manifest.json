@@ -1,0 +1,13 @@
+{
+  "date": "2026-05-23",
+  "repo": "/home/jichao/dms",
+  "changed_files": [
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "changes": [
+    "Tightened hand output so left/right hand map keys stay on the current driver head-owned body evidence id.",
+    "Removed cross-owner bestLeftId/bestRightId publication path from hand output.",
+    "Updated comments to state computePersonType is only ROI prior under head-first."
+  ],
+  "reviewer_issue_resolved": "hand output could previously publish using stale hand owner id, violating head/face as unique identity source"
+}

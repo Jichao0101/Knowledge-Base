@@ -1,13 +1,13 @@
 ---
 title: DMS Head-first 渐进跟踪方案
-summary: DMS Tracking 下一阶段推荐设计方案。方案参考历史 baseline 的层级设计表达，将主锚点从 raw body detection box 收敛到 head/face track；body 降级为 5m 下的 body/torso evidence，hand 基于 driver head 约束后的 body/torso 或业务搜索区域关联。
+summary: DMS Tracking head-first 设计方案。2026-05-23 已完成第一轮代码落地：主锚点从 raw body detection box 收敛到 head/face track；body 降级为 head-bound body/torso evidence，hand 基于 driver head-bound body evidence 关联。
 status: verified
 doc_role: solution_design
 truth_role: plan
 lifecycle_state: active
 default_entry: false
 retrieval_priority: implementation_when_head_first
-implementation_state: not_implemented
+implementation_state: implemented_compile_verified_no_board
 decision_scope: DMS Tracking head-first design plan
 sources:
   - 02_Projects/DMS/04_Tracking/tracking_overview_current.md
@@ -16,20 +16,22 @@ sources:
   - 02_Projects/DMS/04_Tracking/tracking_implementation_current.md
   - 02_Projects/DMS/04_Tracking/tracking_validation_current.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first双阶段body-torso匹配静态分析记录-2026-05-23.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first跟踪代码重构闭环记录-2026-05-23.md
   - 02_Projects/DMS/04_Tracking/座舱乘员多目标跟踪方案.md
   - 02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
   - /home/jichao/dms/source/utils/track.cpp
   - /home/jichao/dms/include/utils/track.h
   - /home/jichao/dms/include/models/atomic_result.h
-scope: 适用于下一阶段 DMS Tracking head-first 设计评审、实现拆解和验证准备；不声称方案已经落地。
+scope: 适用于 DMS Tracking head-first 设计评审、实现复核和后续运行验证准备；第一轮代码已落地并完成本地编译，未做板端验证。
 risks:
-  - 本文档是项目设计方案，不包含代码实现、测试、回放或板端验证结果。
-  - 当前代码仍是 body-first，代码事实以 tracking_implementation_current 为准。
+  - 本文档是项目设计方案，不替代代码 diff、回放报告或板端验收。
+  - 第一轮实现只有本地编译证据，没有实车、板端或代表性视频回放证据。
   - 具体代码落地应读取 head-first渐进跟踪实现.md。
-updated_at: 2026-05-09
+updated_at: 2026-05-23
 ---
 
-> 文档状态：本文件是 head-first 的设计方案，不是当前代码事实，也不是实现细节清单。下一阶段实现应同时读取 `head-first渐进跟踪实现.md`。
+> 文档状态：本文件是 head-first 的设计方案。2026-05-23 第一轮实现已落地，代码事实与验证边界应同时读取 `head-first渐进跟踪实现.md`、`tracking_implementation_current.md`、`tracking_validation_current.md` 和闭环记录。
 
 # 1 目标
 
@@ -189,7 +191,19 @@ body candidate 必须由 driver head 约束后才能成为 driver body/torso evi
 - 不因手部伸出导致异常大 body 而扩大 owner；
 - body miss 不清空稳定 driver head。
 
-### 3.2.4 输出原则
+### 3.2.4 双阶段匹配边界
+
+head-first 可以保留“双阶段”补救结构，但阶段主体必须清晰：
+
+1. 第一阶段由 head/face track 建立和维护 driver identity；
+2. 第二阶段只允许由已选 driver head 发起 body/torso evidence acquisition；
+3. 未匹配 body track 不得在剩余 head/face detection 中申请、创建或抢占 identity；
+4. body/torso second pass 只能产出 evidence 或 legacy map 投影，不能改写 driver head；
+5. face/head second pass 只能维护 head continuity，不能重新退化为 body-first 绑定。
+
+如果后续实现仍保留 body track 自身的预测、Hungarian、hit/miss 和 legacy body map 输出，它们只能服务 body/torso evidence 稳定性，不再承担 driver identity 决策。
+
+### 3.2.5 输出原则
 
 body map 只在业务配置允许时输出：
 
@@ -426,12 +440,10 @@ driver identity 稳定属性由 head/face 主导。body center ROI 只能作为 
 
 - 不实现 `Occupant/PersonTrack + PartTrack`。
 - 不把 OccupantTrack 写成当前目标或后续默认路线。
-- 不把 head-first 写成已实现。
+- 不把 head-first 写成已完成运行效果验收；第一轮代码实现和本地编译证据已由 current 文档与闭环记录承接。
 - 不删除 body 相关逻辑。
 - 不破坏四类 map ABI。
 - 不在 tracking 方案中发明车型配置字段名或配置路径。
 - 不为了方案完整性引入复杂 ID 映射和生命周期管理。
 
 ---
-
-

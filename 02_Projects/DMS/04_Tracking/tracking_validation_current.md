@@ -1,6 +1,6 @@
 ---
 title: Tracking Validation Current
-summary: Tracking 当前验证状态文档，记录 body-first 代码事实证据、2m 局部修复证据、head-first 决策边界、缺失证据和下一轮验证路径。
+summary: Tracking 当前验证状态文档，记录 head-first 第一轮代码重构后的静态/编译证据、缺失运行证据和下一轮验证路径。
 status: verified
 doc_role: current
 truth_role: current
@@ -34,32 +34,53 @@ sources:
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪方案.md
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪实现.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first跟踪代码重构闭环记录-2026-05-23.md
   - /home/jichao/dms/source/utils/track.cpp
 scope: 适用于判断 Tracking 当前有哪些证据已经成立、哪些结论仍需更高等级验证；为默认实现输入链提供验证边界，不承接设计或规范正文。
 risks:
-  - 本文档已整合 2026-05-08 的 2m dump 板端日志验证，但仍不等价于完整代表性视频集验收。
-updated_at: 2026-05-13
+  - 本文档已整合 2026-05-23 的 head-first 本地编译验证，但仍不等价于完整代表性视频集验收。
+  - 2026-05-23 未做板端部署、回放或运行日志采集。
+updated_at: 2026-05-23
 ---
 
 ## 0.1 Evidence Status
 
+### 0.1.0 2026-05-23 head-first 编译证据
+
+- 代码范围：
+  - `/home/jichao/dms/include/utils/track.h`
+  - `/home/jichao/dms/source/utils/track.cpp`
+- 本地编译：
+  - `bash scripts/compile_j6b.sh`
+  - 结果：`[100%] Built target sdk`
+- 静态结论：
+  - head/face trackId 已成为 identity id 的唯一分配入口；
+  - body/torso evidence 以 head trackId 为 key 维护；
+  - body/torso 不再独立生成 trackId；
+  - driver head 选择中 small face 与尺寸突变被优先过滤，size continuity 权重大于 position loss；
+  - hand evidence 只挂在 driver head-bound body evidence 下。
+- 证据限制：
+  - 未执行板端验证；
+  - 未执行视频回放；
+  - 未采集 callback/fusion 同 key 消费日志。
+
 ### 0.1.1 已由代码静态证据支撑
 
-- body 使用预测 + 匈牙利 + 生命周期管理
-- face 使用恒速度模型并支持启动后解耦
+- head/face 使用恒速度模型并作为 identity 主锚点
+- body/torso evidence 以 head trackId 为 key，使用预测、匹配、acquisition 与生命周期管理
 - hand 使用恒加速度模型，但 2026-04-07 起不再向下游输出 miss 预测框
-- body 结果作为乘员级主锚点
+- body 结果作为 head-owned evidence legacy 输出，不再作为乘员级主锚点
 - 上游结果事实源是 body / face / leftHand / rightHand 四类 map
-- driver body 最终唯一化已在代码中显式实现
-- 更新顺序为 `body -> face -> hand`
+- driver head 最终唯一化已在代码中显式实现
+- 更新顺序为 `face/head -> selectDriverHead -> body evidence -> hand evidence`
 - 配置从 `track_params.json` 读取，并以 `DEFAULT` 加车型覆盖
 - `m_humanTrackResultMap` 只是导出兼容层，不是上游事实源
 - track 输出在写入四类 track map 前已有统一 sanitize/clamp 与非法框过滤
 - initialized face first pass 已有连续性门控；driver 相关 face 绑定使用更严格的 `distanceLoss <= 0.45`
 - first pass 被连续性门控明确拒绝的 face track，同帧不会再通过 second pass 绕回匹配
-- 当前代码仍是 body-first：driver identity 来自 body center ROI 投票，face/hand 仍围绕 bodyId 组织。
-- head-first 尚未实现，当前没有编译、回放或板端证据证明其运行效果。
-- head-first 设计方案已落点到 `head-first渐进跟踪方案.md`，实现方案已落点到 `head-first渐进跟踪实现.md`，但两者均无代码实现、回放或板端证据。
+- 当前代码已完成 head-first 第一轮实现：driver identity 来自 head/face track，body/hand 作为 head-bound evidence 组织。
+- head-first 当前已有本地编译证据，但没有回放或板端证据证明其运行效果。
+- head-first 设计方案已落点到 `head-first渐进跟踪方案.md`，实现事实已落点到 `head-first渐进跟踪实现.md` 和 2026-05-23 闭环记录。
 
 ### 0.1.2 由历史记录支撑但本轮未重新执行
 
@@ -145,7 +166,7 @@ updated_at: 2026-05-13
   4. 快速运动恢复样本，验证 body/face/hand 的 `predBox / detection / updated box` 三者关系是否按预期收敛
 - 若后续要重新评估 DMS driver false-yawn 的根因消除，建议补更长窗口 replay，专门量化 identity-swap 风险
 - 若后续继续优化 2m 场景，建议补更长 2m 视频集，对 `driver face reject`、`driver face match`、`driver second-pass face match orphan=` 做计数型统计，而不是只依赖抽样日志。
-- 若后续进入 head-first 实现，必须补：
+- 若后续进入 head-first 运行验收，必须补：
   1. 2m profile 下 body/hand disabled 且不发布 stale body/hand 的回放验证；
   2. 5m profile 下 driver head-bound body/torso 的 owner 稳定性验证；
   3. hand owner source、left/right slot、orphan takeover 在手部大幅运动和多人干扰下的序列统计；

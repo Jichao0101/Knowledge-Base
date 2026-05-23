@@ -1,0 +1,26 @@
+{
+  "date": "2026-05-23",
+  "route": "subpower",
+  "repo": "/home/jichao/dms",
+  "changed_files": [
+    "/home/jichao/dms/include/utils/track.h",
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "summary": [
+    "Moved DmsTrack update order to face/head first, then body evidence, then hand.",
+    "Removed independent body identity allocation from tracking state.",
+    "Made m_bodyTracks keyed by head trackId so body/torso is head-owned evidence.",
+    "Preserved legacy body/face/left_hand/right_hand maps while publishing body/hand under head trackId.",
+    "Weighted driver head selection toward size continuity and hard-rejected small faces and front passenger ROI candidates."
+  ],
+  "identity_rule": "head/face trackId is the only identity source; body/torso/hand evidence must inherit the corresponding head trackId.",
+  "validation": {
+    "command": "bash scripts/compile_j6b.sh",
+    "working_directory": "/home/jichao/dms",
+    "result": "passed",
+    "final_lines": [
+      "[100%] Linking CXX shared library libsdk.so",
+      "[100%] Built target sdk"
+    ]
+  }
+}

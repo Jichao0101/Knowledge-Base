@@ -1,0 +1,30 @@
+{
+  "date": "2026-05-23",
+  "success_criteria": [
+    {
+      "criterion": "Compilation passes",
+      "status": "passed",
+      "evidence": "bash scripts/compile_j6b.sh ended with [100%] Built target sdk"
+    },
+    {
+      "criterion": "head/face trackId is the unique identity source",
+      "status": "passed_static",
+      "evidence": "Body id allocator was removed; face/head allocator is the only track id allocator in DmsTrack."
+    },
+    {
+      "criterion": "Body/torso evidence is head-initiated and maintainable",
+      "status": "passed_static",
+      "evidence": "updateBodyTracks iterates head tracks and updates m_bodyTracks[headId]."
+    },
+    {
+      "criterion": "Existing body evidence reacquisition and first acquisition use a shared candidate evaluation path",
+      "status": "passed_static",
+      "evidence": "Existing body first tries motion match, then falls through to FaceBelongsToBody + FaceAnchorLoss acquisition, same as unbound heads."
+    },
+    {
+      "criterion": "Runtime behavior validated on board or replay",
+      "status": "not_run",
+      "evidence": "Out of scope for this run."
+    }
+  ]
+}

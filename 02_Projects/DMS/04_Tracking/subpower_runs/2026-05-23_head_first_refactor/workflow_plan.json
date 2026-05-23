@@ -1,0 +1,36 @@
+{
+  "workflow": "bug_fix",
+  "route": "implementation_with_static_review_and_compile",
+  "steps": [
+    {
+      "id": "P0",
+      "name": "Establish head-first internal boundary",
+      "verification": "DmsTrack declares explicit head/face ownership, selected driver head, and body evidence binding boundaries."
+    },
+    {
+      "id": "P1",
+      "name": "Refactor face/head first",
+      "verification": "Update runs face/head association before body/hand, and driver identity is selected from face/head state."
+    },
+    {
+      "id": "P2",
+      "name": "Bind body as head-owned evidence",
+      "verification": "Driver body publication comes from selected driver head binding, not body ROI identity."
+    },
+    {
+      "id": "P3",
+      "name": "Gate hand owner",
+      "verification": "Hand update and publication require head-bound body evidence."
+    },
+    {
+      "id": "P4",
+      "name": "Compile verification",
+      "verification": "Run bash script/compile_j6b.sh or document exact blocker."
+    },
+    {
+      "id": "P5",
+      "name": "Knowledge writeback",
+      "verification": "Project record and current docs reflect implementation status and remaining validation gaps."
+    }
+  ]
+}

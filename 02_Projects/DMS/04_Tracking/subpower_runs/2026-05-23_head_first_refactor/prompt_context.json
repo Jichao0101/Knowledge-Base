@@ -1,0 +1,21 @@
+{
+  "task": "Refactor DMS tracking code according to the head-first tracking plan.",
+  "repo_scope": "/home/jichao/dms",
+  "build_command": "bash script/compile_j6b.sh",
+  "knowledge_writeback_scope": "02_Projects/DMS/04_Tracking",
+  "code_changes_allowed": true,
+  "board_validation_required": false,
+  "constraints": [
+    "Use subpower.",
+    "First provide a step-by-step execution plan, then execute it.",
+    "Do not force minimal changes; this is a plan-level refactor and legacy behavior may be discarded when it conflicts with head-first ownership.",
+    "Do not run board validation."
+  ],
+  "success_criteria": [
+    "DmsTrack update order becomes head/face-first.",
+    "Driver identity is owned by head/face track selection.",
+    "Body/torso acts only as head-bound evidence and legacy map projection.",
+    "Hand owner is gated by head-bound body evidence.",
+    "Code compiles with the requested build command or compile blockers are documented."
+  ]
+}

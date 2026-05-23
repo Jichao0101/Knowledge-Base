@@ -1,6 +1,6 @@
 ---
 title: Head-first 优先于 Body-first 的 DMS Tracking 主线决策记录 2026-05-09
-summary: 记录 DMS Tracking 当前推荐实现主线从 body-first 收敛为 head-first 渐进方案；body-first 保留为历史实现与 legacy evidence，Occupant/PersonTrack + PartTrack 已评估但当前不采用，归档为非目标方案。
+summary: 记录 DMS Tracking 推荐实现主线从 body-first 收敛为 head-first 渐进方案；body-first 保留为历史实现与 legacy evidence，Occupant/PersonTrack + PartTrack 已评估但当前不采用，归档为非目标方案。2026-05-23 第一轮 head-first 已代码落地并本地编译通过。
 status: verified
 doc_role: decision_record
 truth_role: decision
@@ -10,7 +10,7 @@ retrieval_priority: evidence_only
 record_type: architecture_decision
 decision_scope: DMS Tracking head/body/hand association architecture
 decision: head_first_over_body_first
-implementation_state: not_implemented
+implementation_state: implemented_compile_verified_no_board
 related_current_docs:
   - 02_Projects/DMS/04_Tracking/tracking_overview_current.md
   - 02_Projects/DMS/04_Tracking/tracking_design_current.md
@@ -27,12 +27,12 @@ sources:
   - /home/jichao/dms/include/utils/track.h
   - /home/jichao/dms/etc/track_params.json
   - /home/jichao/dms/etc/track_params_2m.json
-scope: 适用于后续 DMS Tracking 第一阶段代码实现前的架构决策约束；不声称 head-first 已在代码中实现，也不替代后续实现、审查或板端验证。
+scope: 适用于追溯 DMS Tracking 第一阶段 head-first 架构决策约束；第一轮实现已由 2026-05-23 闭环记录承接，不替代后续回放或板端验证。
 risks:
-  - 本记录是设计决策与知识库回写，不包含新增代码、编译、运行回放或板端验证。
-  - head-first 第一阶段仍需通过后续代码实现与 2m/5m 回放验证闭环。
+  - 本记录是设计决策与知识库回写；代码实现和编译证据以 2026-05-23 闭环记录为准。
+  - head-first 第一阶段仍需通过 2m/5m 回放和板端验证闭环。
   - Occupant/PersonTrack + PartTrack 已评估但当前不采用，不能被本记录解释为当前或默认后续实现目标。
-updated_at: 2026-05-09
+updated_at: 2026-05-23
 ---
 
 > 文档状态：本文件是项目级 architecture decision record，同时归档 body-first 历史主线的失配原因。当前态入口仍是 `tracking_overview_current`，本文件不进入默认恢复顺序。
@@ -48,13 +48,13 @@ updated_at: 2026-05-09
 - 对外 `m_bodyTrackResultMap / m_faceTrackResultMap / m_leftHandTrackResultMap / m_rightHandTrackResultMap` ABI 第一阶段保持不变；
 - 完整 `Occupant/PersonTrack + PartTrack` 分层当前不采用，不作为第一阶段或默认后续实现目标。
 
-本决策不表示 head-first 已经实现。当前代码事实仍是 `body -> face -> hand`。
+本决策在 2026-05-09 形成时不表示 head-first 已经实现；2026-05-23 后第一轮代码事实已更新为 `face/head -> selectDriverHead -> body evidence -> hand evidence`。
 
 ## 0.2 Code Facts
 
-- `DmsTrack::Update` 每帧先清空四类输出 map，再按 `updateBodyTracks -> updateFaceTracks -> updateHandTracks` 重建。
-- `computePersonType` 当前基于 body box center 是否落入 driver/front passenger ROI 得到人员类型。
-- `face` key 复用 bodyId，`hand` 在同一 bodyId 下维护 left/right 槽位。
+- 2026-05-09 当时，`DmsTrack::Update` 每帧先清空四类输出 map，再按 `updateBodyTracks -> updateFaceTracks -> updateHandTracks` 重建。
+- 2026-05-23 后，`DmsTrack::Update` 已改为 `updateFaceTracks -> selectDriverHead -> updateBodyTracks -> updateHandTracks`。
+- 2026-05-23 后，`face/head` 持有 identity trackId，`body/hand` 作为 head-owned evidence 继承 headId。
 - `loadConfigFromJson` 当前固定读取 `track_params.json`；仓内存在 `track_params_2m.json`，但尚未形成显式运行时模式选择层。
 
 ## 0.3 Verified Problem
@@ -99,7 +99,7 @@ body-first 曾作为 Tracking 主线：body 是乘员级 root；face/head 依附
 ## 0.8 Next Implementation Guardrails
 
 - 不恢复 body-first 作为当前主线。
-- 不声称 head-first 已实现，除非代码、审查和验证证据已补齐。
+- 不声称 head-first 运行效果已验收，除非回放或板端验证证据已补齐。
 - 不把本决策简化成 Kalman 或阈值调参。
 - 不破坏 legacy 四类 map ABI。
 - profile 选择、driver identity source、head/body binding、hand owner source 必须可日志化和可回放复现。

@@ -1,6 +1,6 @@
 ---
 title: Tracking Overview Current
-summary: Tracking 当前态唯一入口，定义默认恢复顺序、默认实现输入链、default_recovery_bundle 与真相源集合；当前推荐实现主线已从 body-first 收敛为 head-first 渐进方案，但代码事实仍需由 implementation_current 区分。
+summary: Tracking 当前态唯一入口，定义默认恢复顺序、默认实现输入链、default_recovery_bundle 与真相源集合；当前代码已完成 head-first 第一轮实现并通过本地编译，运行验证仍未闭合。
 status: verified
 doc_role: current
 truth_role: current
@@ -70,9 +70,9 @@ sources:
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪实现.md
 scope: 适用于恢复当前 Tracking 模块的整体目标、边界、入口文档与当前真相源，不展开全部历史过程。
 risks:
-  - 当前态判断基于本次允许范围内的代码静态读取与既有项目记录，没有补做新的编译或运行回放。
+  - 当前态判断基于代码静态读取、subpower 审查和本地编译；没有补做板端或视频回放。
   - 对“效果性目标”如 ID 连续性，只能记录当前机制与证据边界，不能把静态机制等同于最终效果验收。
-updated_at: 2026-05-13
+updated_at: 2026-05-23
 ---
 
 ## 0.1 Current Scope
@@ -132,9 +132,9 @@ default_recovery_bundle:
   - `/home/jichao/dms/source/models/handpose_model.cpp`
   - `/home/jichao/dms/source/models/humanpose_model.cpp`
 
-Tracking 当前代码事实仍以 `AtomicResult` 四类 map 和 `DmsTrack::Update -> updateBodyTracks -> updateFaceTracks -> updateHandTracks` 为核心，对外仍提供 `body / face / left_hand / right_hand` 跟踪结果。
-Tracking 当前推荐下一阶段实现主线为 head-first 渐进方案：driver identity 优先由 head/face track 决定；body 降级为 5m 场景下的 driver body/torso evidence；hand 只在 driver head-bound body/torso 或业务搜索区域内关联；2m 或 face/head only 模式默认关闭 body/hand 链路。
-下一阶段若实现 head-first，必须读取 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪方案]] 与 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪实现]]；current 组只保留当前事实、推荐主线和实现边界，不替代完整设计与实现文档。
+Tracking 当前代码事实以 `AtomicResult` 四类 map 和 `DmsTrack::Update -> updateFaceTracks -> selectDriverHead -> updateBodyTracks -> updateHandTracks` 为核心，对外仍提供 `body / face / left_hand / right_hand` 跟踪结果。
+Tracking 当前已完成 head-first 第一轮实现：driver identity 由 head/face track 决定；body 降级为 head-owned body/torso evidence；hand 只在 driver head-bound body evidence 下输出；四类 legacy map ABI 保持不变。
+后续若继续优化 head-first，必须读取 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪方案]] 与 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪实现]]；current 组记录当前事实、推荐主线和实现边界，不替代完整设计与实现文档。
 当前文档入口已经从 baseline + 多篇 delta 切换为本组 current 文档；历史记录只保留为证据和决策来源，不再承担默认当前态入口职责。
 当前实现输入链也已从历史补丁式恢复切换为 `design_current + spec_current + implementation_current + validation_current`。
 
@@ -142,8 +142,8 @@ Tracking 当前推荐下一阶段实现主线为 head-first 渐进方案：drive
 
 - 本模块负责：检测结果关联、轨迹生命周期、人员类型稳定判定、face/hand 与 body 的关联和输出。
 - 本模块不负责：新增检测器能力、运行时效果验收、下游业务判决逻辑。
-- 当前仍存在的开放问题集中在验证与输出唯一性边界，而不是主框架缺失。
-- 当前推荐主线与当前代码事实必须分开表达：head-first 是下一阶段实现依据，不是已经落地的代码事实。
+- 当前仍存在的开放问题集中在运行验证、2m/5m runtime profile、callback/fusion 同 key 消费确认和输出唯一性边界，而不是 head-first 主框架缺失。
+- 当前推荐主线与当前代码事实必须分开表达：head-first 第一轮已落地并通过本地编译，但不是运行效果已验收。
 - `tracking_interfaces_evidence` 不再承担默认输入职责，只作为接口边界的辅助证据。
 
 ## 0.5 Current Document Roles
@@ -186,10 +186,10 @@ Tracking 当前推荐下一阶段实现主线为 head-first 渐进方案：drive
 
 ## 0.7 Known Gaps
 
-- 当前未新增本轮编译或运行时回放验证，验证结论以既有记录和代码静态读取为主。
+- 当前新增了本地编译验证，最终 `[100%] Built target sdk`；未新增板端或运行时回放验证。
 - face / left_hand / right_hand 的区域级最终唯一输出，仍不能被当前代码静态证据完全证明为已闭合。
 - ID 连续性仍缺少运行时证据。
-- head-first 方案尚未实现；2m/5m profile 分流、driver head-first selection、head-bound body/torso 与 hand owner 仍需后续代码和回放验证。
+- head-first 第一轮已实现并通过本地编译；2m/5m profile 分流、板端/视频回放、callback/fusion 同 key 消费和 hand owner 运行日志仍需后续验证或实现。
 - OccupantTrack 不作为后续默认路线；未来 hand 增强优先验证 HumanPose-assisted hand association。
 
 ## 0.8 Historical Mapping

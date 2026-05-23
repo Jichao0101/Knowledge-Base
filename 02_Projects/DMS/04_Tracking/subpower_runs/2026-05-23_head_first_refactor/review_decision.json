@@ -1,0 +1,18 @@
+{
+  "date": "2026-05-23",
+  "review_type": "static_code_review",
+  "decision": "pass_with_risks",
+  "passed_checks": [
+    "No independent body trackId allocation remains in DmsTrack.",
+    "Body evidence state is keyed by head trackId.",
+    "Body reacquisition and initial acquisition share the same head-to-body candidate evaluation path.",
+    "Driver head selection rejects small faces and front-passenger ROI candidates before scoring.",
+    "Size continuity is weighted above position loss for driver head selection."
+  ],
+  "risks": [
+    "No board validation or replay evidence was collected in this run.",
+    "Head selection still relies on face bbox geometry rather than later head pose or landmark evidence.",
+    "Legacy callback/fusion consumers still need runtime confirmation with same-key body/face/hand maps.",
+    "Hand evidence is restricted to driver-owned body evidence in this implementation."
+  ]
+}

@@ -1,6 +1,6 @@
 ---
 title: Tracking Implementation Current
-summary: Tracking 当前实现文档，记录 body-first 代码事实、关键状态载体、兼容层与未闭合点；head-first 为下一阶段目标，尚未在代码中实现。
+summary: Tracking 当前实现文档，记录 2026-05-23 后 head-first 第一轮代码事实、关键状态载体、兼容层与未闭合点。
 status: verified
 doc_role: current
 truth_role: current
@@ -40,24 +40,40 @@ sources:
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪方案.md
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪实现.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first跟踪代码重构闭环记录-2026-05-23.md
 scope: 适用于恢复当前 Tracking 在代码中的主要实现结构、接口事实与行为，不覆盖全部调试历史。
 risks:
-  - 本文档基于代码静态读取与 2026-05-08 本地编译/板端日志证据恢复当前实现；仍不等价于完整代表性样本集验收。
-updated_at: 2026-05-13
+  - 本文档基于代码静态读取与 2026-05-23 本地编译证据恢复当前实现；仍不等价于完整代表性样本集验收。
+  - 2026-05-23 head-first 重构未做板端验证或视频回放。
+updated_at: 2026-05-23
 ---
+
+## 0.0 2026-05-23 Head-first Current Delta
+
+- 当前 `DmsTrack::Update` 顺序已变更为：
+  1. 清空 `m_bodyTrackResultMap / m_faceTrackResultMap / m_leftHandTrackResultMap / m_rightHandTrackResultMap`
+  2. `updateFaceTracks`
+  3. `selectDriverHead`
+  4. publish face/head map
+  5. `updateBodyTracks`
+  6. `updateHandTracks`
+- `trackId` ownership 已收敛到 head/face：`allocateBodyTrackId` 和 `m_nextBodyTrackId` 已删除，新增 `allocateFaceTrackId` 与 `m_nextFaceTrackId`。
+- `m_bodyTracks` 当前以 head trackId 为 key；body/torso 是 head-owned evidence，不再独立创建 identity id。
+- `updateBodyTracks` 当前由 head 发起 body evidence matching：已有 evidence 先做 body motion tracking match，失败后和新 head 一样按 `FaceBelongsToBody + FaceAnchorLoss` 获取 body candidate。
+- `m_bodyTrackResultMap` 仍作为 legacy body map 输出，但 key 使用 head trackId。
+- `m_bodyHandTracks` 的 legacy 变量名仍包含 bodyId；当前语义应理解为 head-owned body evidence id，即 head trackId。
+- driver head 选择由 `selectDriverHead` 完成：small face、front passenger ROI、尺寸突变优先过滤，size continuity 权重大于 position loss。
+- 本地编译 `bash scripts/compile_j6b.sh` 已通过，最终 `[100%] Built target sdk`。
+- 未完成板端验证、视频回放和 callback/fusion 同 key 行为运行确认。
 
 ## 0.1 Core Entry
 
 - 入口类：`UtilsDomain::DmsTrack`
 - 主要入口函数：`Init`、`Update`
-- 每帧更新顺序固定为：
-  1. 清空 `m_bodyTrackResultMap / m_faceTrackResultMap / m_leftHandTrackResultMap / m_rightHandTrackResultMap`
-  2. `updateBodyTracks`
-  3. `updateFaceTracks`
-  4. `updateHandTracks`
+- 每帧更新顺序固定为 `head/face -> driver head selection -> body evidence -> hand evidence`。
 - 配置入口固定从 `/home/jichao/dms/etc/track_params.json` 读取，并先应用 `DEFAULT`，再按车型节点覆盖。
-- 代码尚未实现 head-first driver selection、2m/5m 运行时模式选择、head-bound body/torso 或 hand owner source 日志。
-- head-first 代码实现前必须读取 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪方案]] 与 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪实现]]；本文只记录当前实现事实。
+- 代码已实现 head-first driver selection 与 head-bound body/torso evidence；尚未实现 2m/5m 运行时模式选择，也未完成 hand owner source 的运行日志验证。
+- head-first 设计和实现细节见 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪方案]] 与 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪实现]]；本文记录当前实现事实。
 
 ## 0.2 Current State Containers
 
@@ -99,39 +115,39 @@ updated_at: 2026-05-13
 
 - 人员类型投票与稳定解析 -> `AccumulatePersonVote` / `ResolveStablePersonType`
 - 配置读取与 `DEFAULT` / 车型覆盖 -> `loadConfigFromJson`
-- body id 分配 -> `allocateBodyTrackId`
-- body 主流程 -> `updateBodyTracks`
-- face orphan 清理 / fallback / driver small-face filtering / initialized-face continuity gate -> `updateFaceTracks`
+- head/face id 分配 -> `allocateFaceTrackId`
+- driver head 选择 -> `selectDriverHead`
+- head-owned body evidence 主流程 -> `updateBodyTracks`
+- face/head 常规匹配、driver small-face filtering、face continuity gate -> `updateFaceTracks`
 - hand 左右槽位、second pass、miss 不输出策略 -> `updateHandTracks`
 - 统一输出 sanitize/clamp 与非法框过滤 -> `SanitizeDetectBoxToImage` / `PublishSanitizedTrack`
 - 导出兼容层 -> `fuse_algorithm.cpp`、`handpose_model.cpp`、`humanpose_model.cpp`
 - 预测残留抑制 -> body / face / hand 命中更新路径中的 detection-dominant update 与 motion-state 重建点；实现上落在各自命中更新分支，而不是独立的统一导出层
-- 2m 宽 body 下 head 误绑定抑制 -> `PassFaceTrackContinuityGate`、`continuityRejectedFaceTracks`、driver second-pass strict gate
-- head-first 主线 -> 尚未实现；当前只存在局部 face continuity 防护。
+- 2m 宽 body 下 head 误绑定抑制 -> face match 中的 size continuity、distance gate、driver head small-face/front-passenger reject
+- head-first 主线 -> 已完成第一轮实现；当前证据为静态分析和本地编译。
 
 ## 0.5 Matching And Lifecycle
 
 ### 0.5.1 body
 
-- body 使用扩展方阵 + 匈牙利匹配。
-- 真实匹配代价高于 `dummyLoss` 时，倾向于“不匹配”。
-- 新 body 通过 `allocateBodyTrackId` 分配 id。
-- body 匹配仍使用预测框参与关联；命中检测后的更新不再完全沿校正后的滤波框输出，而是用检测主导融合，并在明显反向/过冲时抑制旧速度残留。
+- body/torso 不再独立分配 id；`m_bodyTracks` 以 head trackId 为 key。
+- `updateBodyTracks` 先遍历当前有效 head，driver head 优先。
+- 已有 body evidence 的 head 先使用 body 预测框和 body detection 做常规 tracking match；真实匹配代价高于 `dummyLoss` 时拒绝。
+- 常规 tracking match 失败或当前 head 尚未绑定 body 时，使用当前 head 几何区域做 acquisition，候选评估为 `FaceBelongsToBody + FaceAnchorLoss`。
+- 命中的 body detection 写回 `m_bodyTracks[headId]`，并以同一 headId 发布到 `m_bodyTrackResultMap`。
 
 ### 0.5.2 face
 
-- face 在 body 邻域内优先匹配。
-- 若已有 face 轨迹，优先按预测框与检测框匹配。
-- 已有 face 轨迹在 first pass 中必须通过 `PassFaceTrackContinuityGate`：driver 相关绑定使用 `distanceLoss <= 0.45`，其他绑定使用 `distanceLoss <= 0.65`，且总分必须小于 face `dummyLoss`。
-- 被 first pass 连续性门控明确拒绝的 face track 会记录到 `continuityRejectedFaceTracks`，同帧 second pass 不再允许其绕回匹配。
-- 若没有当前 body 命中，也会对未匹配 face 做全局二次匹配。
-- second pass 不是纯 orphan 策略：它同时覆盖 true orphan face 和 body 仍存在但 first pass 未命中的 face 自维持；其中 driver face 使用与 true orphan 相同的严格 `0.45` distance gate。
-- face 命中检测后，输出框完全使用检测框；若出现明显反向/过冲，则重建 CV state，避免下一帧继续沿旧方向外推。
+- face/head 不再依附 body 邻域启动，而是先于 body evidence 更新。
+- 已有 face 轨迹按预测框与 face detection 做匈牙利匹配。
+- face 匹配损失综合 IoU、距离和 size continuity；driver 相关使用更严格的 `distanceLoss <= 0.45`，其他为 `0.65`，且总分必须小于 face `dummyLoss`。
+- 未匹配 face detection 通过 `allocateFaceTrackId` 创建新的 head/face track。
+- face 命中后更新 CV state、hit/miss 和 person type vote；driver identity 的最终发布由 `selectDriverHead` 覆盖。
 
 ### 0.5.3 hand
 
-- hand 先按 body 局部候选与左右槽位做一次分配。
-- 之后对未匹配槽位做 second pass 全局匹配。
+- hand 先按 driver head-owned body evidence 局部候选与左右槽位做一次分配。
+- 之后对未匹配槽位做 second pass，但仍必须受当前 owner body evidence 几何约束。
 - hand miss 时只推进内部 miss 生命周期，不再把 `predBox` 推进到对外输出框。
 - hand / face / body 现在统一按命中门限决定是否允许对外输出；hand 不再保留短 miss window 输出。
 - hand 命中检测后，输出框完全使用检测框；miss 路径不再向下游输出预测框。
@@ -139,20 +155,20 @@ updated_at: 2026-05-13
 
 ## 0.6 Current Implementation Constraints
 
-- face / hand 的 key 语义仍围绕 `bodyId` 建模，说明当前代码仍以 body 为统一身份锚点。
-- 该 bodyId/key 语义是当前代码事实和 legacy ABI 兼容边界，不再代表下一阶段推荐身份主线。
+- face / body / hand 对外仍使用 legacy 四类 map，但同一 occupant 的 key 现在来源于 head trackId。
+- hand 代码中的 legacy 变量名仍包含 `bodyId`；当前语义应理解为 head-owned body evidence id，不代表 body identity owner。
 - retired body 只作为 handoff 和 orphan child 清理的历史锚点，不直接对外输出。
-- 当前实现为了保留解耦 child，会有 face / hand 兜底输出路径；face second pass 已对 driver 相关重绑定做连续性门控，但区域级唯一性仍未完全闭合。
+- 当前实现保留 head/hand 的内部连续性；hand 对外输出 key 已收敛为当前 driver head-owned body evidence id，但区域级唯一性仍需运行验证。
 - `m_humanTrackResultMap` 只在导出层作为 body 兼容映射，不是 tracking 上游事实源。
 - 当前实现并未把 `tracking_interfaces_evidence` 提升为默认实现输入；其接口事实已经并入本文件和 spec。
 - 仓内存在 `track_params_2m.json`，但当前 `loadConfigFromJson` 固定读取 `track_params.json`，尚未实现显式 2m/5m profile 选择。
 
 ## 0.7 Known Gaps
 
-- 代码里存在“body 关联最佳 child + orphan child fallback 输出”的双路径。
+- 代码里仍存在 hand slot 内部 fallback 输出路径，但输出 key 已要求回到当前 driver head-owned body evidence id。
 - 运行级验证仍待补。
 - 仅靠本文件和 code facts 可以恢复当前实现框架，但不能把运行级区域唯一性当成已闭合结论。
-- head-first 仍是未实现目标；任何后续实现前必须保持“代码事实”和“推荐主线”分离。
+- head-first 第一轮已实现并本地编译通过；任何后续优化仍必须保持“代码事实”和“运行效果验证”分离。
 - HumanPose 当前由 driver body map 触发并产出 `m_humanPoseResult`；这不是 OccupantTrack，也不是 person/part 状态层。
 
 ## 0.8 Historical Mapping

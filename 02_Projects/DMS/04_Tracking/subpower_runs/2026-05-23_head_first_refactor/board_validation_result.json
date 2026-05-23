@@ -1,0 +1,15 @@
+{
+  "date": "2026-05-23",
+  "required": false,
+  "executed": false,
+  "reason": "User boundary explicitly excluded board validation for this run.",
+  "local_validation": {
+    "command": "bash scripts/compile_j6b.sh",
+    "result": "passed"
+  },
+  "next_recommended_validation": [
+    "2m replay with rear-seat and passenger probe head interference inside driver ROI.",
+    "5m replay with driver head-bound body/torso evidence and hand owner stability.",
+    "Callback/fusion check for same-key face/body/hand legacy map consumption."
+  ]
+}
