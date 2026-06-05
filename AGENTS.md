@@ -17,7 +17,7 @@
 - plugin 启动与路由规则
 - 代码执行链调度
 
-这些运行治理要求应由 cutepower 或对应 workflow plugin 负责。
+这些运行治理要求不由本文件规定。
 
 ---
 
@@ -85,7 +85,7 @@
 - 可以请求补充授权范围
 - 不得擅自扩大读取范围
 
-是否允许在无授权下进行任务画像、route_resolution 或 intake，由运行时 workflow/plugin 决定，不由本文件规定。
+是否允许在无授权下进行任务画像、route_resolution 或 intake，不由本文件规定。
 
 ---
 ## 0.5 Runtime discovery exception
@@ -105,18 +105,14 @@
 - 若要把其中内容作为知识上下文引用，仍需满足知识访问授权规则
 - 不得因此扩大为对整个用户目录的自由读取
 
-### 0.5.1 Current 文档组维护入口
-维护项目区 current 文档组时，默认先按 lifecycle 规则识别 creation / hardening_refactor / patch / rewrite 场景。
+### 0.5.1 Current 文档组硬约束
+维护项目区 current 文档组时：
 
-Hard stop：
-- 不得默认 full rewrite current 文档组
-- 不得把已删除的三侧同步规范作为 active dependency
-- 不得在未完成 recoverability verification 时新增或保留 `single_pass_recoverable: true`
-
-完整机制参见：
-- `01_Knowledge/Agent Workflow/Current文档组生命周期维护与可恢复性规则.md`
-
-本节只作为入口级 thin bridge，不复制 current 维护流程、review/writeback 规则或运行治理规则。
+- 不得默认整组重写 current 文档组。
+- 不得把历史记录、运行工件、baseline 或 delta 文件直接当作当前事实源。
+- 不得把已删除或失效的同步规范作为 active dependency。
+- 未完成独立 recoverability verification 时，不得新增或保留 `single_pass_recoverable: true`。
+- 涉及 current 入口、事实源、状态或 recoverability 变化时，必须同步更新对应 `overview_current`、项目总览和结构审计记录。
 
 ---
 

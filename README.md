@@ -40,13 +40,10 @@ updated_at: 2026-06-05
 | subpower | [[02_Projects/subpower/subpower_architecture_blueprint_current]] | subagent-first 三侧协作流程、架构蓝图和实现记录 |
 | codex capability registry | [[02_Projects/codex-capability-registry/Codex plugin skill 集中注册与迁移方案]] | Codex plugin/skill 集中注册、迁移、runtime link 和版本锁定 |
 
-## 1.4 读取规则
+## 1.4 入口说明
 
-1. 找正式知识时，先进入 `01_Knowledge` 对应主题入口。
-2. 找项目当前状态时，先进入项目总览，再进入模块 `overview_current`。
-3. 找外部资料或待整理内容时，先进入 [[03_Inbox/候选内容索引]] 和 `04_Sources`。
-4. `Current Maintenance Records`、历史方案、运行工件只作为证据或追溯材料，不默认承担当前入口职责。
+本文件只提供入口分流。目录访问、写入分层、正式知识提升和外部信息入库约束以 [[AGENTS]] 为准。
 
 ## 1.5 结构维护
 
-结构状态、current 标准化进度和待修复项统一记录在 [[02_Projects/Knowledge-Base/知识库结构审计_current]]。
+结构状态和待修复项记录在 [[02_Projects/Knowledge-Base/知识库结构审计_current]]。
