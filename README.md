@@ -26,19 +26,19 @@ updated_at: 2026-06-05
 | Agent Workflow | [[01_Knowledge/Agent Workflow/Agent Workflow总览]] |
 | 模型工程总览 | [[01_Knowledge/模型/模型知识总览]] |
 | J6 工具链 | [[01_Knowledge/模型/工具与平台/J6工具链/总览]] |
-| 多模态大模型 | [[01_Knowledge/多模态大模型/多模态大模型系统]] |
-| 通信技术 | [[01_Knowledge/通信技术/车载系统通信]] |
+| 多模态大模型 | [[01_Knowledge/多模态大模型/多模态大模型知识总览]] |
+| 通信技术 | [[01_Knowledge/通信技术/通信技术知识总览]] |
 | C++ | [[01_Knowledge/C++/C++知识总览]] |
-| Apollo | [[01_Knowledge/Apollo/Apollo]] |
+| Apollo | [[01_Knowledge/Apollo/Apollo知识总览]] |
 
 ## 1.3 项目导航
 
-| 项目 | 入口 | 状态说明 |
+| 项目 | 入口 | 内容简介 |
 |---|---|---|
-| DMS | [[02_Projects/DMS/DMS项目总览]] | 已建立模块级入口索引；部分模块 current 未完成 recoverability verification |
-| cutepower | [[02_Projects/cutepower/cutepower_overview_current]] | current 文档组已存在 |
-| subpower | [[02_Projects/subpower/subpower_architecture_blueprint_current]] | current/implementation records 已存在 |
-| codex capability registry | [[02_Projects/codex-capability-registry/Codex plugin skill 集中注册与迁移方案]] | 单主题项目记录 |
+| DMS | [[02_Projects/DMS/DMS项目总览]] | DMS 算法、SDK、训练、后处理、状态机、FaceID 与 EyeStatus 项目资料 |
+| cutepower | [[02_Projects/cutepower/cutepower_overview_current]] | Agent workflow 治理插件、contracts-first 路由、runtime gate 与 writeback 规则 |
+| subpower | [[02_Projects/subpower/subpower_architecture_blueprint_current]] | subagent-first 三侧协作流程、架构蓝图和实现记录 |
+| codex capability registry | [[02_Projects/codex-capability-registry/Codex plugin skill 集中注册与迁移方案]] | Codex plugin/skill 集中注册、迁移、runtime link 和版本锁定 |
 
 ## 1.4 读取规则
 
@@ -47,8 +47,6 @@ updated_at: 2026-06-05
 3. 找外部资料或待整理内容时，先进入 [[03_Inbox/候选内容索引]] 和 `04_Sources`。
 4. `Current Maintenance Records`、历史方案、运行工件只作为证据或追溯材料，不默认承担当前入口职责。
 
-## 1.5 当前结构风险
+## 1.5 结构维护
 
-- 正式知识中仍有部分旧笔记缺少统一 frontmatter。
-- 项目区 current 文档组成熟度不一致，不能把所有 `*_current.md` 都等同为已完成可恢复性验证。
-- 候选区部分外部资料已提升到正式知识，但候选原文仍保留，需要依赖候选索引判断状态。
+结构状态、current 标准化进度和待修复项统一记录在 [[02_Projects/Knowledge-Base/知识库结构审计_current]]。

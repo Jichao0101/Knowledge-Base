@@ -2,7 +2,7 @@
 type: project_entry
 status: active
 project: DMS
-scope: DMS 项目区模块入口索引；只负责导航和当前结构状态说明，不替代各模块 current 文档。
+scope: DMS 项目区模块入口索引；只负责导航和内容简介，不替代各模块 current 文档。
 updated_at: 2026-06-05
 ---
 
@@ -12,16 +12,16 @@ updated_at: 2026-06-05
 
 ## 1.1 模块入口
 
-| 模块 | 默认入口 | current 状态 | 说明 |
+| 模块 | 默认入口 | 内容简介 | 读取提示 |
 |---|---|---|---|
-| Tracking | [[02_Projects/DMS/04_Tracking/tracking_overview_current]] | verified / partial recoverability | 已建立完整 current 文档组和默认恢复顺序 |
-| SDK Integration | [[02_Projects/DMS/06_SDK_Integration/sdk_overview_current]] | draft / created_but_not_fully_verified | 已建立 current 文档组，尚未完成运行态验证 |
-| EyeStatus | [[02_Projects/DMS/08_EyeStatus/eyestatus_overview_current]] | draft_verified_project / single_pass_recoverable=false | 已建立 current 文档组，尚未完成独立可恢复性验证 |
-| FaceID | [[02_Projects/DMS/09_FaceID/overview_current]] | verified / partial recoverability | 已有 current 文件组、默认读取顺序和 recoverability 缺口说明 |
-| Model Training | [[02_Projects/DMS/03_Model_Training/模型训练模块索引]] | module index / no current group | 已补模块索引，尚未形成标准 current 文档组 |
-| Postprocess | [[02_Projects/DMS/05_Postprocess/后处理模块索引]] | module index / no current group | 已补模块索引，尚未形成标准 current 文档组 |
-| State Machine | [[02_Projects/DMS/07_State_Machine/状态机模块索引]] | module index / no current group | 已补模块索引，尚未形成标准 current 文档组 |
-| Vehicle Config | [[02_Projects/DMS/2026-06-02-车型配置增量读取与双路径车型来源]] | single record | 单次增量记录 |
+| Tracking | [[02_Projects/DMS/04_Tracking/tracking_overview_current]] | 多目标跟踪、head-first 身份主线、body/face/hand 关联和验证边界 | 按 current 恢复顺序读取 |
+| SDK Integration | [[02_Projects/DMS/06_SDK_Integration/sdk_overview_current]] | SDK 两条使用路径、动态库接口、回灌入口、Pipeline/Fuse 和硬件加速落点 | 按 current 恢复顺序读取 |
+| EyeStatus | [[02_Projects/DMS/08_EyeStatus/eyestatus_overview_current]] | 睁闭眼模型部署态、眼部 crop、VP resize、推理输出和验证证据 | 按 current 恢复顺序读取 |
+| FaceID | [[02_Projects/DMS/09_FaceID/overview_current]] | A 核 FaceID 录入、登录、解绑、删除、check、恢复出厂设置和本地特征库 | 按 current 恢复顺序读取 |
+| Model Training | [[02_Projects/DMS/03_Model_Training/model_training_overview_current]] | 睁闭眼数据构建、输入生成、训练配置、对照实验和增量更新链路 | 按 current 恢复顺序读取 |
+| Postprocess | [[02_Projects/DMS/05_Postprocess/后处理模块索引]] | 疲劳驾驶监测后处理、闭眼/哈欠规则、报警条件和头姿兜底修复 | 先读模块索引 |
+| State Machine | [[02_Projects/DMS/07_State_Machine/状态机模块索引]] | 事件状态机、报警条件、测试方案和测试 TP | 先读模块索引 |
+| Vehicle Config | [[02_Projects/DMS/2026-06-02-车型配置增量读取与双路径车型来源]] | 车型配置增量读取、双路径车型来源和配置兼容记录 | 单记录入口 |
 
 ## 1.2 推荐读取顺序
 
@@ -33,17 +33,6 @@ updated_at: 2026-06-05
 4. 若模块没有 current 文档组，只读取与任务直接相关的方案、实验或记录文件。
 5. `Current Maintenance Records` 仅用于追溯具体修复、验证、review 和 writeback 决策。
 
-## 1.3 current 文档组覆盖情况
+## 1.3 结构维护
 
-| 状态 | 模块 |
-|---|---|
-| current 组较完整 | Tracking |
-| current 组已创建但未完全验证 | SDK Integration, EyeStatus |
-| current 组已有默认入口但仍是 partial recoverability | FaceID |
-| 已补模块索引但尚未标准化为 current 组 | Model Training, Postprocess, State Machine |
-
-## 1.4 待修复项
-
-1. 判断 Model Training 是否需要 current creation；该目录内容量大且包含增量更新规则、实验记录和训练方案。
-2. 判断 Postprocess、State Machine 是否只需保留项目记录，还是需要模块级 current 文档组。
-3. 把后续新增记录写入对应模块入口或 `Current Maintenance Records`，避免继续在模块根目录堆叠无入口记录。
+DMS current 覆盖情况、模块索引状态和待修复项记录在 [[02_Projects/Knowledge-Base/知识库结构审计_current]]。

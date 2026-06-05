@@ -6,11 +6,11 @@ scope: Agent Workflow 正式知识入口；用于主题分流，不替代具体�
 updated_at: 2026-06-05
 ---
 
-# Agent Workflow 总览
+# 1 Agent Workflow 总览
 
 本主题收录 agent 工程化、workflow/plugin 治理、current 文档组维护、知识升格和运行边界相关的正式知识。
 
-## 1 入口分组
+## 1.1 入口分组
 
 | 分组 | 条目 | 用途 |
 |---|---|---|
@@ -22,13 +22,13 @@ updated_at: 2026-06-05
 | 生产级 Agent | [[01_Knowledge/Agent Workflow/生产级Agent的可控设计模式]] | 控制流、状态、工具接口、人类审批和可恢复设计 |
 | Human layer | [[01_Knowledge/Agent Workflow/Human layer 的合理性与边界]] | 人类确认层的适用范围与边界 |
 
-## 2 使用边界
+## 1.2 使用边界
 
 - 本主题只沉淀可复用知识，不替代具体 plugin/runtime contract。
 - 具体项目执行记录应留在 `02_Projects`。
 - 外部 agent 方法论应先进入 `03_Inbox` 或 `04_Sources`，审核后再提升。
 
-## 3 待结构化项
+## 1.3 待结构化项
 
 - 后续需要核验本主题新增条目的互相引用，避免重复定义运行治理。
 - 若从候选区继续提升 HumanLayer 相关内容，应同步更新本索引和候选索引。

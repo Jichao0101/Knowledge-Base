@@ -54,10 +54,25 @@
 读取本地内容时，只能读取已授权目录。
 
 默认读取顺序建议为：
-1. 当前任务直接相关的 `02_Projects/...`
-2. 已授权的 `01_Knowledge/...`
-3. 已授权的 `04_Sources/...`
-4. 必要时读取已授权的 `03_Inbox/...`
+1. 若存在对应总览、项目入口、模块入口或 `overview_current`，先读取入口文件确认默认读取顺序和当前事实源。
+2. 当前任务直接相关的 `02_Projects/...`
+3. 已授权的 `01_Knowledge/...`
+4. 已授权的 `04_Sources/...`
+5. 必要时读取已授权的 `03_Inbox/...`
+
+常用入口：
+- 全库入口：`README.md`
+- 正式知识入口：`01_Knowledge/知识总览.md`
+- 项目区入口：`02_Projects/项目总览.md`
+- DMS 项目入口：`02_Projects/DMS/DMS项目总览.md`
+- 候选区入口：`03_Inbox/候选内容索引.md`
+- 来源区入口：`04_Sources/来源索引.md`
+- 结构审计入口：`02_Projects/Knowledge-Base/知识库结构审计_current.md`
+
+若任务命中某个项目模块，且该模块存在 `*_overview_current.md` 或 `overview_current.md`：
+- 默认先读 overview/current 入口
+- 再按入口文件列出的恢复顺序读取 design/spec/implementation/validation 或补充来源
+- 不从历史记录、运行工件、baseline 或 delta 文件直接开始，除非任务明确要求追溯历史
 
 若某目录未被授权：
 - 不得读取
@@ -150,6 +165,18 @@ Hard stop：
 - PDF阅读笔记
 - 外部来源证据卡片
 - 需要保留原始出处的信息整理
+
+### 0.6.5 Entry and overview sync
+涉及新增、移动、重命名、删除或改变当前事实源的写入，必须同步维护相应入口：
+
+- 新增正式知识：更新 `01_Knowledge/知识总览.md` 或对应主题总览。
+- 新增项目或项目模块：更新 `02_Projects/项目总览.md`、项目总览或模块索引。
+- 新增/维护 current 文档组：更新模块 `overview_current`、项目总览和必要的结构审计记录。
+- 新增候选内容：更新 `03_Inbox/候选内容索引.md`。
+- 新增来源证据卡：更新 `04_Sources/来源索引.md`。
+- 改变 current 标准化状态、recoverability 状态或总览结构策略：更新 `02_Projects/Knowledge-Base/知识库结构审计_current.md` 或后续结构审计记录。
+
+若只做正文内的小修订，且不改变入口、状态、范围或事实源，可不更新总览；但结束时应说明未同步总览的理由。
 
 ---
 
