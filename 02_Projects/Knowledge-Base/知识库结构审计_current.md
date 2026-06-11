@@ -2,7 +2,7 @@
 type: structure_audit
 status: active
 scope: 记录知识库结构化、current 标准化、总览内容化的当前迁移状态；不作为具体主题事实源。
-updated_at: 2026-06-05
+updated_at: 2026-06-11
 supersedes:
   - 02_Projects/Knowledge-Base/知识库结构审计-2026-06-05.md
 ---
@@ -61,3 +61,25 @@ supersedes:
 - Model Training current 组已创建，但尚未完成独立 recoverability verification。
 - FaceID、EyeStatus、SDK Integration 的 recoverability verification 尚未完成。
 - Postprocess、State Machine 是否 current 化尚未决策。
+
+## 7 2026-06-09 Tracking current 增量维护记录
+
+- 因 DmsTrack 首轮内部可读性重构改变了当前实现事实和验证状态，已局部更新：
+  - `tracking_overview_current.md`
+  - `tracking_implementation_current.md`
+  - `tracking_validation_current.md`
+  - `DMS项目总览.md`
+  - 对应 Current Maintenance Record
+- 未整组重写 current 文档；`tracking_design_current.md` 与 `tracking_spec_current.md` 未修改，因为设计目标、算法契约和 public API 没有变化。
+- Tracking 默认入口、默认恢复顺序和 default recovery bundle 未变化。
+- `recoverability_status` 仍为 `partial`；未新增或保留 `single_pass_recoverable: true` 声明。
+- 新增证据为 patch check、J6B 编译和独立 repo review；runtime replay 与单元测试未执行，板端验证按本次任务边界为 not required。
+- 同日继续局部同步 Hand Phase 4A：仅更新 Tracking overview/implementation/validation、维护记录和 DMS 总览；design/spec、默认入口、恢复顺序与 `recoverability_status: partial` 均未变化。
+
+## 8 2026-06-11 Tracking current 增量维护记录
+
+- 因 sentinel、ID 生命周期语义和 Body/Hand 阶段组织成为新的当前实现事实，已同步更新 Tracking 五份 current 文档、DMS 项目总览和本结构审计。
+- 本轮未整组重写正文；design/spec 仅补充 `bodyId / handId` 初始继承 face key、但 body/hand 生命周期独立的边界，以及 hand 发布仍依赖当前 DRIVER body evidence 的约束。
+- Tracking 默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
+- 证据为 `git diff --check`、J6B 编译、独立 repo review `approved` 和 verification-manager `conditional_pass`；runtime replay 与单元测试未执行，板端验证为 not required。
+- 未新增或保留 `single_pass_recoverable: true` 声明。

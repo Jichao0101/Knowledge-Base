@@ -1,6 +1,6 @@
 ---
 title: Tracking Implementation Current
-summary: Tracking 当前实现文档，记录 2026-05-23 后 head-first 第一轮代码事实、关键状态载体、兼容层与未闭合点。
+summary: Tracking 当前实现文档，记录 head-first 第一轮代码事实、2026-06-09 DmsTrack 内部可读性重构、关键状态载体、兼容层与未闭合点。
 status: verified
 doc_role: current
 truth_role: current
@@ -41,12 +41,34 @@ sources:
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪方案.md
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪实现.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first跟踪代码重构闭环记录-2026-05-23.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack内部结构与可读性重构分析-2026-06-08.md
 scope: 适用于恢复当前 Tracking 在代码中的主要实现结构、接口事实与行为，不覆盖全部调试历史。
 risks:
   - 本文档基于代码静态读取与 2026-05-23 本地编译证据恢复当前实现；仍不等价于完整代表性样本集验收。
   - 2026-05-23 head-first 重构未做板端验证或视频回放。
-updated_at: 2026-05-23
+updated_at: 2026-06-11
 ---
+
+## 0.0.2 2026-06-11 Sentinel、ID 与阶段语义收敛
+
+- 代码变更仍只涉及 `/home/jichao/dms/include/utils/track.h` 和 `/home/jichao/dms/source/utils/track.cpp`。
+- `DmsTrack::Init()`、`DmsTrack::Update()`、`SolveAssignment()`、`hungarian()` 和四类 legacy map 接口未变化；public header 中既有 `INF` 保留，避免仓外源码兼容风险。
+- sentinel 已按概念拆分：invalid track id、unmatched index、forbidden assignment cost、absent diagnostic loss 不再依赖含混的裸 `-1` 或 max-float 语义。
+- Body 主流程显式为 `collect -> predict -> assign -> apply -> advance/retire -> publish`。
+- Hand 主流程显式为 `collect/allowed -> predict -> build slots -> assign -> apply hits -> advance misses -> cleanup/reset/erase -> publish -> retired-anchor cleanup`。
+- `bodyId / handId` 初始继承 `faceId` 数值与 map key，但 body、hand 各自维护生命周期；face 消失后 body retired state 或 hand state 可保留原始继承 id。hand 发布条件未放宽，仍要求当前已发布的 DRIVER body evidence。
+- 本轮保持 assignment cost、遍历顺序、left-before-right、hit/miss 推进、日志 stage tag、sanitize 和发布语义不变。
+
+## 0.0.1 2026-06-09 Internal Readability Refactor Delta
+
+- 本轮代码变更仅限 `/home/jichao/dms/include/utils/track.h` 和 `/home/jichao/dms/source/utils/track.cpp`。
+- `DmsTrack::Init()`、`DmsTrack::Update()` 和 public-facing tracker 接口未变化。
+- 帧级 `face update -> driver selection -> face publish -> body update -> hand update` 顺序未变化。
+- `Update` 的 face 角色修正/发布、`updateFaceTracks` 的检测/预测/匹配/bootstrap/lifecycle、`updateBodyTracks` 的 owner/body assignment/apply/retire/publish 已拆为 private helper，使主流程只保留阶段编排。
+- Face / Body / Hand 的统一 assignment helper 只负责矩阵扩展、dummy 边和结果解析，Body 不再维持顺序 greedy。
+- Hand 已从 first/second pass 收敛为单次 slot assignment；left/right slot、owner bodyId、prediction、cleanup、empty-owner erase、publish 和 retired-anchor cleanup 仍由 private helper 维护。
+- 独立 review 结论为 `approved`；`git diff --check` 和 QNX 编译通过。未执行 runtime replay、单元测试或板端验证。
+- 后续注释治理补充轮为新增统一 assignment helper 与 Body/Hand 相关 private helper 增加了中文契约注释，明确 owner/bodyId/key、哨兵值、顺序不变量和状态副作用；未做重命名，剥离注释后代码 token 不变。
 
 ## 0.0 2026-05-23 Head-first Current Delta
 
@@ -165,6 +187,7 @@ updated_at: 2026-05-23
 
 ## 0.7 Known Gaps
 
+- 2026-06-09 内部可读性重构已有编译、patch check 和独立 review 证据，但未用 replay 或单元测试执行多帧运行等价验证。
 - 代码里仍存在 hand slot 内部 fallback 输出路径，但输出 key 已要求回到当前 driver head-owned body evidence id。
 - 运行级验证仍待补。
 - 仅靠本文件和 code facts 可以恢复当前实现框架，但不能把运行级区域唯一性当成已闭合结论。

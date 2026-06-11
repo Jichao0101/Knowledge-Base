@@ -1,6 +1,6 @@
 ---
 title: Tracking Overview Current
-summary: Tracking 当前态唯一入口，定义默认恢复顺序、默认实现输入链、default_recovery_bundle 与真相源集合；当前代码已完成 head-first 第一轮实现并通过本地编译，运行验证仍未闭合。
+summary: Tracking 当前态唯一入口，定义默认恢复顺序、默认实现输入链、default_recovery_bundle 与真相源集合；当前代码已完成 head-first 第一轮实现和 DmsTrack 首轮内部可读性重构，运行验证仍未闭合。
 status: verified
 doc_role: current
 truth_role: current
@@ -68,11 +68,12 @@ sources:
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪方案.md
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪实现.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack内部结构与可读性重构分析-2026-06-08.md
 scope: 适用于恢复当前 Tracking 模块的整体目标、边界、入口文档与当前真相源，不展开全部历史过程。
 risks:
   - 当前态判断基于代码静态读取、subpower 审查和本地编译；没有补做板端或视频回放。
   - 对“效果性目标”如 ID 连续性，只能记录当前机制与证据边界，不能把静态机制等同于最终效果验收。
-updated_at: 2026-05-23
+updated_at: 2026-06-11
 ---
 
 ## 0.1 Current Scope
@@ -134,6 +135,8 @@ default_recovery_bundle:
 
 Tracking 当前代码事实以 `AtomicResult` 四类 map 和 `DmsTrack::Update -> updateFaceTracks -> selectDriverHead -> updateBodyTracks -> updateHandTracks` 为核心，对外仍提供 `body / face / left_hand / right_hand` 跟踪结果。
 Tracking 当前已完成 head-first 第一轮实现：driver identity 由 head/face track 决定；body 降级为 head-owned body/torso evidence；hand 只在 driver head-bound body evidence 下输出；四类 legacy map ABI 保持不变。
+2026-06-09 已完成 DmsTrack 首轮内部阶段拆分，并进一步把 Face / Body / Hand 收敛到统一 assignment helper：`Update`、Face、Body 以及 Hand 的 owner/prediction/cleanup/publish 通过 private helper 显式表达；public API、匹配核心、owner/bodyId/ID/key 和生命周期契约不变。证据级别为 patch check、QNX 编译和独立静态审查。
+2026-06-11 继续完成内部语义收敛：invalid track id、unmatched index、forbidden assignment cost 和 absent diagnostic loss 已分离为明确 sentinel；Body 与 Hand 主流程显式拆为预测、分配、应用、生命周期推进和发布阶段。`bodyId / handId` 初始继承 `faceId` 数值与 map key，但各自独立维护生命周期；face 消失后内部 body/hand 状态可保留原始继承 id，hand 对外发布仍要求当前已发布的 DRIVER body evidence。public API、统一 assignment 基础设施和四类 legacy map 未变化。
 后续若继续优化 head-first，必须读取 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪方案]] 与 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪实现]]；current 组记录当前事实、推荐主线和实现边界，不替代完整设计与实现文档。
 当前文档入口已经从 baseline + 多篇 delta 切换为本组 current 文档；历史记录只保留为证据和决策来源，不再承担默认当前态入口职责。
 当前实现输入链也已从历史补丁式恢复切换为 `design_current + spec_current + implementation_current + validation_current`。
@@ -144,6 +147,9 @@ Tracking 当前已完成 head-first 第一轮实现：driver identity 由 head/f
 - 本模块不负责：新增检测器能力、运行时效果验收、下游业务判决逻辑。
 - 当前仍存在的开放问题集中在运行验证、2m/5m runtime profile、callback/fusion 同 key 消费确认和输出唯一性边界，而不是 head-first 主框架缺失。
 - 当前推荐主线与当前代码事实必须分开表达：head-first 第一轮已落地并通过本地编译，但不是运行效果已验收。
+- DmsTrack 内部可读性重构已通过编译和独立审查，但没有 runtime replay 或单元测试证明多帧运行等价。
+- 2026-06-11 sentinel、ID 生命周期语义和 Body/Hand 阶段拆分已通过 patch check、J6B 编译和独立 review；仍未新增 runtime replay 或单元测试。
+- Body 与 Hand 的统一 assignment 已改变局部匹配实现路径；后续继续扩展时仍需要更强的回归保护。
 - `tracking_interfaces_evidence` 不再承担默认输入职责，只作为接口边界的辅助证据。
 
 ## 0.5 Current Document Roles
@@ -187,6 +193,7 @@ Tracking 当前已完成 head-first 第一轮实现：driver identity 由 head/f
 ## 0.7 Known Gaps
 
 - 当前新增了本地编译验证，最终 `[100%] Built target sdk`；未新增板端或运行时回放验证。
+- 2026-06-09 可读性重构未执行 runtime replay 或新增单元测试；本次板端验证按任务边界为 not required。
 - face / left_hand / right_hand 的区域级最终唯一输出，仍不能被当前代码静态证据完全证明为已闭合。
 - ID 连续性仍缺少运行时证据。
 - head-first 第一轮已实现并通过本地编译；2m/5m profile 分流、板端/视频回放、callback/fusion 同 key 消费和 hand owner 运行日志仍需后续验证或实现。

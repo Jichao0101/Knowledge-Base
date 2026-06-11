@@ -35,7 +35,7 @@ sources:
 scope: 适用于恢复当前 Tracking 的设计真相，重点描述目标、边界、层级、生命周期和设计原则；不单独承担完整实现规范职责。
 risks:
   - 文档明确区分“当前设计目标”和“当前代码已证实行为”；对未被代码静态证据完全支撑的项保持保守表述。
-updated_at: 2026-05-23
+updated_at: 2026-06-11
 ---
 
 ## 0.1 Current Goal
@@ -54,6 +54,7 @@ updated_at: 2026-05-23
 - `body`：当前代码中的 head-owned body/torso evidence，不再单独决定 driver identity。
 - `hand`：当前代码中按 head-owned body evidence id 维护 `left/right` 两个槽位，输出 key 与 driver headId 对齐。
 - `retired body`：仅作为旧 evidence/hand 槽位清理的历史锚点，不是新的主入口。
+- ID 数值来源与生命周期所有权分离：`bodyId / handId` 初始继承 `faceId` 数值和 map key，但 face、body、left/right hand 分别推进自己的生命周期；继承 key 不表示 body/hand 生命周期由 face 同步终止。
 
 ## 0.3 Current Lifecycle
 
@@ -82,6 +83,7 @@ updated_at: 2026-05-23
 - 未命中时手部会沿预测框短时输出，并允许短 miss window 维持连续性。
 - 新 stable head-owned body evidence 若与 retired evidence 属于同一区域，会清理旧 orphan hand 槽位。
 - 当前设计保留左右槽位的独立存活，但对外输出 key 必须回到当前 driver headId；是否已经形成运行级唯一闭合，属于 validation 负责的证据结论，不在 design 里提前写死。
+- face 消失后，内部 body retired anchor 或 hand slot 可在各自清理阈值内保留原始继承 id；这不放宽 hand 发布条件，hand 对外输出仍依赖当前允许发布的 DRIVER body evidence。
 
 ## 0.4 Current Identity And Region Rules
 

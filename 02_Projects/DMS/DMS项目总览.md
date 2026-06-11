@@ -3,7 +3,7 @@ type: project_entry
 status: active
 project: DMS
 scope: DMS 项目区模块入口索引；只负责导航和内容简介，不替代各模块 current 文档。
-updated_at: 2026-06-05
+updated_at: 2026-06-11
 ---
 
 # 1 DMS 项目总览
@@ -36,3 +36,9 @@ updated_at: 2026-06-05
 ## 1.3 结构维护
 
 DMS current 覆盖情况、模块索引状态和待修复项记录在 [[02_Projects/Knowledge-Base/知识库结构审计_current]]。
+
+## 1.4 近期维护状态
+
+- Tracking：2026-06-09 完成 DmsTrack 首轮内部可读性重构，保持 public API 和既有算法契约；`git diff --check`、J6B 编译和独立 repo review 通过。未执行 runtime replay，板端验证不属于本次范围。
+- Tracking Hand Phase 4A：已完成 owner、prediction、cleanup、publish 外围阶段拆分并通过独立 review 与 J6B 编译；first/second pass 和 Hungarian 未改，未执行 runtime replay。
+- Tracking 2026-06-11：完成 sentinel 语义分离、`bodyId / handId` 数值继承与独立生命周期边界澄清，以及 Body/Hand 阶段顺序显式化；public API、统一 assignment、四类 map 和算法契约不变。J6B 编译与独立 review 通过，verification 为 conditional pass，未执行 runtime replay 或单元测试。

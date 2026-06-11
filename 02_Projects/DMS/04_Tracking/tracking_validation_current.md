@@ -1,6 +1,6 @@
 ---
 title: Tracking Validation Current
-summary: Tracking 当前验证状态文档，记录 head-first 第一轮代码重构后的静态/编译证据、缺失运行证据和下一轮验证路径。
+summary: Tracking 当前验证状态文档，记录 head-first 第一轮和 2026-06-09 DmsTrack 内部可读性重构的静态/编译/独立审查证据、缺失运行证据和下一轮验证路径。
 status: verified
 doc_role: current
 truth_role: current
@@ -35,15 +35,66 @@ sources:
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪方案.md
   - 02_Projects/DMS/04_Tracking/head-first渐进跟踪实现.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first跟踪代码重构闭环记录-2026-05-23.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack内部结构与可读性重构分析-2026-06-08.md
   - /home/jichao/dms/source/utils/track.cpp
 scope: 适用于判断 Tracking 当前有哪些证据已经成立、哪些结论仍需更高等级验证；为默认实现输入链提供验证边界，不承接设计或规范正文。
 risks:
-  - 本文档已整合 2026-05-23 的 head-first 本地编译验证，但仍不等价于完整代表性视频集验收。
-  - 2026-05-23 未做板端部署、回放或运行日志采集。
-updated_at: 2026-05-23
+  - 本文档已整合 2026-05-23 head-first 和 2026-06-09 内部可读性重构的编译/审查证据，但仍不等价于完整代表性视频集验收。
+  - 2026-06-09 未执行 runtime replay 或新增单元测试；按任务边界不要求板端验证。
+updated_at: 2026-06-11
 ---
 
 ## 0.1 Evidence Status
+
+### 0.1.0B 2026-06-11 Sentinel、ID 与阶段拆分证据
+
+- 代码范围：
+  - `/home/jichao/dms/include/utils/track.h`
+  - `/home/jichao/dms/source/utils/track.cpp`
+- `git diff --check -- include/utils/track.h source/utils/track.cpp`：通过。
+- `bash scripts/compile_j6b.sh`：通过，`track.cpp` 参与构建并完成 `libsdk.so`。
+- 独立 repo review：`approved`，无 findings；确认 Body/Hand 阶段顺序、assignment、left-before-right、hit/miss、key、日志、sanitize/publish 和 slot 引用生命周期保持等价。
+- verification-manager：`conditional_pass`；确认 public API、helper 声明/定义、sentinel 使用和编译产物，但由于没有行为单测或 before/after result-map 对比，不把编译和静态审查提升为运行等价证明。
+- 语义核对：`bodyId / handId` 初始继承 `faceId` 数值，但 body/hand 生命周期独立；face 消失后内部状态可保留原 id，hand 发布仍受当前 DRIVER body evidence 约束。
+- `runtime_replay: not_executed`
+- `unit_tests: not_added`
+- `board_validation: not_required`
+
+### 0.1.0A 2026-06-09 DmsTrack 内部重构证据
+
+- 代码范围：
+  - `/home/jichao/dms/include/utils/track.h`
+  - `/home/jichao/dms/source/utils/track.cpp`
+- Patch integrity：
+  - `git diff --check -- include/utils/track.h source/utils/track.cpp`
+  - 结果：退出码 `0`
+- J6B 编译：
+  - `bash scripts/compile_j6b.sh`
+  - 结果：退出码 `0`，最终 `[100%] Built target sdk`
+  - `track.cpp` 已参与构建，变更文件无编译 error 或 warning
+- 独立 repo review：
+  - 结论：`approved`
+  - 未发现 Update 顺序、Face Hungarian、Body driver-first ownership、生命周期推进、ID/key、sanitize、日志或 Hand 语义回归
+- 静态检查边界：
+  - 仓库未发现原生独立 `clang-tidy`、`cppcheck` 或同类入口
+  - 本轮覆盖为 `git diff --check`、J6B `-Wall` 编译诊断和独立静态语义审查
+- 未执行项：
+  - `runtime_replay: not_executed`
+  - `unit_tests: not_added`
+  - `board_validation: not_required`
+- 注释治理补充：
+  - 独立 review：`approved`
+  - pre/post snapshot 剥离注释与空白后代码 token 一致
+  - `git diff --check` 再次通过
+  - J6B 编译再次通过，最终 `[100%] Built target sdk`
+  - 独立 verifier 因 forked build 目录只读未能执行编译；host 在授权可写环境补跑并披露参与范围
+- Hand Phase 4A：
+  - 外围 owner、prediction、cleanup、publish 阶段完成 private helper 拆分
+  - independent repo review：`approved`，无 findings
+  - `git diff --check`：passed
+  - `bash scripts/compile_j6b.sh`：exit `0`，最终 `[100%] Built target sdk`
+  - first/second pass、Hungarian、miss 推进和四个 publish stage tag 经静态审查保持不变
+  - `runtime_replay: not_executed`，`unit_tests: not_added`，`board_validation: not_required`
 
 ### 0.1.0 2026-05-23 head-first 编译证据
 
@@ -148,6 +199,9 @@ updated_at: 2026-05-23
 
 ## 0.2 Current Review Conclusion
 
+- 2026-06-09 的证据足以关闭“保持 public API 和既有算法契约完成 DmsTrack 首轮内部可读性重构，并通过编译、仓库可用静态检查和独立审查”的任务。
+- 2026-06-11 的证据足以关闭 sentinel 语义、ID 命名/生命周期边界和 Body/Hand 阶段顺序显式化任务；closure 仍只到编译与独立静态审查级。
+- 该 closure 不证明运行时行为等价，不关闭 ID 连续性、face/hand 区域级唯一性或代表性视频验收缺口。
 - 当前系统主框架不是“未实现”，而是“主框架已形成，但仍有输出唯一性与运行级证据缺口”
 - 以本轮允许范围内的静态读取判断，`多目标跟踪功能审核记录-2026-03-27` 中关于唯一性未闭合和 ID 连续性证据不足的结论仍然有效
 - `多目标跟踪设计失配修复未闭环记录-2026-03-27` 记录的是一次中间阻塞状态，已经不再代表当前整体状态

@@ -49,7 +49,7 @@ scope: 适用于按当前规范修改 Tracking 代码时作为默认规范输入
 risks:
   - 本规范只约束当前已收敛的设计与实现边界，不把仍未闭合的项伪装成已验收硬规则。
   - 若后续代码修改影响 `track.cpp`、`AtomicResult` 或导出链路，需先做 `knowledge_sync_check` 并同步更新本文件。
-updated_at: 2026-05-23
+updated_at: 2026-06-11
 ---
 
 ## 0.1 Spec Scope
@@ -77,6 +77,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 ## 0.3 Required Behaviors
 
 - 当前代码事实中，`head/face` 是 identity 主锚点；后续修改不得恢复 body-first identity 语义。
+- `bodyId / handId` 初始继承 `faceId` 数值与 legacy map key，但 body 与 hand 必须独立推进 hit/miss、retire/reset/erase 生命周期；不得把 key 继承误实现为 face 消失时同步清空全部 child 状态。
 - 第一阶段实现必须保持 head-first driver identity：driver 优先由 head/face track 与业务配置约束决定。
 - 2m profile 默认应关闭 body/hand tracking 链路，避免无业务必要的 body/hand 状态污染输出。
 - `body` 必须保持为 driver head-bound body/torso evidence，不得由 raw body center 单独决定 driver identity。
@@ -89,6 +90,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - `hand` 必须按每个 head-owned body evidence 的 `left/right` 两个槽位建模，不得退回统一 hand truth source。
 - hand owner 必须受 driver head-bound body/torso 或业务搜索区域约束；raw body box 不得单独扩大 hand owner。
 - `hand` 初始化后允许按槽位独立存活。
+- hand 内部状态可在 face 消失后保留原始继承 id，但对外发布仍必须存在当前已发布且稳定为 DRIVER 的 body evidence。
 - 当前代码中 `hand` miss 只推进内部生命周期，不再向下游发布预测框；若后续重新引入短时预测输出，必须先更新 validation 风险并验证 handoff/handpose 消费影响。
 - 新 stable head-owned body evidence 在同一区域接管时，应基于 retired evidence anchor 清理 orphan hand 槽位。
 
@@ -126,6 +128,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - `body` 和 `face` 使用恒速度运动模型。
 - `hand` 使用恒加速度运动模型。
 - 关联流程必须遵循预测、构造损失矩阵、匈牙利匹配、命中更新、未命中衰减的顺序。
+- invalid track id、unmatched collection index、forbidden assignment edge 和 absent diagnostic loss 必须保持不同语义，不得重新复用同一裸值表达多个概念。
 - `body` 命中后允许检测主导融合，但不能破坏稳定输出与生命周期计数语义。
 - `face` 命中后输出使用检测框，预测状态只作为关联输入。
 - `hand` 命中后输出使用检测框，miss 时不向下游输出预测框。
