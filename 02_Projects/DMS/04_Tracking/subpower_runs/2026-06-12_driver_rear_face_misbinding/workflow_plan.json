@@ -1,0 +1,38 @@
+{
+  "task_id": "2026-06-12_driver_rear_face_misbinding",
+  "mode": "subagent_first",
+  "steps": [
+    {
+      "step": "incident_investigation",
+      "owner": "knowledge-planner/repo explorer",
+      "status": "in_progress",
+      "outputs": [
+        "root cause analysis",
+        "loss design assessment"
+      ]
+    },
+    {
+      "step": "repair_plan",
+      "owner": "host synthesis",
+      "status": "pending_user_approval",
+      "outputs": [
+        "implementation_plan.json after approval"
+      ]
+    },
+    {
+      "step": "implementation",
+      "owner": "repo-implementer",
+      "status": "blocked_pending_user_approval"
+    },
+    {
+      "step": "review_and_validation",
+      "owner": "repo-reviewer/board-runner",
+      "status": "pending"
+    },
+    {
+      "step": "knowledge_writeback",
+      "owner": "knowledge-closer plus host write",
+      "status": "pending_closure"
+    }
+  ]
+}

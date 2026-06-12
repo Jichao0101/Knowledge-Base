@@ -1,0 +1,24 @@
+{
+  "status": "pass",
+  "review_type": "repo_review_and_functional_review",
+  "reviewer": "Euler subagent plus host follow-up after rework",
+  "rounds": [
+    {
+      "round": 1,
+      "status": "fail",
+      "reason": "Logs still had two face=1 driver selections, including one stable=BACK_PASSENGER selection."
+    },
+    {
+      "round": 2,
+      "status": "pass",
+      "reason": "Code now rejects stable BACK_PASSENGER in selectDriverFace; second board replay shows zero face=1 driver selections."
+    }
+  ],
+  "constraint_check": {
+    "distance_loss_tightened": false,
+    "smaller_face_strong_penalty": true,
+    "larger_face_gain": true,
+    "preferred_anchor_configured": true
+  },
+  "created_at": "2026-06-12"
+}

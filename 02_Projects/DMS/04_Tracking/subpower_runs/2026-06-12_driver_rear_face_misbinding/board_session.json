@@ -1,0 +1,20 @@
+{
+  "status": "completed",
+  "rounds": [
+    {
+      "round": 1,
+      "result": "failed",
+      "log_copy": "/tmp/dms-driver-misbinding-logs-after",
+      "reason": "face=1 was selected as driver twice; one selection followed stable=BACK_PASSENGER."
+    },
+    {
+      "round": 2,
+      "result": "passed",
+      "log_copy": "/tmp/dms-driver-misbinding-logs-after2",
+      "completion_signal_observed": true,
+      "completion_signal": "Can not get image from J6M PIC"
+    }
+  ],
+  "host_participation": "Host deployed sdk/config, ran board replay, pulled logs, and performed log statistics.",
+  "created_at": "2026-06-12"
+}

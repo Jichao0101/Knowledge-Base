@@ -1,0 +1,20 @@
+{
+  "task_id": "2026-06-12_driver_rear_face_misbinding",
+  "status": "implemented",
+  "approved_plan": [
+    "Do not tighten distanceLoss gates.",
+    "Prevent BACK_PASSENGER-stable non-driver-current candidates from being selected as driver.",
+    "Use asymmetric driver size scoring: smaller face is penalized, larger face gains recovery priority.",
+    "Load preferred driver face anchor and scoring weights from track_params.json instead of hardcoding coordinates."
+  ],
+  "target_files": [
+    "/home/jichao/dms/include/utils/track.h",
+    "/home/jichao/dms/source/utils/track.cpp",
+    "/home/jichao/dms/etc/track_params.json"
+  ],
+  "verification_plan": [
+    "json syntax check for track_params.json",
+    "J6B build with bash scripts/compile_j6b.sh",
+    "board deployment and replay validation"
+  ]
+}

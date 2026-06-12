@@ -1,0 +1,20 @@
+{
+  "status": "accepted_for_project_writeback",
+  "candidates": [
+    {
+      "claim": "In the verified 2m replay, rear passenger face candidates were not selected as driver after stable BACK_PASSENGER rejection and asymmetric size scoring.",
+      "claim_classification": "verified_runtime_fact",
+      "evidence_refs": [
+        "board_validation_result.json"
+      ]
+    },
+    {
+      "claim": "Driver face preferred anchor and size weights are configured through track_params.json rather than hardcoded constants.",
+      "claim_classification": "project_decision",
+      "evidence_refs": [
+        "code_change_manifest.json"
+      ]
+    }
+  ],
+  "created_at": "2026-06-12"
+}

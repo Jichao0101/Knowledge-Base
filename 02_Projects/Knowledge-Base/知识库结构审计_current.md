@@ -2,7 +2,7 @@
 type: structure_audit
 status: active
 scope: 记录知识库结构化、current 标准化、总览内容化的当前迁移状态；不作为具体主题事实源。
-updated_at: 2026-06-11
+updated_at: 2026-06-12
 supersedes:
   - 02_Projects/Knowledge-Base/知识库结构审计-2026-06-05.md
 ---
@@ -82,4 +82,12 @@ supersedes:
 - 本轮未整组重写正文；design/spec 仅补充 `bodyId / handId` 初始继承 face key、但 body/hand 生命周期独立的边界，以及 hand 发布仍依赖当前 DRIVER body evidence 的约束。
 - Tracking 默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
 - 证据为 `git diff --check`、J6B 编译、独立 repo review `approved` 和 verification-manager `conditional_pass`；runtime replay 与单元测试未执行，板端验证为 not required。
+- 未新增或保留 `single_pass_recoverable: true` 声明。
+
+## 9 2026-06-12 Tracking 后排误跟踪主驾修复写回
+
+- 因 2m 回灌样本新增已验证运行事实，已同步更新 Tracking current 五份文档、DMS 项目总览和本结构审计，并新增项目级维护记录。
+- 本次新增板端证据：二次回灌完成后 `face-first driver face select face=1` 为 0 次，`reject back passenger` 与 `reject smaller` 共同过滤后排候选。
+- 本轮未整组重写 current 文档；仅补充 driver face 防后排误绑定的设计、规范、实现和验证事实。
+- Tracking 默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
 - 未新增或保留 `single_pass_recoverable: true` 声明。

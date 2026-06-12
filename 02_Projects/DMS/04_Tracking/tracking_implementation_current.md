@@ -1,6 +1,6 @@
 ---
 title: Tracking Implementation Current
-summary: Tracking 当前实现文档，记录 head-first 第一轮代码事实、2026-06-09 DmsTrack 内部可读性重构、关键状态载体、兼容层与未闭合点。
+summary: Tracking 当前实现文档，记录 head-first 第一轮代码事实、2026-06-09 DmsTrack 内部可读性重构、2026-06-12 driver face 防后排误绑定实现、关键状态载体、兼容层与未闭合点。
 status: verified
 doc_role: current
 truth_role: current
@@ -46,8 +46,22 @@ scope: 适用于恢复当前 Tracking 在代码中的主要实现结构、接口
 risks:
   - 本文档基于代码静态读取与 2026-05-23 本地编译证据恢复当前实现；仍不等价于完整代表性样本集验收。
   - 2026-05-23 head-first 重构未做板端验证或视频回放。
-updated_at: 2026-06-11
+updated_at: 2026-06-12
 ---
+
+## 0.0.3 2026-06-12 Driver Face 防后排误绑定
+
+- 代码范围：
+  - `/home/jichao/dms/include/utils/track.h`
+  - `/home/jichao/dms/source/utils/track.cpp`
+  - `/home/jichao/dms/etc/track_params.json`
+- `TrackParameters` 新增 `driverFaceAnchor`、`driverFaceAnchorWeight`、`driverFaceSmallerPenaltyWeight`、`driverFaceLargerBonusWeight`。
+- `loadConfigFromJson` 读取 `presets.driver_face_anchor`，DEFAULT 提供默认权重，2m 车型可覆盖 anchor 坐标。
+- `selectDriverFace` 中稳定 `BACK_PASSENGER` face 不再进入 driver 候选，即使当前帧 `instantPersonType == DRIVER`。
+- 原 `FaceSizeContinuityLoss` 的对称 driver selection 用法被替换为：
+  - `FaceSmallerThanReferenceLoss`：候选比当前 driver reference 更小时增加 penalty，并超过阈值直接拒绝。
+  - `FaceLargerThanReferenceGain`：候选比 reference 更大时降低 score，支持真实主驾遮挡后恢复。
+- score 由 smaller penalty、anchor loss、larger gain 和 continuity bonus 组成；未改 face match `distanceLoss` 或 driver distance gate。
 
 ## 0.0.2 2026-06-11 Sentinel、ID 与阶段语义收敛
 
@@ -85,6 +99,7 @@ updated_at: 2026-06-11
 - `m_bodyTrackResultMap` 仍作为 legacy body map 输出，但 key 使用 head trackId。
 - `m_bodyHandTracks` 的 legacy 变量名仍包含 bodyId；当前语义应理解为 head-owned body evidence id，即 head trackId。
 - driver head 选择由 `selectDriverHead` 完成：small face、front passenger ROI、尺寸突变优先过滤，size continuity 权重大于 position loss。
+- 2026-06-12 起 driver head/face 选择增加 stable BACK_PASSENGER 拒绝、尺寸方向性 scoring 和配置化 preferred anchor；不再把真实主驾恢复时的“脸变大”作为 size continuity 损失。
 - 本地编译 `bash scripts/compile_j6b.sh` 已通过，最终 `[100%] Built target sdk`。
 - 未完成板端验证、视频回放和 callback/fusion 同 key 行为运行确认。
 
@@ -141,6 +156,7 @@ updated_at: 2026-06-11
 - driver head 选择 -> `selectDriverHead`
 - head-owned body evidence 主流程 -> `updateBodyTracks`
 - face/head 常规匹配、driver small-face filtering、face continuity gate -> `updateFaceTracks`
+- driver face 防后排误绑定 -> `selectDriverFace`、`FaceSmallerThanReferenceLoss`、`FaceLargerThanReferenceGain`、`TrackParameters::driverFaceAnchor*`
 - hand 左右槽位、second pass、miss 不输出策略 -> `updateHandTracks`
 - 统一输出 sanitize/clamp 与非法框过滤 -> `SanitizeDetectBoxToImage` / `PublishSanitizedTrack`
 - 导出兼容层 -> `fuse_algorithm.cpp`、`handpose_model.cpp`、`humanpose_model.cpp`

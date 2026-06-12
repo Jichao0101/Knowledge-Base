@@ -1,0 +1,13 @@
+{
+  "status": "completed",
+  "failure_reviewed": true,
+  "failed_round": 1,
+  "failure_type": "code_regression",
+  "confidence": "high",
+  "supporting_evidence_refs": [
+    "/tmp/dms-driver-misbinding-logs-after/dms.log:27057-27059 showed stable=BACK_PASSENGER then select face=1",
+    "/tmp/dms-driver-misbinding-logs-after/dms.log contained two face=1 driver selections"
+  ],
+  "recommended_route": "coder_rework",
+  "created_at": "2026-06-12"
+}

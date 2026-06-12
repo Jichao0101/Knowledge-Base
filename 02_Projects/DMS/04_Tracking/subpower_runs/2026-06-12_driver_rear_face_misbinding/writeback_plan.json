@@ -1,0 +1,13 @@
+{
+  "status": "planned",
+  "writeback_level": "project_current_and_maintenance_record",
+  "destinations": [
+    "DMS Tracking Current Maintenance Records",
+    "DMS Tracking current document group",
+    "DMS project overview",
+    "Knowledge-Base structure audit"
+  ],
+  "not_promoted_to_knowledge": true,
+  "reason_not_promoted": "The result is DMS project and replay-sample specific; it is not yet generalized and reviewed as reusable formal knowledge.",
+  "created_at": "2026-06-12"
+}

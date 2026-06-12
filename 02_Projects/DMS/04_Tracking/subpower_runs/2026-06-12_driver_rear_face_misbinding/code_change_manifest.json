@@ -1,0 +1,25 @@
+{
+  "task_id": "2026-06-12_driver_rear_face_misbinding",
+  "status": "implemented_pending_build",
+  "changed_files": [
+    {
+      "path": "/home/jichao/dms/include/utils/track.h",
+      "summary": "Added configurable driver face anchor and driver face size scoring weights to TrackParameters."
+    },
+    {
+      "path": "/home/jichao/dms/source/utils/track.cpp",
+      "summary": "Loaded driver_face_anchor config, rejected non-driver-current BACK_PASSENGER candidates from driver selection, and replaced symmetric driver size continuity with smaller-face penalty plus larger-face gain."
+    },
+    {
+      "path": "/home/jichao/dms/etc/track_params.json",
+      "summary": "Added driver_face_anchor config for DEFAULT and 2m vehicle presets."
+    }
+  ],
+  "unchanged_user_dirty_files": [
+    "/home/jichao/dms/include/utils/log_manager.h",
+    "/home/jichao/dms/python_zmq/dms_viewer.py",
+    "/home/jichao/dms/scripts/compile_j6b.sh"
+  ],
+  "public_api_changed": false,
+  "distance_gate_changed": false
+}

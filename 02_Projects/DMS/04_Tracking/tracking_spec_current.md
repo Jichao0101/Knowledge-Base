@@ -1,6 +1,6 @@
 ---
 title: Tracking Spec Current
-summary: Tracking 当前可执行规范文档，记录 head-first 第一轮实现后的代码约束；保持四类 map ABI，不推进完整 OccupantTrack 分层。
+summary: Tracking 当前可执行规范文档，记录 head-first 第一轮实现后的代码约束和 2026-06-12 driver face 防后排误绑定规则；保持四类 map ABI，不推进完整 OccupantTrack 分层。
 status: verified
 doc_role: current
 truth_role: current
@@ -49,7 +49,7 @@ scope: 适用于按当前规范修改 Tracking 代码时作为默认规范输入
 risks:
   - 本规范只约束当前已收敛的设计与实现边界，不把仍未闭合的项伪装成已验收硬规则。
   - 若后续代码修改影响 `track.cpp`、`AtomicResult` 或导出链路，需先做 `knowledge_sync_check` 并同步更新本文件。
-updated_at: 2026-06-11
+updated_at: 2026-06-12
 ---
 
 ## 0.1 Spec Scope
@@ -104,6 +104,10 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - `TrackParameters.body / face / hand`：三类轨迹各自阈值。
 - `TrackParameters.bodyKalman / faceKalman / handKalman`：三类运动模型配置。
 - `TrackParameters.smallFaceAreaRatio`：driver 场景的小脸过滤阈值。
+- `TrackParameters.driverFaceAnchor`：driver face 选择的 preferred anchor。
+- `TrackParameters.driverFaceAnchorWeight`：driver face anchor loss 权重。
+- `TrackParameters.driverFaceSmallerPenaltyWeight`：driver face 比 reference 变小时的惩罚权重。
+- `TrackParameters.driverFaceLargerBonusWeight`：driver face 比 reference 变大时的恢复增益权重。
 - `AtomicResult.m_bodyTrackResultMap`：body evidence legacy 输出。
 - `AtomicResult.m_faceTrackResultMap`：face/head identity 输出。
 - `AtomicResult.m_leftHandTrackResultMap`：left hand evidence legacy 输出。
@@ -139,6 +143,10 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - body center ROI 投票只能作为 fallback/evidence，不应作为主来源。
 - `driver` 过滤可依据空间区域和稳定投票收敛，不可由单帧外观直接锁死。
 - `smallFaceAreaRatio` 是 driver 场景的人脸过滤契约，用于抑制明显过小的人脸候选。
+- driver face selection 必须拒绝稳定类型为 `BACK_PASSENGER` 的 face 候选；不得仅因单帧 `instantPersonType == DRIVER` 放行稳定后排候选。
+- driver face size continuity 必须区分方向：候选比当前 driver reference 变小应作为强惩罚和拒绝依据；候选变大应作为主驾遮挡恢复的增益，不应被对称 size-loss 拒绝。
+- driver face preferred anchor、anchor 权重、变小惩罚权重和变大增益权重必须来自结构化配置，不得散落硬编码。
+- 本类后排误绑定修复不得通过收紧 face match `distanceLoss` 或 driver distance gate 实现。
 - `hand` 侧的左右槽位必须维持方向区分和历史连续性约束。
 
 ## 0.8 Config Contracts
@@ -147,6 +155,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - 配置必须先加载 `DEFAULT`，再按车型节点覆盖。
 - 下一阶段必须引入可日志化的 profile 选择边界，至少区分 2m head/face only 与 5m handoff/handpose 需要 body/hand 的模式。
 - 阈值、Kf 参数和区域配置必须通过结构化配置项读取，不能依赖手工散落常量。
+- `track_params.json` 的 `presets.driver_face_anchor` 配置 driver face preferred anchor 与尺寸方向性权重；车型节点可覆盖坐标并继承 DEFAULT 权重。
 - 配置变化若影响阈值、运动模型或区域约束，必须同步更新 current 文档。
 
 ## 0.9 Verification Contracts

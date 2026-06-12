@@ -1,0 +1,15 @@
+{
+  "task_id": "2026-06-12_driver_rear_face_misbinding",
+  "workflow_pattern": "incident_investigation_then_bug_fix",
+  "change_profile": {
+    "repository_change_expected": true,
+    "mechanical": false,
+    "module_or_stateful_behavior_change": true,
+    "public_api_change_expected": false,
+    "requires_surgical_change_guardrails": true,
+    "requires_module_design_assessment": true
+  },
+  "initial_gate": "plan_required_before_implementation",
+  "implementation_status": "blocked_pending_user_approval",
+  "knowledge_writeback_status": "deferred_until_closure"
+}

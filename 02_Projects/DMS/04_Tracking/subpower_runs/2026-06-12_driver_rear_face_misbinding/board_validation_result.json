@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "validation_scope": "2m replay for driver face misbinding with rear passenger near driver ROI",
+  "success_criteria": "Rear passenger is not tracked as driver in replay result.",
+  "evidence": {
+    "logs": "/tmp/dms-driver-misbinding-logs-after2/dms*.log",
+    "completion_signal": "Can not get image from J6M PIC",
+    "select_face_1_count": 0,
+    "select_face_0_count": 189,
+    "reject_back_passenger_count": 126,
+    "reject_smaller_face_1_count": 61
+  },
+  "key_lines": [
+    "/tmp/dms-driver-misbinding-logs-after2/dms.2.log:51730 reject back passenger face=1 instant=DRIVER",
+    "/tmp/dms-driver-misbinding-logs-after2/dms.2.log:51731 select face=0",
+    "/tmp/dms-driver-misbinding-logs-after2/dms.1.log:8200 reject back passenger face=9 instant=DRIVER"
+  ],
+  "residual_risks": [
+    "Validation is replay-sample scoped, not a full representative dataset.",
+    "driver_face_anchor parameters may need tuning across vehicle/camera setups."
+  ],
+  "created_at": "2026-06-12"
+}

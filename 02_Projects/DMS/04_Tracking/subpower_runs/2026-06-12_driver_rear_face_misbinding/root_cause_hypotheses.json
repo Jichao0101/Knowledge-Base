@@ -1,0 +1,37 @@
+{
+  "task_id": "2026-06-12_driver_rear_face_misbinding",
+  "hypotheses": [
+    {
+      "id": "H1",
+      "status": "primary",
+      "description": "During driver face occlusion, the still-alive DRIVER track can be matched by a rear passenger face near the predicted driver face, resetting miss count and preserving driver identity.",
+      "confidence": "confirmed_by_board_logs",
+      "supporting_evidence": [
+        "face missThreshold keeps old driver track alive",
+        "updateFaceTracks allows stable DRIVER rematch if small-face, distance, and total-loss gates pass",
+        "matched detection overwrites the old track box and keeps the id stable"
+      ]
+    },
+    {
+      "id": "H2",
+      "status": "primary",
+      "description": "Symmetric size continuity works against recovery after a rear passenger has taken over: the real driver face becoming larger is treated as a size jump rather than a positive driver cue.",
+      "confidence": "confirmed_by_board_logs",
+      "supporting_evidence": [
+        "FaceSizeContinuityLoss uses abs(log(width ratio)) plus abs(log(height ratio))",
+        "selectDriverFace rejects sizeLoss > 0.70 against the current driver reference",
+        "continuity bonus favors the already wrong driver id"
+      ]
+    },
+    {
+      "id": "H3",
+      "status": "contributing",
+      "description": "Driver region is intentionally broad and there is no headrest/seat-anchor loss, so a rear passenger leaning forward can enter the driver candidate set.",
+      "confidence": "medium",
+      "supporting_evidence": [
+        "driver_region is rectangular and broad in track_params.json",
+        "no headrest-specific logic was found in tracking code"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 ---
 title: Tracking Design Current
-summary: Tracking 当前设计文档，记录 head-first 第一轮代码现状与剩余验证边界；body-first 保留为历史实现事实和 legacy evidence。
+summary: Tracking 当前设计文档，记录 head-first 第一轮代码现状、driver face 防后排误绑定设计与剩余验证边界；body-first 保留为历史实现事实和 legacy evidence。
 status: verified
 doc_role: current
 truth_role: current
@@ -35,7 +35,7 @@ sources:
 scope: 适用于恢复当前 Tracking 的设计真相，重点描述目标、边界、层级、生命周期和设计原则；不单独承担完整实现规范职责。
 risks:
   - 文档明确区分“当前设计目标”和“当前代码已证实行为”；对未被代码静态证据完全支撑的项保持保守表述。
-updated_at: 2026-06-11
+updated_at: 2026-06-12
 ---
 
 ## 0.1 Current Goal
@@ -90,6 +90,8 @@ updated_at: 2026-06-11
 - 当前代码中的 driver identity source 来自 head/face track；body/hand 的 `stablePersonType` 是向 legacy map 投影的 evidence 标签。
 - body center ROI 只能作为非最终先验/evidence，不能继续作为主来源。
 - `driver` 目标的最终输出唯一仍是设计约束，但唯一性应迁移到 head-first driver selection 上表达。
+- driver face selection 对后排探头的防护以稳定人员类型、尺寸方向性和 driver face anchor 共同表达：稳定 BACK_PASSENGER 不进入 driver 候选；比当前 driver reference 变小是强惩罚，变大是恢复增益；preferred anchor 作为配置项表达主驾头枕/主驾脸偏好位置。
+- driver face selection 不通过收紧 `distanceLoss` 解决本类问题，避免主驾转头或遮挡恢复时因 KF 预测和观测距离偏大而误拒真实主驾。
 - `face / body / hand` 当前达到同 key legacy map 投影；是否已经形成运行级区域最终唯一，需要 validation 依据代码和运行证据单独判定。
 - 当前设计不把运行时效果验收等同于静态结构设计。
 
@@ -109,7 +111,7 @@ updated_at: 2026-06-11
 - face 区域级唯一输出运行验证：未闭合
 - left_hand / right_hand 区域级唯一输出运行验证：未闭合
 - 运行时 replay / 视频证据：未闭合
-- head-first 第一阶段实现：已本地编译通过；板端/回放验证未闭合
+- head-first 第一阶段实现：已本地编译通过；2026-06-12 后排误跟踪主驾问题样本已完成板端回灌验证，更广泛代表性样本仍未闭合
 
 ## 0.7 Historical Mapping
 

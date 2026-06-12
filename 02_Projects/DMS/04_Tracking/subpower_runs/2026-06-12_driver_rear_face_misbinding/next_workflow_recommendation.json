@@ -1,0 +1,17 @@
+{
+  "task_id": "2026-06-12_driver_rear_face_misbinding",
+  "recommended_next_workflow": "bug_fix",
+  "status": "pending_user_approval",
+  "recommended_scope": [
+    "Reject driver selection for candidates whose stable person type is BACK_PASSENGER.",
+    "Make driver selection treat larger driver-region faces as recovery candidates instead of symmetric size discontinuity failures.",
+    "Add configurable driver face anchor parameters in track_params.json and load them through TrackParameters; do not hardcode preferred anchor coordinates.",
+    "Do not tighten distanceLoss gates because true driver recovery after turn/occlusion can have large prediction-to-observation distance.",
+    "Preserve public ABI and existing four tracking maps."
+  ],
+  "verification_required": [
+    "local J6B build",
+    "board deployment and replay",
+    "log check proving rear passenger is not published as DRIVER and real driver reacquires after recovery"
+  ]
+}

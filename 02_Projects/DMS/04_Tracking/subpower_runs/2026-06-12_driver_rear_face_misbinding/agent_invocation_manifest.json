@@ -1,0 +1,18 @@
+{
+  "task_id": "2026-06-12_driver_rear_face_misbinding",
+  "invocations": [
+    {
+      "role": "repo/incident explorer",
+      "agent_id": "019ebb04-9057-7a63-b4dc-32e3b274fd3e",
+      "status": "spawned",
+      "scope": "Read-only investigation of /home/jichao/dms tracking loss and driver face selection logic."
+    },
+    {
+      "role": "knowledge planner explorer",
+      "agent_id": "019ebb04-b813-7670-a7ed-0257ff69a724",
+      "status": "spawned",
+      "scope": "Read-only investigation of DMS Tracking current documents and historical misbinding records."
+    }
+  ],
+  "complete_subagent_first_execution_claimed": false
+}

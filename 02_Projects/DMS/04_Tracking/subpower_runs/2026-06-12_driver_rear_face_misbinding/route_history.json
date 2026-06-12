@@ -1,0 +1,17 @@
+{
+  "routes": [
+    {
+      "round": 1,
+      "decision_point": "board_validation_failed",
+      "route": "coder_rework",
+      "evidence": "board_failure_review.json"
+    },
+    {
+      "round": 2,
+      "decision_point": "board_validation_passed",
+      "route": "closure",
+      "evidence": "board_validation_result.json"
+    }
+  ],
+  "created_at": "2026-06-12"
+}

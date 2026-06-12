@@ -1,0 +1,23 @@
+{
+  "task_id": "2026-06-12_driver_rear_face_misbinding",
+  "repo_side": {
+    "path": "/home/jichao/dms",
+    "status": "read_only_investigation",
+    "dirty_files_observed": [
+      "include/utils/log_manager.h",
+      "python_zmq/dms_viewer.py",
+      "scripts/compile_j6b.sh"
+    ],
+    "dirty_files_policy": "do_not_revert"
+  },
+  "knowledge_base_side": {
+    "path": "/mnt/d/Knowledge-Base",
+    "status": "subpower_artifacts_created",
+    "writeback_policy": "project_area_only_until_verified_closure"
+  },
+  "board_side": {
+    "status": "not_run",
+    "target_from_prompt": "root@192.168.2.10",
+    "log_path_from_prompt": "/userdata/dms/log"
+  }
+}

@@ -1,6 +1,6 @@
 ---
 title: Tracking Validation Current
-summary: Tracking 当前验证状态文档，记录 head-first 第一轮和 2026-06-09 DmsTrack 内部可读性重构的静态/编译/独立审查证据、缺失运行证据和下一轮验证路径。
+summary: Tracking 当前验证状态文档，记录 head-first 第一轮、2026-06-09 DmsTrack 内部可读性重构、2026-06-12 后排误跟踪主驾修复的证据、缺失运行证据和下一轮验证路径。
 status: verified
 doc_role: current
 truth_role: current
@@ -41,10 +41,38 @@ scope: 适用于判断 Tracking 当前有哪些证据已经成立、哪些结论
 risks:
   - 本文档已整合 2026-05-23 head-first 和 2026-06-09 内部可读性重构的编译/审查证据，但仍不等价于完整代表性视频集验收。
   - 2026-06-09 未执行 runtime replay 或新增单元测试；按任务边界不要求板端验证。
-updated_at: 2026-06-11
+updated_at: 2026-06-12
 ---
 
 ## 0.1 Evidence Status
+
+### 0.1.0C 2026-06-12 后排误跟踪主驾修复证据
+
+- 代码范围：
+  - `/home/jichao/dms/include/utils/track.h`
+  - `/home/jichao/dms/source/utils/track.cpp`
+  - `/home/jichao/dms/etc/track_params.json`
+- 本地检查：
+  - `git diff --check -- include/utils/track.h source/utils/track.cpp etc/track_params.json`：通过。
+  - `python3 -m json.tool etc/track_params.json`：通过。
+- J6B 编译：
+  - `bash scripts/compile_j6b.sh` 产出 `/home/jichao/dms/build/main/sdk`，构建日志包含 `[100%] Built target sdk`。
+- 独立 review：
+  - 第一轮 review 判定 `fail`，因为板端日志仍有 2 次 `face=1` 被选为 driver，其中一次为 `stable=BACK_PASSENGER` 后被选中。
+  - 第二轮修正后，review/functional conclusion 为 `pass`。
+- 板端验证：
+  - 部署目标：`root@192.168.2.10:/userdata/dms/sdk` 与 `/userdata/dms/etc/track_params.json`
+  - 运行命令：`cd /userdata/dms && sh run.sh`
+  - 结束信号：`Can not get image from J6M PIC` 连续出现，表示图片已回灌完成。
+  - 二次回灌日志：`/tmp/dms-driver-misbinding-logs-after2/dms*.log`
+- 二次回灌统计：
+  - `face-first driver face select face=1`：0 次。
+  - `face-first driver face select face=0`：189 次。
+  - `face-first driver face reject back passenger`：126 次。
+  - `face-first driver face reject smaller face=1`：61 次。
+- 验证结论：
+  - 本次 2m 回灌样本中，后排 face/head 不再被选为主驾，driver 选择稳定落在 `face=0`。
+  - 该结论关闭本次“后排误跟踪为主驾”样本级任务；不关闭全部代表性视频集、全部车型 anchor 参数和 face 区域级唯一输出的长期验证缺口。
 
 ### 0.1.0B 2026-06-11 Sentinel、ID 与阶段拆分证据
 
@@ -129,6 +157,7 @@ updated_at: 2026-06-11
 - track 输出在写入四类 track map 前已有统一 sanitize/clamp 与非法框过滤
 - initialized face first pass 已有连续性门控；driver 相关 face 绑定使用更严格的 `distanceLoss <= 0.45`
 - first pass 被连续性门控明确拒绝的 face track，同帧不会再通过 second pass 绕回匹配
+- 2026-06-12 后，driver face selection 已验证在目标 2m 回灌样本中不会选择 stable BACK_PASSENGER 后排候选，且不依赖收紧 `distanceLoss`。
 - 当前代码已完成 head-first 第一轮实现：driver identity 来自 head/face track，body/hand 作为 head-bound evidence 组织。
 - head-first 当前已有本地编译证据，但没有回放或板端证据证明其运行效果。
 - head-first 设计方案已落点到 `head-first渐进跟踪方案.md`，实现事实已落点到 `head-first渐进跟踪实现.md` 和 2026-05-23 闭环记录。

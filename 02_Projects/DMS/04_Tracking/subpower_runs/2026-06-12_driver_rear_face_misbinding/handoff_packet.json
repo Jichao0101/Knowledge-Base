@@ -1,0 +1,5 @@
+{
+  "task_id": "2026-06-12_driver_rear_face_misbinding",
+  "next_gate": "user_approval_for_code_change",
+  "handoff_summary": "Root cause and repair plan are being prepared. No code changes have been made. Implementation should remain scoped to driver face/head selection loss and related configuration only unless evidence requires a broader change."
+}

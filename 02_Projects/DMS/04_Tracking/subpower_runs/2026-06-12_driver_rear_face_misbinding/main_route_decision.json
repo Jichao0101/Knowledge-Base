@@ -1,0 +1,7 @@
+{
+  "decision_point": "board_validation_failed",
+  "selected_route": "coder_rework",
+  "reason": "First board validation still allowed a stable BACK_PASSENGER face to be selected as driver when instant type was DRIVER.",
+  "required_action": "Reject stable BACK_PASSENGER candidates unconditionally in driver face selection, then rebuild and rerun board validation.",
+  "created_at": "2026-06-12"
+}

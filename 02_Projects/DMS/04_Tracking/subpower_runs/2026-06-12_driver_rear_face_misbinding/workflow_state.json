@@ -1,0 +1,8 @@
+{
+  "task_id": "2026-06-12_driver_rear_face_misbinding",
+  "current_state": "repair_plan_pending_user_approval",
+  "code_modified": false,
+  "local_build_run": false,
+  "board_validation_run": false,
+  "knowledge_writeback_done": false
+}

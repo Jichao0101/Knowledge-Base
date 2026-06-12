@@ -1,0 +1,15 @@
+{
+  "status": "ready_for_writeback",
+  "code_change_reviewed": true,
+  "local_checks_passed": true,
+  "board_validation_passed": true,
+  "route_history_present": true,
+  "knowledge_writeback_allowed": true,
+  "evidence_refs": [
+    "review_decision.json",
+    "board_validation_result.json",
+    "route_history.json",
+    "code_change_manifest.json"
+  ],
+  "created_at": "2026-06-12"
+}

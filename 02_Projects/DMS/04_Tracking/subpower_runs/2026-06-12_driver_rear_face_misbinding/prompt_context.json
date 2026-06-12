@@ -1,0 +1,29 @@
+{
+  "task_id": "2026-06-12_driver_rear_face_misbinding",
+  "created_at": "2026-06-12",
+  "source": "user_prompt",
+  "observed_symptom": "At 15:53 the driver covers the face and no driver face is detected. A rear passenger head moves nearby, is matched as driver, and remains tracked as driver due to lower loss until 16:57, when the rear head turns away and the real driver is tracked again.",
+  "expected_behavior": "Replay result should not keep tracking the rear passenger as driver. If a wrong driver selection occurs during driver face occlusion, the real driver face should regain driver identity after recovery.",
+  "repo": {
+    "path": "/home/jichao/dms",
+    "build_command": "bash scripts/compile_j6b.sh",
+    "code_changes_allowed": true,
+    "tests_allowed": true,
+    "user_constraint": "Do not revert current modifications needed for replay."
+  },
+  "board_context": {
+    "provided": true,
+    "deploy_command": "scp ./build/main/sdk root@192.168.2.10 && cd /userdata/dms && sh run.sh",
+    "log_path": "/userdata/dms/log",
+    "success_criteria": "Replay result no longer tracks the rear passenger as driver."
+  },
+  "requested_scope": [
+    "Analyze root cause of wrong tracking.",
+    "Evaluate face loss calculation, size/location continuity, larger driver face as gain, and distance to driver headrest area.",
+    "Provide repair plan first and wait for approval before code change.",
+    "Write back to knowledge base after the fix is verified."
+  ],
+  "out_of_scope": [
+    "Reverting current local modifications."
+  ]
+}

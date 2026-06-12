@@ -1,0 +1,40 @@
+{
+  "task_id": "2026-06-12_driver_rear_face_misbinding",
+  "status": "evidence_collected_before_implementation",
+  "local_log_copies": [
+    "/tmp/dms-driver-misbinding-logs/dms.log",
+    "/tmp/dms-driver-misbinding-logs/dms.1.log"
+  ],
+  "board_log_source": {
+    "host": "root@192.168.2.10",
+    "path": "/userdata/dms/log",
+    "files": [
+      "dms.log",
+      "dms.1.log"
+    ],
+    "note": "Board system clock shows 2026-01-01; this timestamp is not treated as real capture date."
+  },
+  "key_evidence": [
+    {
+      "ref": "/tmp/dms-driver-misbinding-logs/dms.1.log:95149",
+      "summary": "A face detection at x=1007..1336 y=300..759 is matched as face=0 with stable=BACK_PASSENGER, then selected as driver: face-first driver face select face=0 score=0.12723544."
+    },
+    {
+      "ref": "/tmp/dms-driver-misbinding-logs/dms.1.log:95016",
+      "summary": "Immediately before the wrong driver selection, a smaller face at x=812..1012 y=376..646 is matched as face=1 stable=DRIVER while the larger driver-side face x=1003..1327 y=269..734 is matched as face=0 stable=DRIVER; selectDriverFace rejects face=0 by size_loss=1.0261528 and selects face=1."
+    },
+    {
+      "ref": "/tmp/dms-driver-misbinding-logs/dms.1.log:95521",
+      "summary": "After the larger face remains, driver selection switches back to face=0 and downstream models consume track id 0."
+    },
+    {
+      "ref": "/tmp/dms-driver-misbinding-logs/dms.log:8665",
+      "summary": "At another transition, face=1 is stable=BACK_PASSENGER but is selected as driver when the larger driver face is absent in the frame."
+    },
+    {
+      "ref": "/tmp/dms-driver-misbinding-logs/dms.log:8930",
+      "summary": "After face=1 becomes selected, the real/larger driver candidate face=0 is repeatedly rejected by size loss, keeping face=1 as driver."
+    }
+  ],
+  "conclusion": "The board logs confirm that driver selection can choose a face track whose stable person type is BACK_PASSENGER, and symmetric size continuity then prevents larger driver-face recovery."
+}

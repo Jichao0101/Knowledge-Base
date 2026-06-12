@@ -1,0 +1,12 @@
+{
+  "board_target": "root@192.168.2.10",
+  "workdir": "/userdata/dms",
+  "run_command": "cd /userdata/dms && sh run.sh",
+  "log_dir": "/userdata/dms/log",
+  "deployment": {
+    "sdk": "/userdata/dms/sdk",
+    "track_params": "/userdata/dms/etc/track_params.json"
+  },
+  "completion_signal": "Can not get image from J6M PIC indicates replay images exhausted",
+  "created_at": "2026-06-12"
+}

@@ -1,0 +1,24 @@
+{
+  "task_id": "2026-06-12_driver_rear_face_misbinding",
+  "status": "investigated_with_board_logs",
+  "code_modified": false,
+  "summary": "A rear passenger face/head can take over the stable driver face track during driver face occlusion. Once takeover occurs, the previous driver id, hit count, and continuity bonus keep favoring the rear passenger until it disappears.",
+  "evidence_refs": [
+    "/home/jichao/dms/source/utils/track.cpp:915",
+    "/home/jichao/dms/source/utils/track.cpp:947",
+    "/home/jichao/dms/source/utils/track.cpp:1052",
+    "/home/jichao/dms/etc/track_params.json:14",
+    "02_Projects/DMS/04_Tracking/tracking_design_current.md",
+    "02_Projects/DMS/04_Tracking/tracking_spec_current.md",
+    "02_Projects/DMS/04_Tracking/tracking_implementation_current.md"
+  ],
+  "observations": [
+    "Face matching uses iou loss, distance loss, and symmetric size continuity loss.",
+    "Stable DRIVER tracks use a stricter distance gate and small-face reject, but a rear face inside the broad driver region can still pass if it is near the predicted driver face.",
+    "selectDriverFace uses the previous driver id as continuity reference only when currently matched; after wrong takeover, the rear face becomes that reference.",
+    "The current implementation has no explicit headrest or driver-seat anchor loss.",
+    "Board logs show a BACK_PASSENGER-stable face selected as driver.",
+    "Board logs show the larger recovered face repeatedly rejected by symmetric size_loss after the smaller/wrong face becomes the continuity reference."
+  ],
+  "gate": "implementation_waits_for_user_approval"
+}
