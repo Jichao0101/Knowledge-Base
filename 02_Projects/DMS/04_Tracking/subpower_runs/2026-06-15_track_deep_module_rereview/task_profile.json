@@ -1,0 +1,21 @@
+{
+  "session_id": "2026-06-15_track_deep_module_rereview",
+  "producer_agent": "workflow-orchestrator",
+  "subpower_invoked": true,
+  "execution_mode": "subpower",
+  "primary_type": "functional_review",
+  "task_goal": "Decide whether the current DMS track refactor branch should continue or be replaced by a clean refactor from the stable functional baseline.",
+  "task_modifiers": [
+    "read_only",
+    "deep_module_design_review",
+    "knowledge_writeback_allowed",
+    "board_validation_not_required"
+  ],
+  "change_profile": {
+    "repo_change": false,
+    "change_scope": "none",
+    "behavior_change": false,
+    "stateful_module": true,
+    "public_api_change": false
+  }
+}

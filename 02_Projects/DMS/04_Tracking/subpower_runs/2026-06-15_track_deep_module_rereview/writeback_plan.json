@@ -1,0 +1,18 @@
+{
+  "session_id": "2026-06-15_track_deep_module_rereview",
+  "producer_agent": "knowledge-closer",
+  "candidate_artifact": "knowledge_writeback_candidate.json",
+  "target_scope": "project_record",
+  "destination_ref": "02_Projects/DMS/04_Tracking",
+  "evidence_refs": [
+    "review_decision.json",
+    "evidence_manifest.json"
+  ],
+  "requires_host_write": true,
+  "planned_steps": [
+    "Create the project-specific review record.",
+    "Synchronize the changed refactor route, abstraction decisions, and validation status into the Tracking current group.",
+    "Keep runtime and board verification explicitly pending.",
+    "Block promotion to formal knowledge."
+  ]
+}

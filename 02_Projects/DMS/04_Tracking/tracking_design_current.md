@@ -1,6 +1,6 @@
 ---
 title: Tracking Design Current
-summary: Tracking 当前设计文档，记录 head-first 第一轮代码现状、driver face 防后排误绑定设计与剩余验证边界；body-first 保留为历史实现事实和 legacy evidence。
+summary: Tracking 当前设计文档，记录 head-first 功能边界、driver face 防后排误绑定设计与 clean refactor 路线；实验分支的 step-level helper 和中间类型不再视为推荐设计。
 status: verified
 doc_role: current
 truth_role: current
@@ -35,7 +35,7 @@ sources:
 scope: 适用于恢复当前 Tracking 的设计真相，重点描述目标、边界、层级、生命周期和设计原则；不单独承担完整实现规范职责。
 risks:
   - 文档明确区分“当前设计目标”和“当前代码已证实行为”；对未被代码静态证据完全支撑的项保持保守表述。
-updated_at: 2026-06-12
+updated_at: 2026-06-15
 ---
 
 ## 0.1 Current Goal
@@ -48,13 +48,25 @@ updated_at: 2026-06-12
 
 本文件只回答“当前设计是什么”，不回答全部“按什么精确规则实现代码”；实现级硬约束收敛到 [[02_Projects/DMS/04_Tracking/tracking_spec_current]]。
 
+## 0.1.1 2026-06-15 Deep Module Re-review
+
+- public `DmsTrack::Init/Update` 已经形成深接口，不建议改变。
+- 当前主要设计问题是 private header 和内部组织过浅，不是调用方边界过浅。
+- `feat/ljc/track_0609` 的 solve/apply/advance/finalize/project/publish helper 树只作为实验分支代码事实，不再作为推荐层级设计。
+- 推荐从 `br_develop_forJ6b` 新开 clean branch，以 face/body/hand phase-level helper 为主，单帧 row/key/result/snapshot 使用最低必要可见性。
+- global body Hungarian、hand lifecycle 和 sanitize miss 语义必须分别按算法变化、生命周期契约和行为修复管理，不能统一归入可读性重构。
+
 ## 0.2 Current Layering
 
+- 内部职责按短期 matching、长期 state apply、cleanup/finalize、必要的 projection、pure publish 分层；分层不要求 face/body/hand 机械拥有同形 stage。
+- body -> hand 确实需要同帧 finalized body 契约，但不预设必须使用 header-level `FrameBodyView`；优先复用局部 `const map/vector` 或 `.cpp` internal snapshot。
+- assignment policy helper 只在能显著改善正确性或诊断时保留；`AssignmentResult`、solver row 和 slot key 默认降级到 `.cpp` 或函数局部。
 - `head/face`：当前 driver identity 的主入口，负责稳定 driver/head 选择和后续 face/head 模型输入。
 - `body`：当前代码中的 head-owned body/torso evidence，不再单独决定 driver identity。
-- `hand`：当前代码中按 head-owned body evidence id 维护 `left/right` 两个槽位，输出 key 与 driver headId 对齐。
+- `hand`：当前代码中按 head-owned body evidence id 维护 `left/right` 两个槽位，输出 key 与 driver headId 对齐；hand 阶段只消费 body 阶段给出的单帧 `FrameBodyView`，不再读取 body legacy output map 作为内部输入。
 - `retired body`：仅作为旧 evidence/hand 槽位清理的历史锚点，不是新的主入口。
-- ID 数值来源与生命周期所有权分离：`bodyId / handId` 初始继承 `faceId` 数值和 map key，但 face、body、left/right hand 分别推进自己的生命周期；继承 key 不表示 body/hand 生命周期由 face 同步终止。
+- finalized body snapshot：body 阶段产生的单帧只读事实，只用于 hand 阶段和 legacy body publish；具体表示不进入稳定 header 契约，`FrameBodyView` 仅是实验分支当前实现。
+- ID 数值来源与生命周期所有权分离：`bodyId / handId` 初始继承 `faceId` 数值和 map key。当前实现中 body 在 face owner 消失时立即退休；hand 的 owner-disappearance lifecycle 尚未形成明确、已验证契约。
 
 ## 0.3 Current Lifecycle
 

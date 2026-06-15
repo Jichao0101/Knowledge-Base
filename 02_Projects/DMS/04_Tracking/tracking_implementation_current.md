@@ -1,6 +1,6 @@
 ---
 title: Tracking Implementation Current
-summary: Tracking 当前实现文档，记录 head-first 第一轮代码事实、2026-06-09 DmsTrack 内部可读性重构、2026-06-12 driver face 防后排误绑定实现、关键状态载体、兼容层与未闭合点。
+summary: Tracking 当前实现文档，记录 head-first 功能代码事实、实验分支结构、driver face 防后排误绑定实现和 2026-06-15 clean refactor 路线调整。
 status: verified
 doc_role: current
 truth_role: current
@@ -46,8 +46,38 @@ scope: 适用于恢复当前 Tracking 在代码中的主要实现结构、接口
 risks:
   - 本文档基于代码静态读取与 2026-05-23 本地编译证据恢复当前实现；仍不等价于完整代表性样本集验收。
   - 2026-05-23 head-first 重构未做板端验证或视频回放。
-updated_at: 2026-06-12
+updated_at: 2026-06-15
 ---
+
+## 0.0.5 2026-06-15 Assignment Helper 删减与非对称分层
+
+- 删除 `AssignmentEdge / AssignmentRejection` 和 rejection 聚合日志；不恢复 `AssignmentPolicyMatrix`。业务 evaluator 直接返回 cost，forbidden edge 使用有限 `kForbiddenAssignmentCost = 1e6f`。
+- `AssignmentResult` 保留，继续统一表达 matches、unmatched left/right 和 match cost。
+- Body 主流程现为 `solve -> apply -> advance/retire -> finalize -> project FrameBodyView -> publish`；sanitize 与 view 构造不再混在同一 helper。
+- Hand 使用单帧 `HandAssignmentRow` 绑定 `HandSlotKey`、slot 和 owner body；solve、apply、unmatched miss 共享同一 row 候选域。
+- Hand finalize 负责 sanitize 和 matched sanitize failure 的 lifecycle 推进；`publishHandTracks` 不读取 `AssignmentResult`，不调用 `PrepareTrackForOutput`、`AdvanceMiss` 或 cleanup。
+- Hand 没有 tracker 内部下游，因此未新增 `FrameHandView`、publish payload 或 eligibility。
+- public `Init/Update`、Hungarian、strict `< dummyLoss`、四类 legacy map ABI、owner/key 和 left-before-right 顺序未变。
+
+## 0.0.6 2026-06-15 Deep Module Re-review
+
+- `feat/ljc/track_0609` 当前实现继续作为实验样本保留，但不再作为推荐 clean refactor 基底。
+- public `Init/Update` 已足够深；private header 的完整 step helper 树被判定为过宽。
+- `1237f6c6` 将稳定基线 driver-first greedy body ownership 改为 global Hungarian，属于高风险算法变化。
+- `FrameBodyView` 解决 output-as-input 问题的目标可保留，但具体类型应降级为局部 finalized body snapshot；`HandSlotKey`、`HandAssignmentRow`、`AssignmentResult` 建议移出 header。
+- 当前 hand owner 消失后 lifecycle 如何继续推进尚未闭合；实验实现可能保留 initialized slot、retired anchor 并阻止 id 复用。
+- 推荐从 `br_develop_forJ6b` 新开 clean branch，只选择性重做 sanitize matched-only miss、finalize-before-publish 和 body-to-hand 内部状态隔离。
+
+## 0.0.4 2026-06-13 State Normalization And Body Output View
+
+- 代码范围仍只涉及 `/home/jichao/dms/include/utils/track.h` 和 `/home/jichao/dms/source/utils/track.cpp`。
+- 新增 private `FrameBodyView`，由 body 阶段在单帧内生成，字段为 owner face id 与 body `TrackInfo` 拷贝；该 view 不作为 member、不跨帧保存，hand 阶段只读消费。
+- `updateBodyTracks` 返回 `std::vector<FrameBodyView>`；2026-06-15 起由 `finalizeBodyTracksForOutput` 完成 body sanitize、matched-only sanitize failure miss 和人员类型投影，再由 `projectBodyTracks` 单独生成该 view。
+- `publishBodyTracks` 不再读取 `m_bodyTracks` 或重新判断 publishable set，只从 `FrameBodyView` 投影写入 `curResult->m_bodyTrackResultMap`。
+- hand 阶段的 `collectAllowedHandOwners`、`buildHandAssignmentRows`、`cleanupRetiredOwnerHandSlots`、`finalizeHandTracksForOutput` 和 `publishHandTracks` 均消费 `FrameBodyView`，不再读取 `curResult->m_bodyTrackResultMap`。
+- `curResult->m_bodyTrackResultMap` 在 `track.cpp` 中仅保留每帧 clear 与 body output 写入角色。
+- 清理废弃 `m_hasPreviousFrame` declaration/init；静态搜索未发现剩余引用。
+- public API、`hungarian()`、统一 assignment helper、strict `< dummyLoss`、legacy output key、left-before-right hand slot 顺序不变。
 
 ## 0.0.3 2026-06-12 Driver Face 防后排误绑定
 
@@ -94,7 +124,7 @@ updated_at: 2026-06-12
   5. `updateBodyTracks`
   6. `updateHandTracks`
 - `trackId` ownership 已收敛到 head/face：`allocateBodyTrackId` 和 `m_nextBodyTrackId` 已删除，新增 `allocateFaceTrackId` 与 `m_nextFaceTrackId`。
-- `m_bodyTracks` 当前以 head trackId 为 key；body/torso 是 head-owned evidence，不再独立创建 identity id。
+- `m_bodyTracks` 当前以 head trackId 为 key；body/torso 是 head-owned evidence，不再独立创建 identity id。2026-06-13 起，hand 阶段不再从 body legacy output map 读取 body evidence，而是消费 body 阶段生成的单帧 `FrameBodyView`。
 - `updateBodyTracks` 当前由 head 发起 body evidence matching：已有 evidence 先做 body motion tracking match，失败后和新 head 一样按 `FaceBelongsToBody + FaceAnchorLoss` 获取 body candidate。
 - `m_bodyTrackResultMap` 仍作为 legacy body map 输出，但 key 使用 head trackId。
 - `m_bodyHandTracks` 的 legacy 变量名仍包含 bodyId；当前语义应理解为 head-owned body evidence id，即 head trackId。
@@ -120,7 +150,7 @@ updated_at: 2026-06-12
   - `m_faceTracks`
   - `m_bodyHandTracks`
 - 对外结果：
-  - `AtomicResult::m_bodyTrackResultMap`
+  - `AtomicResult::m_bodyTrackResultMap`（legacy output projection；不再作为 hand 内部输入）
   - `AtomicResult::m_faceTrackResultMap`
   - `AtomicResult::m_leftHandTrackResultMap`
   - `AtomicResult::m_rightHandTrackResultMap`
@@ -204,6 +234,7 @@ updated_at: 2026-06-12
 ## 0.7 Known Gaps
 
 - 2026-06-09 内部可读性重构已有编译、patch check 和独立 review 证据，但未用 replay 或单元测试执行多帧运行等价验证。
+- 2026-06-15 重新评审已否定“继续沿当前 helper tree 优化”的路线；此前编译和静态 review 只能证明代码可构建和局部审查通过，不能证明该结构或算法变化应继续保留。
 - 代码里仍存在 hand slot 内部 fallback 输出路径，但输出 key 已要求回到当前 driver head-owned body evidence id。
 - 运行级验证仍待补。
 - 仅靠本文件和 code facts 可以恢复当前实现框架，但不能把运行级区域唯一性当成已闭合结论。

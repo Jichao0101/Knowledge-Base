@@ -1,0 +1,27 @@
+{
+  "session_id": "2026-06-15_track_deep_module_rereview",
+  "producer_agent": "repo-reviewer",
+  "decision": "changes_requested",
+  "findings": [
+    {
+      "severity": "high",
+      "summary": "The experiment branch changes driver-first greedy body ownership to global Hungarian assignment under a refactoring label."
+    },
+    {
+      "severity": "high",
+      "summary": "Initialized hand slots for disappeared owners may stop receiving misses, retain retired anchors, and prevent face-id reuse."
+    },
+    {
+      "severity": "medium",
+      "summary": "The private header exposes the complete face/body/hand execution script instead of stable phase-level contracts."
+    },
+    {
+      "severity": "medium",
+      "summary": "AssignmentResult, HandSlotKey, and HandAssignmentRow are solver or single-frame transport details that leak into header scope."
+    },
+    {
+      "severity": "low",
+      "summary": "Finalize-before-publish side-effect separation is worth preserving, but it should be hidden inside deeper phase-level methods."
+    }
+  ]
+}

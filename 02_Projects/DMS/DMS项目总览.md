@@ -3,7 +3,7 @@ type: project_entry
 status: active
 project: DMS
 scope: DMS 项目区模块入口索引；只负责导航和内容简介，不替代各模块 current 文档。
-updated_at: 2026-06-12
+updated_at: 2026-06-15
 ---
 
 # 1 DMS 项目总览
@@ -39,6 +39,10 @@ DMS current 覆盖情况、模块索引状态和待修复项记录在 [[02_Proje
 
 ## 1.4 近期维护状态
 
+- Tracking 2026-06-15 深模块重新评审：public `Init/Update` 判定为深接口，主要问题是 private header 和内部组织过浅；global body Hungarian 属于未隔离行为变化，hand owner 消失后的 lifecycle 存在高风险缺口。停止继续 `feat/ljc/track_0609`，建议从 `br_develop_forJ6b` 新开 clean branch，不整提交 cherry-pick，仅选择性重做已确认行为。详见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15]]。
+- Tracking 2026-06-15：删除低收益 assignment edge/rejection helper，forbidden edge 改为有限 `1e6f` 并保留 `AssignmentResult`；Body 完成 finalize/projection 拆分，Hand 以单帧 row 收敛 solve/apply/miss 候选域且不引入无下游用途的 view/payload，publish 不再推进 lifecycle。`git diff --check`、`Utils` 和完整 `sdk` 构建通过；独立 review、runtime replay 和板端验证待补。详见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrackHand短期匹配结果隐藏与miss候选域修复实施前方案-2026-06-13]]。
+- Tracking 2026-06-13：完成 DmsTrack 状态源收敛一期，新增单帧只读 `FrameBodyView`，消除 hand 阶段对 `curResult->m_bodyTrackResultMap` 的内部输入依赖，并清理废弃 `m_hasPreviousFrame`。`git diff --check`、直接 `sdk` 目标构建和独立 review 通过；`compile_j6b.sh` 在构建完成后因 strip 不存在的 `main/libsdk.so` 返回 1，未执行 runtime replay 或板端验证。详见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack状态收敛与输出投影隔离闭环记录-2026-06-13]]。
+- Tracking 2026-06-13：完成禁止匹配语义、assignment solver 副作用、Face/Body/Hand gating 和 publish lifecycle 职责收敛；移除 `OptionalCost` 与业务 forbidden-cost sentinel，solver 改为消费预计算 policy matrix，并增加低噪声 rejection 汇总。独立 review、`git diff --check` 和 J6B 编译通过；未新增专项测试，未执行 runtime replay 或板端验证。详见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack约束语义与Assignment职责收敛闭环记录-2026-06-13]]。
 - Tracking：2026-06-09 完成 DmsTrack 首轮内部可读性重构，保持 public API 和既有算法契约；`git diff --check`、J6B 编译和独立 repo review 通过。未执行 runtime replay，板端验证不属于本次范围。
 - Tracking Hand Phase 4A：已完成 owner、prediction、cleanup、publish 外围阶段拆分并通过独立 review 与 J6B 编译；first/second pass 和 Hungarian 未改，未执行 runtime replay。
 - Tracking 2026-06-11：完成 sentinel 语义分离、`bodyId / handId` 数值继承与独立生命周期边界澄清，以及 Body/Hand 阶段顺序显式化；public API、统一 assignment、四类 map 和算法契约不变。J6B 编译与独立 review 通过，verification 为 conditional pass，未执行 runtime replay 或单元测试。

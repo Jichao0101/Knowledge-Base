@@ -1,0 +1,51 @@
+{
+  "session_id": "2026-06-15_track_deep_module_rereview",
+  "producer_agent": "workflow-orchestrator",
+  "invocations": [
+    {
+      "invocation_id": "implementer-1",
+      "agent_id": "repo-implementer",
+      "role_id": "repo-implementer",
+      "execution_evidence": {
+        "evidence_type": "runtime_spawn",
+        "evidence_ref": "multi_agent_v1.spawn_agent:019eca30-d16e-7b81-ad6c-b7b80bb49e41; read-only implementation boundary only; no code_change_manifest"
+      }
+    },
+    {
+      "invocation_id": "planner-1",
+      "agent_id": "knowledge-planner",
+      "role_id": "knowledge-planner",
+      "execution_evidence": {
+        "evidence_type": "runtime_spawn",
+        "evidence_ref": "multi_agent_v1.spawn_agent:019eca26-e3c3-7203-8cf8-c5ff5d1c8168"
+      }
+    },
+    {
+      "invocation_id": "reviewer-1",
+      "agent_id": "repo-reviewer",
+      "role_id": "repo-reviewer",
+      "execution_evidence": {
+        "evidence_type": "runtime_spawn",
+        "evidence_ref": "multi_agent_v1.spawn_agent:019eca27-0293-7832-865d-9d3db61bf658"
+      }
+    },
+    {
+      "invocation_id": "verification-1",
+      "agent_id": "verification-manager",
+      "role_id": "verification-manager",
+      "execution_evidence": {
+        "evidence_type": "runtime_spawn",
+        "evidence_ref": "multi_agent_v1.spawn_agent:019eca27-1f13-7981-a4cb-5d477598573f"
+      }
+    },
+    {
+      "invocation_id": "knowledge-closer-1",
+      "agent_id": "knowledge-closer",
+      "role_id": "knowledge-closer",
+      "execution_evidence": {
+        "evidence_type": "runtime_spawn",
+        "evidence_ref": "multi_agent_v1.spawn_agent:019eca2b-a33e-7381-a22b-693a40641ff0"
+      }
+    }
+  ]
+}

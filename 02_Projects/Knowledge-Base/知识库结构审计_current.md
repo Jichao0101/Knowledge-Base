@@ -2,7 +2,7 @@
 type: structure_audit
 status: active
 scope: 记录知识库结构化、current 标准化、总览内容化的当前迁移状态；不作为具体主题事实源。
-updated_at: 2026-06-12
+updated_at: 2026-06-15
 supersedes:
   - 02_Projects/Knowledge-Base/知识库结构审计-2026-06-05.md
 ---
@@ -90,4 +90,20 @@ supersedes:
 - 本次新增板端证据：二次回灌完成后 `face-first driver face select face=1` 为 0 次，`reject back passenger` 与 `reject smaller` 共同过滤后排候选。
 - 本轮未整组重写 current 文档；仅补充 driver face 防后排误绑定的设计、规范、实现和验证事实。
 - Tracking 默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
+
+## 10 2026-06-15 Tracking assignment helper 与职责分层写回
+
+- 因 assignment helper 形态、Body finalize/projection 边界和 Hand solve/apply/finalize/publish 边界成为新的当前实现事实，已同步更新 Tracking 五份 current 文档、DMS 项目总览和目标维护记录。
+- 本轮未整组重写 current 文档；只追加 helper 删减、非对称分层、编译证据和残余验证边界。
+- Tracking 默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
+- 未新增或保留 `single_pass_recoverable: true`；独立 review、runtime replay 和板端验证仍未完成。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
+
+## 11 2026-06-15 Tracking 深模块重新评审写回
+
+- 新增项目级评审记录 `DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15.md`。
+- 因推荐重构路线、抽象结论和验证状态变化，已局部同步 Tracking 五份 current 文档与 DMS 项目总览。
+- 未整组重写 current 文档；代码事实继续保留，但 `FrameBodyView`、统一 assignment 和 step-level helper 不再作为推荐设计。
+- Tracking 默认入口、默认恢复顺序、default recovery bundle 不变。
+- `recoverability_status` 仍为 `partial`；未新增或保留 `single_pass_recoverable: true`。
+- 本轮未修改 DMS 业务代码，未执行 runtime replay、单元测试或板端验证。

@@ -1,0 +1,36 @@
+{
+  "session_id": "2026-06-15_track_deep_module_rereview",
+  "producer_agent": "workflow-orchestrator",
+  "subpower_invoked": true,
+  "subagent_execution_required": true,
+  "subagent_execution_mode": "spawned_subagents",
+  "spawned_roles": [
+    "repo-implementer",
+    "knowledge-planner",
+    "repo-reviewer",
+    "verification-manager",
+    "knowledge-closer"
+  ],
+  "not_spawned_roles": [
+    "board-runner",
+    "failure-analyst"
+  ],
+  "fallback_used": false,
+  "fallback_reason": null,
+  "degraded": false,
+  "degradation_reason": null,
+  "execution_evidence_status": "complete",
+  "critical_host_participation": [
+    {
+      "role_id": "workflow-orchestrator",
+      "scope": "Authorized-context reading, runtime orchestration, non-duplicative source evidence extraction, final synthesis, artifact validation, and project knowledge-base writeback.",
+      "disclosed": true,
+      "affects_independence": false
+    }
+  ],
+  "independence_guarantee": {
+    "implementation_review_separated": true,
+    "verification_separated_from_implementation": true,
+    "writeback_assessment_separated": true
+  }
+}

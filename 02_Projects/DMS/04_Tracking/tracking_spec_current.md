@@ -1,6 +1,6 @@
 ---
 title: Tracking Spec Current
-summary: Tracking 当前可执行规范文档，记录 head-first 第一轮实现后的代码约束和 2026-06-12 driver face 防后排误绑定规则；保持四类 map ABI，不推进完整 OccupantTrack 分层。
+summary: Tracking 当前可执行规范文档，记录 head-first 行为约束、driver face 防后排误绑定规则和 clean refactor 边界；保持四类 map ABI，不把实验分支中间类型提升为规范。
 status: verified
 doc_role: current
 truth_role: current
@@ -49,7 +49,7 @@ scope: 适用于按当前规范修改 Tracking 代码时作为默认规范输入
 risks:
   - 本规范只约束当前已收敛的设计与实现边界，不把仍未闭合的项伪装成已验收硬规则。
   - 若后续代码修改影响 `track.cpp`、`AtomicResult` 或导出链路，需先做 `knowledge_sync_check` 并同步更新本文件。
-updated_at: 2026-06-12
+updated_at: 2026-06-15
 ---
 
 ## 0.1 Spec Scope
@@ -72,12 +72,13 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - `PersonType`：稳定人员类型，至少包含 `PERSON_UNKNOWN`、`DRIVER`、`FRONT_PASSENGER`、`BACK_PASSENGER`。
 - `InstanceType`：跟踪实例类型，至少包含 `BODY`、`FACE`、`LEFT_HAND`、`RIGHT_HAND`。
 - `TrackInfo`：单条轨迹核心载体，承载 `box`、`predBox`、即时/稳定人员类型、实例类型、生命周期计数、投票计数与 motion state。
-- `AtomicResult`：帧级原子结果容器，承载 tracking 真相源 map 与下游兼容导出字段。
+- `AtomicResult`：帧级原子结果容器，承载 tracking legacy output map 与下游兼容导出字段；不得作为 hand 阶段内部 body truth source。
+- finalized body snapshot：body 阶段生成的单帧只读事实，必须在同一帧供 hand 和 legacy body publish 使用，不得作为 member 或跨帧状态保存；允许直接使用局部 `const map/vector`，不要求专用 `FrameBodyView` 类型。
 
 ## 0.3 Required Behaviors
 
 - 当前代码事实中，`head/face` 是 identity 主锚点；后续修改不得恢复 body-first identity 语义。
-- `bodyId / handId` 初始继承 `faceId` 数值与 legacy map key，但 body 与 hand 必须独立推进 hit/miss、retire/reset/erase 生命周期；不得把 key 继承误实现为 face 消失时同步清空全部 child 状态。
+- `bodyId / handId` 初始继承 `faceId` 数值与 legacy map key。稳定基线中 body 在 face owner 消失时立即退休；hand 的 owner-disappearance lifecycle 必须先明确 bounded 规则，再实施独立推进或清理。
 - 第一阶段实现必须保持 head-first driver identity：driver 优先由 head/face track 与业务配置约束决定。
 - 2m profile 默认应关闭 body/hand tracking 链路，避免无业务必要的 body/hand 状态污染输出。
 - `body` 必须保持为 driver head-bound body/torso evidence，不得由 raw body center 单独决定 driver identity。
@@ -88,7 +89,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - 当前代码中 `face/head` 先于 body evidence 初始化和匹配，并通过 `allocateFaceTrackId` 持有 identity；legacy key 投影应继承该 headId。
 - `face` 初始化后允许与 `body` 短时解耦，不得在 `body` 暂失时被无条件同步清理。
 - `hand` 必须按每个 head-owned body evidence 的 `left/right` 两个槽位建模，不得退回统一 hand truth source。
-- hand owner 必须受 driver head-bound body/torso 或业务搜索区域约束；raw body box 不得单独扩大 hand owner。
+- hand owner 必须受 driver head-bound body/torso 或业务搜索区域约束；raw body box 不得单独扩大 hand owner。hand 阶段不得读取 `curResult->m_bodyTrackResultMap` 作为内部输入，应消费 body 阶段产生的局部 finalized body snapshot。
 - `hand` 初始化后允许按槽位独立存活。
 - hand 内部状态可在 face 消失后保留原始继承 id，但对外发布仍必须存在当前已发布且稳定为 DRIVER 的 body evidence。
 - 当前代码中 `hand` miss 只推进内部生命周期，不再向下游发布预测框；若后续重新引入短时预测输出，必须先更新 validation 风险并验证 handoff/handpose 消费影响。
@@ -108,7 +109,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - `TrackParameters.driverFaceAnchorWeight`：driver face anchor loss 权重。
 - `TrackParameters.driverFaceSmallerPenaltyWeight`：driver face 比 reference 变小时的惩罚权重。
 - `TrackParameters.driverFaceLargerBonusWeight`：driver face 比 reference 变大时的恢复增益权重。
-- `AtomicResult.m_bodyTrackResultMap`：body evidence legacy 输出。
+- `AtomicResult.m_bodyTrackResultMap`：body evidence legacy 输出；只能作为 output projection，不得反向参与 hand assignment、cleanup 或 publish eligibility。
 - `AtomicResult.m_faceTrackResultMap`：face/head identity 输出。
 - `AtomicResult.m_leftHandTrackResultMap`：left hand evidence legacy 输出。
 - `AtomicResult.m_rightHandTrackResultMap`：right hand evidence legacy 输出。
@@ -129,6 +130,12 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 
 ## 0.6 Calculation Contracts
 
+- assignment evaluator 返回真实 cost 或有限 forbidden cost；当前 forbidden cost 固定为 `1e6f`，所有配置化 `dummyLoss` 必须显著小于该值。
+- assignment 结果只能是 `.cpp` 或函数局部短期契约，不得进入稳定 header、cleanup、finalize、projection 或 publish；若 `rightByLeft/-1` 足够，不新增 result wrapper。
+- Body 的 sanitize/lifecycle finalize 必须先于 legacy publish 和 hand 消费；具体 finalized snapshot 表示不得强制为 header-level `FrameBodyView`。Hand 没有 tracker 内部下游，不得为形式统一新增 `FrameHandView`、publish payload 或 eligibility。
+- Hand unmatched miss 只能推进本帧实际 assignment row 中 initialized 且 unmatched 的 slot，不得扫描全量 hand state，也不得只从 matched slot 反推候选域。
+- owner 不再可发布或 body 消失时，initialized hand slot 的 bounded lifecycle 必须有明确规则；不得因不再进入 assignment row 而永久停止 miss/cleanup。
+- publish helper 不得调用 `PrepareTrackForOutput`、`AdvanceMiss` 或 cleanup。
 - `body` 和 `face` 使用恒速度运动模型。
 - `hand` 使用恒加速度运动模型。
 - 关联流程必须遵循预测、构造损失矩阵、匈牙利匹配、命中更新、未命中衰减的顺序。

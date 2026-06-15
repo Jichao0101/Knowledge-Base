@@ -1,0 +1,39 @@
+{
+  "session_id": "2026-06-15_track_deep_module_rereview",
+  "producer_agent": "workflow-orchestrator",
+  "subpower_invoked": true,
+  "subpower_invocation_phrase": "按 subpower 处理本次任务",
+  "observed_symptom": "The experiment branch has accumulated repeated structural repairs, a widened private header, low-yield intermediate abstractions, and mixed behavior and refactor changes.",
+  "expected_behavior": "Produce a read-only deep-module review that decides whether to continue the experiment branch or restart from the stable baseline, audits the named abstractions, and provides a staged clean-refactor plan.",
+  "validation_criteria": [
+    "Analyze public API before private header and internal helpers.",
+    "Separate code-proven facts, design judgments, and unverified assumptions.",
+    "Audit FrameBodyView, HandSlotKey, HandAssignmentRow, AssignmentResult, AssignmentPolicyMatrix, AssignmentCandidate, AssignmentRejection, and hand publish helpers.",
+    "Provide a branch decision, cherry-pick guidance, risk classification, verification strategy, and staged plan with stop conditions."
+  ],
+  "repo_scope": [
+    "/home/jichao/dms/include/utils/track.h",
+    "/home/jichao/dms/source/utils/track.cpp",
+    "Git history for br_develop_forJ6b and feat/ljc/track_0609"
+  ],
+  "board_context": {
+    "provided": false,
+    "target_id": "",
+    "executor_type": "unknown",
+    "log_paths": [],
+    "collect_paths": [],
+    "run_commands": [],
+    "constraints": [
+      "Board validation is not required for this review."
+    ]
+  },
+  "missing_context": [
+    "Product decision for global Hungarian body assignment.",
+    "Expected bounded lifecycle for hand slots after owner disappearance.",
+    "Deterministic replay input and expected delta whitelist."
+  ],
+  "assumptions": [
+    "No business code will be modified.",
+    "Public API, output map keys, dummyLoss semantics, driver identity rules, and left-before-right order remain fixed."
+  ]
+}

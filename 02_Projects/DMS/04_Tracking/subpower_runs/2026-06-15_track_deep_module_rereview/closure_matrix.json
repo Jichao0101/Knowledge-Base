@@ -1,0 +1,30 @@
+{
+  "session_id": "2026-06-15_track_deep_module_rereview",
+  "producer_agent": "workflow-orchestrator",
+  "close_allowed": true,
+  "review_status": "changes_requested",
+  "evidence_status": "sufficient",
+  "repo_state": "untouched",
+  "board_state": "not_required",
+  "knowledge_state": "writeback_done",
+  "required_artifacts": [
+    "prompt_context",
+    "task_profile",
+    "workflow_plan",
+    "subagent_execution_status",
+    "agent_invocation_manifest",
+    "review_decision",
+    "evidence_manifest",
+    "closure_matrix",
+    "knowledge_writeback_candidate",
+    "writeback_plan",
+    "writeback_receipt"
+  ],
+  "completed_as_subagent_first_execution": true,
+  "completed_by_subpower": false,
+  "complete_subpower_execution": false,
+  "completed_under_subpower_contracts_with_host_only_fallback": false,
+  "degraded": false,
+  "independence_evidence_status": "complete",
+  "blockers": []
+}

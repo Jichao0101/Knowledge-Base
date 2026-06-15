@@ -1,0 +1,60 @@
+{
+  "session_id": "2026-06-15_track_deep_module_rereview",
+  "producer_agent": "knowledge-closer",
+  "target_scope": "project_record",
+  "title": "DmsTrack deep-module re-review and clean-refactor route",
+  "summary": "Stop extending feat/ljc/track_0609 and restart a clean refactor from br_develop_forJ6b, selectively reimplementing only confirmed behavior semantics.",
+  "claims": [
+    {
+      "text": "Public DmsTrack Init and Update remain deep interfaces, while the private header exposes a step-level execution script.",
+      "claim_classification": "project_decision",
+      "verification_status": "verified",
+      "evidence_refs": [
+        "current-header",
+        "baseline-header",
+        "independent-review"
+      ]
+    },
+    {
+      "text": "Global body Hungarian is an unisolated behavior change and owner-disappearance hand lifecycle is unresolved and high risk.",
+      "claim_classification": "project_decision",
+      "verification_status": "verified",
+      "evidence_refs": [
+        "current-implementation",
+        "baseline-implementation",
+        "independent-review"
+      ]
+    },
+    {
+      "text": "No whole experiment commit should be cherry-picked; sanitize/finalize semantics and body-to-hand state isolation should be selectively reimplemented.",
+      "claim_classification": "project_decision",
+      "verification_status": "verified",
+      "evidence_refs": [
+        "commit-history",
+        "independent-review"
+      ]
+    }
+  ],
+  "evidence_refs": [
+    "current-header",
+    "current-implementation",
+    "baseline-header",
+    "baseline-implementation",
+    "commit-history",
+    "independent-review"
+  ],
+  "source_artifacts": [
+    "prompt_context.json",
+    "review_decision.json",
+    "evidence_manifest.json"
+  ],
+  "risks": [
+    "No runtime replay, unit test, or board validation was executed.",
+    "The intended global assignment and orphan hand lifecycle behavior still require explicit requirements."
+  ],
+  "boundaries": [
+    "Project-specific DMS Tracking decision.",
+    "Must not be promoted to formal knowledge.",
+    "Does not authorize business-code changes."
+  ]
+}

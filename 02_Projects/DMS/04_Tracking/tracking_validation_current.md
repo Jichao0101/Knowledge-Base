@@ -1,6 +1,6 @@
 ---
 title: Tracking Validation Current
-summary: Tracking 当前验证状态文档，记录 head-first 第一轮、2026-06-09 DmsTrack 内部可读性重构、2026-06-12 后排误跟踪主驾修复的证据、缺失运行证据和下一轮验证路径。
+summary: Tracking 当前验证状态文档，记录 head-first、driver 修复、实验重构证据和 2026-06-15 深模块重新评审结论；实验分支不再视为推荐结构基底。
 status: verified
 doc_role: current
 truth_role: current
@@ -41,10 +41,50 @@ scope: 适用于判断 Tracking 当前有哪些证据已经成立、哪些结论
 risks:
   - 本文档已整合 2026-05-23 head-first 和 2026-06-09 内部可读性重构的编译/审查证据，但仍不等价于完整代表性视频集验收。
   - 2026-06-09 未执行 runtime replay 或新增单元测试；按任务边界不要求板端验证。
-updated_at: 2026-06-12
+updated_at: 2026-06-15
 ---
 
 ## 0.1 Evidence Status
+
+### 0.1.0E 2026-06-15 Assignment Helper 删减与非对称分层证据
+
+- 代码范围：
+  - `/home/jichao/dms/include/utils/track.h`
+  - `/home/jichao/dms/source/utils/track.cpp`
+- `git diff --check -- include/utils/track.h source/utils/track.cpp`：通过。
+- 静态检查：`AssignmentEdge / AssignmentRejection / AssignmentPolicyMatrix / FrameHandView / HandPublishEligibility` 不存在；`AssignmentResult` 不进入 hand cleanup/finalize/publish。
+- QNX 环境加载后 `cmake --build build --target Utils -j8`：通过。
+- QNX 环境加载后 `cmake --build build --target sdk -j8`：通过，最终 `[100%] Built target sdk`。
+- `runtime_replay: not_executed`
+- `unit_tests: not_added`
+- `board_validation: not_executed`
+- `independent_review: pending`
+
+### 0.1.0F 2026-06-15 Deep Module Re-review
+
+- 独立 repo-reviewer：`changes_requested`。
+- 结论：public API 已足够深；private header surface 过宽，实验分支已进入补救式重构。
+- 高风险 finding：body 从 driver-first greedy ownership 改为 global Hungarian，不能作为等价可读性重构。
+- 高风险 finding：owner 消失后的 initialized hand slot 可能停止 miss/cleanup，长期保留 hand owner 与 retired anchor，并影响 face id 复用。
+- 抽象审计：`FrameBodyView` 降级为局部 snapshot；`HandSlotKey / HandAssignmentRow / AssignmentResult` 移出 header；已删除 matrix/candidate/rejection 不恢复。
+- route：停止继续 `feat/ljc/track_0609`，从 `br_develop_forJ6b` 新开 clean branch。
+- `runtime_replay: not_executed`
+- `unit_tests: not_executed`
+- `board_validation: not_required`
+
+### 0.1.0D 2026-06-13 State Normalization 与 FrameBodyView 证据
+
+- 代码范围：
+  - `/home/jichao/dms/include/utils/track.h`
+  - `/home/jichao/dms/source/utils/track.cpp`
+- `git diff --check`：通过。
+- 静态搜索：`curResult->m_bodyTrackResultMap` 不再作为 hand 阶段输入；仅保留每帧 clear 与 body output 写入。
+- 直接构建：`cmake --build build --target sdk -j8` 通过，最终 `[100%] Built target sdk`。
+- `bash scripts/compile_j6b.sh`：CMake 和 make 阶段完成，日志包含 `[100%] Built target sdk`；脚本最后执行 `strip main/libsdk.so`，但当前构建实际产物为 `build/main/sdk`，`main/libsdk.so` 不存在，因此脚本返回 1。该失败发生在脚本末尾 strip 目标不匹配，不是 `track.cpp` 编译失败。
+- 独立 repo review：`approved`；确认 body publish 等价、hand owner gating 仍来自本帧可输出 DRIVER body evidence、left/right 与 owner 顺序保持、`FrameBodyView` 指针生命周期安全、output map key 不变。
+- `runtime_replay: not_executed`
+- `unit_tests: not_added`
+- `board_validation: not_required`
 
 ### 0.1.0C 2026-06-12 后排误跟踪主驾修复证据
 
@@ -230,6 +270,9 @@ updated_at: 2026-06-12
 
 - 2026-06-09 的证据足以关闭“保持 public API 和既有算法契约完成 DmsTrack 首轮内部可读性重构，并通过编译、仓库可用静态检查和独立审查”的任务。
 - 2026-06-11 的证据足以关闭 sentinel 语义、ID 命名/生命周期边界和 Body/Hand 阶段顺序显式化任务；closure 仍只到编译与独立静态审查级。
+- 2026-06-13 的证据足以关闭 output-as-input 消除和 `FrameBodyView` 单帧投影落地任务；closure 仍只到静态审查与本地构建级，不证明多帧运行等价。
+- 2026-06-15 的证据足以确认 helper 已删减、接口已按非对称职责分层且代码可编译；在独立 review 和 runtime replay 缺失时，状态保持 `implemented_pending_review`。
+- 2026-06-15 深模块重新评审已经完成独立 review，并将该状态更新为 `changes_requested_for_refactor_route`：不要求在实验分支继续 rework，而是要求从稳定基线重新规划 clean refactor。
 - 该 closure 不证明运行时行为等价，不关闭 ID 连续性、face/hand 区域级唯一性或代表性视频验收缺口。
 - 当前系统主框架不是“未实现”，而是“主框架已形成，但仍有输出唯一性与运行级证据缺口”
 - 以本轮允许范围内的静态读取判断，`多目标跟踪功能审核记录-2026-03-27` 中关于唯一性未闭合和 ID 连续性证据不足的结论仍然有效

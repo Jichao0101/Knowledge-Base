@@ -1,0 +1,14 @@
+{
+  "session_id": "2026-06-15_track_deep_module_rereview",
+  "producer_agent": "workflow-orchestrator",
+  "subpower_invoked": true,
+  "execution_mode": "subpower",
+  "workflow_id": "functional_review",
+  "planned_steps": [
+    "Read the authorized Tracking current recovery bundle and the two branch versions of track.h and track.cpp.",
+    "Delegate scope planning, independent repository review, and verification coverage analysis to separate subagents.",
+    "Compare public API, private header surface, intermediate abstractions, state ownership, lifecycle side effects, and commit-level behavior changes.",
+    "Synthesize a findings-first deep-module review and staged clean-refactor plan.",
+    "Write the project review record and synchronize affected Tracking overview/current status documents without modifying business code."
+  ]
+}
