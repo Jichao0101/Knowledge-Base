@@ -1,0 +1,28 @@
+{
+  "session_id": "2026-06-15_body_global_assignment",
+  "producer_agent": "workflow-orchestrator",
+  "close_allowed": true,
+  "review_status": "pass_with_risks",
+  "evidence_status": "build_passed_runtime_pending",
+  "repo_state": "modified",
+  "board_state": "not_required",
+  "knowledge_state": "writeback_done",
+  "required_artifacts": [
+    "prompt_context",
+    "task_profile",
+    "workflow_plan",
+    "subagent_execution_status",
+    "agent_invocation_manifest",
+    "code_change_manifest",
+    "review_decision",
+    "evidence_manifest",
+    "closure_matrix",
+    "knowledge_writeback_candidate",
+    "writeback_plan",
+    "writeback_receipt"
+  ],
+  "complete_subpower_execution": false,
+  "completed_by_subpower": false,
+  "completed_under_subpower_contracts_with_host_only_fallback": false,
+  "blockers": []
+}

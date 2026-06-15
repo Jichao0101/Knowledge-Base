@@ -1,0 +1,39 @@
+{
+  "session_id": "2026-06-15_body_global_assignment",
+  "producer_agent": "verification-manager",
+  "evidence": [
+    {
+      "type": "patch_check",
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "type": "build",
+      "command": ". /home/jichao/qnx800/qnxsdp-env.sh && cmake --build build --target Utils",
+      "result": "passed",
+      "final_line": "[100%] Built target Utils"
+    },
+    {
+      "type": "build",
+      "command": ". /home/jichao/qnx800/qnxsdp-env.sh && cmake --build build --target sdk",
+      "result": "passed",
+      "final_line": "[100%] Built target sdk"
+    },
+    {
+      "type": "environment_failure",
+      "command": "cmake --build build --target Utils",
+      "result": "failed_before_qnx_env",
+      "reason": "QNX_HOST and QNX_TARGET were not defined before sourcing qnxsdp-env.sh."
+    },
+    {
+      "type": "independent_review",
+      "agent_ref": "019ecad8-889c-7b11-a239-7b63da13dae7",
+      "result": "pass_with_risks"
+    }
+  ],
+  "not_executed": [
+    "runtime_replay",
+    "unit_tests",
+    "board_validation"
+  ]
+}

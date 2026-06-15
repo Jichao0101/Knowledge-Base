@@ -139,7 +139,7 @@ Tracking 当前已完成 head-first 第一轮实现：driver identity 由 head/f
 2026-06-09 已完成 DmsTrack 首轮内部阶段拆分，并进一步把 Face / Body / Hand 收敛到统一 assignment helper：`Update`、Face、Body 以及 Hand 的 owner/prediction/cleanup/publish 通过 private helper 显式表达；public API、匹配核心、owner/bodyId/ID/key 和生命周期契约不变。证据级别为 patch check、QNX 编译和独立静态审查。
 2026-06-11 继续完成内部语义收敛：invalid track id、unmatched index、forbidden assignment cost 和 absent diagnostic loss 已分离为明确 sentinel；Body 与 Hand 主流程显式拆为预测、分配、应用、生命周期推进和发布阶段。`bodyId / handId` 初始继承 `faceId` 数值与 map key。当前代码在 face owner 消失时会立即退休并删除 body；hand 对外发布仍要求当前已发布的 DRIVER body evidence，而 owner 消失后的 hand 内部 lifecycle 尚未闭合。2026-06-13 进一步把 hand 阶段对 body 输出的依赖从 `curResult->m_bodyTrackResultMap` 收敛为单帧 `FrameBodyView`。
 2026-06-15 完成 assignment helper 删减与非对称职责分层：删除仅服务 rejection 分类日志的 edge/rejection 包装，forbidden edge 使用有限 `1e6f`，保留 `AssignmentResult`；Body 显式拆分 finalize 与 `FrameBodyView` projection，Hand 以单帧 assignment row 作为 solve/apply/miss 的共同候选域，不新增无下游用途的 hand view/payload，publish 不再推进 lifecycle。
-2026-06-15 深模块重新评审进一步区分“实验分支代码事实”和“推荐结构”：public `Init/Update` 已是深接口，但 private header 已暴露完整 step-level 执行脚本；global body Hungarian 属于未隔离的算法变化，`FrameBodyView / HandSlotKey / HandAssignmentRow / AssignmentResult` 不应默认作为稳定 header 抽象。当前推荐路线为停止在 `feat/ljc/track_0609` 上继续结构叠加，从 `br_develop_forJ6b` 新开 clean branch，并只选择性重做已确认行为语义。详见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15]]。
+2026-06-15 深模块重新评审进一步区分“实验分支代码事实”和“推荐结构”：public `Init/Update` 已是深接口，但 private header 已暴露完整 step-level 执行脚本；统一 assignment solver、Body 全局 Hungarian 和 Hand 全局 slot assignment 已确认为目标行为，仍须按高风险算法变化分阶段治理。`FrameBodyView / HandSlotKey / HandAssignmentRow / AssignmentResult` 不应默认作为稳定 header 抽象。当前推荐路线为停止在 `feat/ljc/track_0609` 上继续结构叠加，从 `br_develop_forJ6b` 新开 clean branch，先以 Face 证明 solver 等价，再分别迁移 Body 与 Hand。2026-06-15 clean branch `feat/ljc/track_0615` 已完成阶段 1 Face cpp-internal solver 等价迁移和阶段 2 Body 全局 owner-to-detection assignment；阶段 2 通过 QNX `Utils` 与 `sdk` 构建，但 runtime replay、冲突样例 diff 和板端验证未执行。详见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15]]。
 后续若继续优化 head-first，必须读取 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪方案]] 与 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪实现]]；current 组记录当前事实、推荐主线和实现边界，不替代完整设计与实现文档。
 当前文档入口已经从 baseline + 多篇 delta 切换为本组 current 文档；历史记录只保留为证据和决策来源，不再承担默认当前态入口职责。
 当前实现输入链也已从历史补丁式恢复切换为 `design_current + spec_current + implementation_current + validation_current`。
@@ -154,7 +154,7 @@ Tracking 当前已完成 head-first 第一轮实现：driver identity 由 head/f
 - 2026-06-11 sentinel、ID 生命周期语义和 Body/Hand 阶段拆分已通过 patch check、J6B 编译和独立 review；仍未新增 runtime replay 或单元测试。
 - Body 与 Hand 的统一 assignment 已改变局部匹配实现路径；2026-06-13 的 `FrameBodyView` 又改变了 hand 阶段内部 body 输入来源。后续继续扩展时仍需要更强的回归保护。
 - 2026-06-15 分层修复已通过 `Utils` 和 `sdk` 构建，但尚未执行 runtime replay、单元测试、板端验证或独立 review；运行等价性仍未闭合。
-- 2026-06-15 独立深模块 review 已完成并要求改变重构路线：实验分支不再作为推荐结构基底；发现 global body assignment 行为混入结构重构，以及 owner 消失后 hand slot 可能不再推进 lifecycle 的高风险缺口。
+- 2026-06-15 独立深模块 review 已完成并要求改变重构路线：实验分支不再作为推荐结构基底，但其统一 solver、Body cost 和 Hand slot assignment 可作为算法参考；clean branch 已落地 Body 全局 assignment，且 tracking/acquisition 取最小可用 cost 是有意行为 delta，仍需代表性冲突样例与 runtime diff 白名单；owner 消失后 hand slot 可能不再推进 lifecycle 仍是高风险缺口。
 - `tracking_interfaces_evidence` 不再承担默认输入职责，只作为接口边界的辅助证据。
 
 ## 0.5 Current Document Roles

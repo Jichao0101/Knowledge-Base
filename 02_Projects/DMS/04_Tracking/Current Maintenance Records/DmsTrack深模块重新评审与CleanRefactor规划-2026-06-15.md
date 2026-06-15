@@ -1,10 +1,10 @@
 ---
 title: DmsTrack 深模块重新评审与 Clean Refactor 规划
-summary: 对 feat/ljc/track_0609 与 br_develop_forJ6b 的 track.h/track.cpp 进行只读深模块评审；结论为停止在实验分支继续叠加结构重构，从稳定基线新开 clean branch，并只选择性重做已确认的行为修复。
+summary: 对 feat/ljc/track_0609 与 br_develop_forJ6b 的 track.h/track.cpp 进行深模块评审并执行 clean refactor 前两步；结论为停止在实验分支继续叠加结构重构，从稳定基线新开 clean branch，已完成 Face 等价 solver 与 Body 全局 assignment，后续继续 Hand 全局 slot assignment 和 hand lifecycle 闭环。
 status: reviewed
 doc_role: review_record
 truth_role: project_review
-scope: DmsTrack public/private API、body/hand phase 边界、assignment 抽象、生命周期与 clean refactor 规划；不包含代码实现和板端验证。
+scope: DmsTrack public/private API、body/hand phase 边界、assignment 抽象、生命周期与 clean refactor 规划，以及 2026-06-15 clean branch 阶段 1/2 实施回写；不包含板端验证。
 sources:
   - /home/jichao/dms/include/utils/track.h
   - /home/jichao/dms/source/utils/track.cpp
@@ -16,9 +16,9 @@ sources:
   - 02_Projects/DMS/04_Tracking/tracking_implementation_current.md
   - 02_Projects/DMS/04_Tracking/tracking_validation_current.md
 risks:
-  - 未执行编译、runtime replay、单元测试或板端验证。
-  - global Hungarian body assignment 与 orphan hand lifecycle 的目标行为仍需需求或运行证据确认。
-  - 本记录给出设计与路线判断，不授权直接修改代码。
+  - 阶段 1/2 已执行 QNX `Utils` 与 `sdk` 构建，但未执行 runtime replay、单元测试或板端验证。
+  - Body/Hand 全局 assignment 已作为目标行为落地；在 loss 完成场景标定前，已有 body track 和 initialized hand slot 只接受可靠 tracking edge，tracking 不可靠则 miss，不启用 acquisition fallback 重新绑定。acquisition 仅用于新 body owner 或未初始化 hand slot。
+  - Hand owner 消失后的 hand lifecycle 仍需专项实现与验证。
 updated_at: 2026-06-15
 ---
 
@@ -29,6 +29,8 @@ updated_at: 2026-06-15
 - `DmsTrack` public API 在稳定基线和实验分支均只有 `Init()`、`Update()`；调用方不需要编排 face/body/hand 内部步骤。
 - 实验分支 private header 从基线的少量 phase-level 方法扩张为完整的 solve/apply/advance/finalize/project/publish 执行脚本。
 - `1237f6c6` 将稳定基线的 driver-first、逐 owner greedy body matching 改为全局 Hungarian；这是算法行为变化。
+- 稳定基线 Face 已使用全局 Hungarian；实验分支将相同的 expanded matrix、dummy edge 和 strict `< dummyLoss` 语义提炼为通用 solver。
+- 实验分支 Hand 已从 owner 内 first/second pass 改为跨 owner、跨左右 slot 的单次全局 assignment。
 - `FrameBodyView`、`HandSlotKey`、`HandAssignmentRow` 都是单帧中间表示，却被放入 private header。
 - `AssignmentResult` 仅为 solver index 结果，但因 step helper 签名而前置声明到 namespace header。
 - 当前 hand miss 只推进本帧 allowed owner 对应的 assignment rows；owner 消失后，已初始化 slot 可能不再推进 miss，空 owner state 也无法删除。
@@ -40,13 +42,16 @@ updated_at: 2026-06-15
 - 主要问题不是 public API，而是 private header surface 和内部阶段边界。
 - `feat/ljc/track_0609` 已进入补救式重构：宽拆分后连续追加 sentinel、状态、语义和抽象删除修补。
 - 不建议继续在该分支叠加结构改动；建议从 `br_develop_forJ6b` 新开 clean branch。
-- 当前分支只作为行为候选与反例样本，不作为 clean refactor 的结构基底。
+- 当前分支作为统一 solver、Body cost 和 Hand slot row 的算法参考，同时作为过宽 private surface 的结构反例；不作为 clean refactor 的直接基底。
+- Face/Body/Hand 统一的是 assignment 求解机制，不是强制统一 row 方向、领域 gating、cost 解释或 lifecycle。
+- Body 全局 Hungarian 和 Hand 全局 slot assignment 是本次明确目标，必须作为有意行为变更分阶段实现，而非继续附着在可读性重构中。
 
 ## 1.3 尚需验证
 
-- 是否产品上确实需要 global Hungarian body assignment。
+- Body tracking cost、acquisition cost、driver priority 与 `dummyLoss` 是否处于可比较尺度。
+- Face 接入通用 solver 后，在 tie 和遍历顺序场景是否保持稳定基线行为。
 - body owner 消失后 hand 应立即清理、按 missThreshold 延迟清理，还是保留其他 bounded grace period。
-- selective reimplementation 后是否与稳定基线保持逐帧输出等价。
+- 除明确允许的 Body/Hand assignment delta 外，clean branch 是否与稳定基线保持逐帧输出等价。
 
 # 2 当前分支是否建议继续
 
@@ -58,7 +63,7 @@ updated_at: 2026-06-15
 2. 9 个主要提交同时混合结构、算法、sentinel、状态和 driver 行为修复。
 3. 后续提交反复新增、重命名和删除 assignment wrapper，说明抽象边界未稳定。
 4. 缺少 tracker 专项行为测试，无法安全证明多轮结构变化等价。
-5. 已发现 global assignment 和 orphan hand lifecycle 两个不能按“可读性优化”处理的高风险问题。
+5. 已发现 global assignment 和 orphan hand lifecycle 两个不能按“可读性优化”处理的高风险事项；前者现已确认是目标行为，后者仍是必须先闭合的生命周期缺口。
 
 # 3 Public API 深浅判断
 
@@ -106,7 +111,7 @@ private header 已成为执行脚本目录，而不是稳定内部契约。建�
 | `FrameBodyView` | 仅表达本帧已 finalize 的 body snapshot；不拥有状态 | 降级，且不应叫 View | 函数局部或 `.cpp` internal | 局部 finalized body map；`const std::map<track_id, TrackInfo>`；局部 snapshot vector |
 | `HandSlotKey` | 只组合 owner id 与左右标志 | 降级或删除 | 函数局部 | `std::pair<track_id, HandSide>`；局部索引；若保留使用 enum 而非 `bool isRight` |
 | `HandAssignmentRow` | 不承载稳定领域不变量，混合 solver index、状态指针、body snapshot 指针 | 删除 header 版本 | 函数局部 | 局部 row struct/lambda；直接按稳定 row 顺序解释 |
-| `AssignmentResult` | 主要隐藏 expanded Hungarian dummy 细节 | 降级 | `.cpp` internal 或函数局部 | `std::vector<int> rightByLeft`，未匹配为 `-1`；需要 cost 时并行局部 vector |
+| `AssignmentResult` | 隐藏 expanded Hungarian dummy 细节，且 Face/Body/Hand 均需要解释 unmatched detection | 保留最小版本并降级 | `.cpp` anonymous namespace | `rightByLeft` + 必要的 `unmatchedRight`；不保留 match object、unmatchedLeft 和无消费方的 cost |
 | `AssignmentPolicyMatrix` | 无独立策略生命周期，主要搬运矩阵 | 删除 | 无 | evaluator + 局部 matrix |
 | `AssignmentCandidate` | 单边候选搬运 | 删除 | 无 | 局部变量或直接 evaluator |
 | `AssignmentRejection` | 仅服务诊断分类 | 删除 | 无 | 必要时局部计数/日志，不进入结构契约 |
@@ -142,18 +147,26 @@ private header 已成为执行脚本目录，而不是稳定内部契约。建�
 
 ## 6.4 `AssignmentResult` 结论
 
-当前 matches + unmatchedLeft + unmatchedRight 对相邻 solve/apply helper 有便利，但其存在主要由 step helper 拆分驱动。若 phase-level helper重新收敛，优先使用 `rightByLeft[left] = right/-1`。只有多个不同算法调用点确实需要统一 match cost 和双侧 unmatched 结果时，才保留 `.cpp` internal result。
+统一 solver 需要隐藏 expanded Hungarian 的 dummy 行列和 forbidden edge 解析，Face 又需要未匹配 detection 用于 bootstrap，因此一个最小 `.cpp` internal result 有实际收益。建议只保留 `rightByLeft[left] = right/-1` 和必要的 `unmatchedRight`；`unmatchedLeft` 可由 `-1` 直接表达，match object 与 cost 不应成为稳定结果契约。
 
 # 7 Body 层级问题与建议接口
 
 ## 7.1 当前问题
 
 - `updateBodyTracks` 内部流程被完整复制到 header。
-- global Hungarian 改变了稳定基线的 driver-first greedy ownership。
+- global Hungarian 是明确目标，但改变了稳定基线的 driver-first greedy ownership，必须用目标冲突样例和 delta 白名单验证。
 - finalize、projection、publish 的 side-effect 边界虽有价值，但不需要全部成为 member API。
 - header 注释仍提到 greedy ownership，而实现已是 global Hungarian，形成事实矛盾。
 
-## 7.2 建议接口
+## 7.2 Assignment 设计
+
+- Body 左侧实体为当前 face/body owner，右侧实体为本帧 body detections。
+- 每条边由 body phase evaluator 决定；solver 不理解 driver、tracking 或 acquisition。
+- 已有 body owner 在同一全局矩阵中同时计算 tracking cost 与 geometry acquisition cost，但 evaluator 必须保留层级：tracking loss 低于可靠门槛时优先延续已有 body track；在 loss 完成标定前，已有 body owner 的 tracking 不可靠时不允许 acquisition fallback，直接走 miss。acquisition 只用于新 owner 首次绑定。
+- driver priority 必须显式编码在 gating/cost 中；owner 遍历顺序只能作为确定性 tie-break，不能替代优先级契约。
+- 必须确认 tracking loss、acquisition loss、driver bonus/bias 与 `dummyLoss` 的量纲和有效区间。否则两类错误都会发生：错误但低于门槛的 tracking edge 会延续错误 track；若未来打开 initialized fallback，过宽或未标定的 acquisition edge 也可能把 owner 绑定到其他人的 body。
+
+## 7.3 建议接口
 
 推荐 private header 只保留：
 
@@ -185,7 +198,15 @@ finalized body snapshot 作为局部结果交给 hand 与 legacy publish。`publ
 - 只有 allowed owners 进入 row 并推进 miss，owner 消失后的 initialized slots 可能长期悬挂。
 - left-before-right 是行为不变量，但当前通过 row 构造细节隐式维持。
 
-## 8.2 建议接口
+## 8.2 Assignment 与 Lifecycle 设计
+
+- Hand 左侧实体为当前 eligible owners 的 hand slots，右侧实体为本帧 hand detections。
+- 每个 owner 固定按 left-before-right 构造 slot；该顺序必须进入测试，不依赖注释保证。
+- initialized slot 使用 prediction match cost，uninitialized slot 使用 owner body anchor acquisition cost；owner/body gating 属于 hand evaluator。
+- assignment candidate rows 与 lifecycle sweep 必须分离：未进入本帧候选 rows 的 initialized slot 仍需按明确策略推进 miss、reset 或 cleanup。
+- publish 只能读取 finalized slot state；不得用 publish eligibility 反向定义 assignment 或 lifecycle 候选域。
+
+## 8.3 建议接口
 
 推荐 private header 只保留：
 
@@ -219,6 +240,9 @@ phase 内部必须显式拥有：
 
 可选择性重做的行为：
 
+- `1237f6c6` 中通用 solver 的 expanded matrix、有限 forbidden cost、dummy edge 与 strict `< dummyLoss` 语义。
+- `1237f6c6` 中 Body 全局 owner-to-detection assignment 的 cost evaluator 思路。
+- `1237f6c6` 及后续提交中 Hand 全局 slot-to-detection assignment 与 left-before-right row 顺序。
 - `d72a75be` 中“sanitize 失败只对本帧已命中项推进 miss”的语义。
 - `d72a75be`/`dc475f00` 中 finalize 负责状态副作用、publish 只写 output 的边界。
 - `4155bfde` 中“不使用 caller-owned legacy output map 作为 body -> hand 内部事实源”的目标。
@@ -230,7 +254,7 @@ phase 内部必须显式拥有：
 # 10 应丢弃或重做的改动类型
 
 - `804ff0f1`、`76490b4d` 引入的 step-level helper 展开。
-- `1237f6c6` 的 global body/hand assignment，除非作为独立算法变更重新立项。
+- `1237f6c6` 及后续提交的算法实现不得整提交 cherry-pick；应在 clean branch 按独立阶段重做并保留可审计的行为 delta。
 - `41abae61` 中与 helper 展开混合的 sentinel/生命周期结构。
 - `88620616`、`dc475f00` 继续围绕既有 step tree 的包装删除与重命名。
 - header-level `FrameBodyView`、`HandSlotKey`、`HandAssignmentRow`、`AssignmentResult`。
@@ -241,13 +265,13 @@ phase 内部必须显式拥有：
 
 | 阶段 | 要做 | 不做 | 验证方式 | 停止条件 |
 |---|---|---|---|---|
-| 0 行为基线 | 从 `br_develop_forJ6b` 新开分支；记录 SHA、配置、关键序列逐帧输出和生命周期 | 不重构 | map key/box/type、driver id、hit/miss、左右顺序快照 | 无法定义期望行为或缺少可重放输入 |
-| 1 行为修复隔离 | 分别重做 matched-only sanitize miss 与 body-to-hand 内部状态隔离 | 不统一 assignment，不拆 helper 树 | 单项序列测试、baseline/candidate 差异白名单 | 出现非目标 assignment/output 差异 |
-| 2 生命周期契约 | 明确 owner 消失后的 hand cleanup/miss 规则并独立实现 | 不伪装成可读性优化 | face/body 消失、120+ owner turnover、retired anchor 场景 | 产品规则不明确或 ID 泄漏仍存在 |
-| 3 Phase-level 重构 | 收敛 face/body/hand phase；pure helper 留 `.cpp` | 不新增 View/Payload/Row/Result 到 header | header surface 对比、逐帧等价、编译 | private header 仍暴露固定步骤脚本 |
-| 4 内部表示收敛 | row/key/result 局部化；复用 map/vector；publish pure | 不改 public API、key、dummyLoss、sentinel | assignment table tests、sanitize side-effect tests | 新类型不能证明不变量/复用收益 |
-| 5 独立算法评估 | 仅在明确需求下评估 global Hungarian | 不与 clean refactor 合并 | greedy/global 冲突样例、tie、forbidden、runtime replay | ownership 期望不明确或回归不可解释 |
-| 6 集成验证 | 本地构建、专项测试、runtime replay、独立 review；后续板端验证 | 不用编译代替运行等价 | normalized frame diff、代表性视频、J6B 验证 | 任一非白名单行为差异 |
+| 0 契约与行为基线 | 从 `br_develop_forJ6b` 新开分支；记录 SHA、配置、关键序列逐帧输出；明确 Face 等价、Body/Hand 有意 delta | 不重构、不搬实验分支结构 | map key/box/type、driver id、hit/miss、左右顺序快照与 delta 白名单 | 无法定义 Body/Hand 冲突场景期望或缺少可重放输入 |
+| 1 Face 驱动 solver 落地 | 从现有 Face Hungarian 提取 `.cpp` internal 通用 solver；保持 Face 原有 row 方向和行为 | 不改 Body/Hand，不强制三 phase row 同向，不引入 header result | 空/矩形/tie/forbidden/NaN/Inf、strict `< dummyLoss`、逐帧 Face 等价 | Face 出现非预期差异或 solver 契约需要领域知识 |
+| 2 Body 全局 assignment | 以 owner 对 detection 的全局矩阵替代逐 owner greedy；显式实现 tracking/acquisition/driver cost | 不同时改 Hand、finalize/publish 或 public API | greedy/global 冲突样例、driver 竞争、reacquisition、cost scale、runtime diff 白名单 | ownership 期望不明确、cost 尺度不可解释或非目标输出漂移 |
+| 3 Hand 全局 slot assignment | 以所有 eligible left/right slots 对 detections 的全局矩阵替代 owner 内 two-pass | 不把 eligibility 当 lifecycle，不新增 header row/key | 跨 owner 竞争、左右交叉、initialized/acquisition、tie、left-before-right | slot identity、side 或 owner 绑定出现不可解释变化 |
+| 4 Hand lifecycle 闭环 | 独立 sweep 所有 initialized slots；明确 owner 消失后的 miss/reset/cleanup；重做 matched-only sanitize miss | 不在 publish 中推进状态 | face/body 消失、120+ owner turnover、retired anchor、每帧最多一次 hit/miss | grace policy 不明确、ID 泄漏或重复推进仍存在 |
+| 5 Phase 与表示收敛 | 收敛 face/body/hand phase-level member；solver/evaluator/row/result/snapshot 留 `.cpp`；finalize 有副作用、publish pure | 不新增 View/Payload/Context 到 header，不改变目标算法 | header surface 对比、side-effect tests、normalized replay | private header 仍暴露固定步骤脚本或局部类型缺乏收益 |
+| 6 集成验证 | 本地构建、专项测试、runtime replay、独立 review；后续板端验证 | 不用编译代替行为验证 | 非白名单 frame diff、代表性视频、J6B 验证 | 任一非目标行为差异 |
 
 # 12 风险分级
 
@@ -267,8 +291,8 @@ phase 内部必须显式拥有：
 
 ## 12.3 高风险行为或契约变更
 
-- greedy body ownership 改 global Hungarian。
-- hand first/second pass 改统一全局 assignment。
+- greedy body ownership 改 global Hungarian，这是本次明确目标。
+- hand first/second pass 改统一全局 assignment，这是本次明确目标。
 - 改变 `dummyLoss` 严格 `<` 语义。
 - 改变 sentinel、output map key、driver identity、left-before-right。
 - 改 public API、class ABI/layout 兼容承诺。
@@ -281,8 +305,9 @@ phase 内部必须显式拥有：
 - Hungarian 空矩阵、矩形矩阵、tie、forbidden、NaN/Inf、严格 `< dummyLoss`。
 - sentinel 不进入 map key 或 vector index。
 - driver/back-passenger intrusion、smaller remote face、larger recovered driver。
-- body owner 竞争、driver-first ownership。
+- body owner 竞争、global optimum 与 driver priority；不得再以 driver-first greedy 等价为验收目标。
 - left/right 固定顺序和对称检测 tie。
+- 跨 owner hand 竞争与单个 detection 不得重复分配。
 - 每帧 hit/miss 最多推进一次。
 - face/body 消失后的 hand cleanup 与 ID 复用，至少覆盖 120 次 owner turnover。
 - sanitize 对 matched/unmatched 的差异。
@@ -299,7 +324,8 @@ phase 内部必须显式拥有：
 
 # 14 尚需补充的信息
 
-- global Hungarian 是否为明确需求，而不是重构过程中形成的实现选择。
+- Body/Hand 全局 assignment 的代表性冲突样例、期望 owner/slot 和允许 delta 白名单。
+- Body tracking/acquisition cost 与 Hand tracking/acquisition cost 的配置范围和标定依据。
 - owner body 不可发布或消失时，hand 的期望 grace period。
 - 可用于逐帧对比的 replay 输入、车型配置与预期 delta 白名单。
 - 是否要求对 `DmsTrack` private layout 保持二进制兼容；若要求，必须单独做 ABI 评估。
@@ -308,8 +334,64 @@ phase 内部必须显式拥有：
 
 1. 停止在 `feat/ljc/track_0609` 上继续叠加结构重构。
 2. 从 `br_develop_forJ6b` 新开 clean branch。
-3. 不整提交 cherry-pick 当前实验链；只按行为语义选择性重做。
-4. 第一阶段只建立行为基线、修复 hand orphan lifecycle，并隔离 finalize/publish 与 body-to-hand 内部状态。
-5. 第二阶段再把 private header 收敛到 phase-level 接口，单帧 row/key/result/snapshot 全部使用最低必要可见性。
-6. global Hungarian 必须作为独立高风险算法变更评估，不能继续附着在“可读性重构”名下。
+3. 不整提交 cherry-pick 当前实验链；复用其 solver/cost/row 设计证据，在 clean branch 分阶段重做。
+4. 先用稳定基线 Face Hungarian 建立通用 solver，并证明 Face 行为等价。
+5. 再独立完成 Body 全局 owner assignment 和 Hand 全局 slot assignment，每阶段只开放一类行为 delta。
+6. Hand assignment 后必须单独闭合 owner 消失 lifecycle，不能只推进本帧 eligible rows。
+7. 最后收敛 private header 到 phase-level 接口；solver、row、key、result 和单帧 snapshot 使用最低必要可见性。
+8. 统一 assignment 是明确目标，但必须按高风险算法变更治理，不能伪装成可读性优化。
 
+# 16 实施回写：阶段 1/2 Clean Refactor
+
+## 16.1 分支与代码范围
+
+- 代码仓：`/home/jichao/dms`
+- 当前分支：`feat/ljc/track_0615`
+- 已有阶段 1 提交：`460c54ef refactor:extract cpp-internal assignment solver for face equivalence`
+- 本次阶段 2 修改文件：
+  - `/home/jichao/dms/source/utils/track.cpp`
+- 未修改：
+  - `/home/jichao/dms/include/utils/track.h`
+  - public `DmsTrack::Init/Update`
+  - Face solver 行为
+  - Hand assignment/lifecycle
+
+## 16.2 阶段 2 实施内容
+
+Body matching 已从逐 owner greedy 抢占 detection 改为一次性 owner-to-body-detection 全局 assignment：
+
+- 左侧实体：本帧有效 `ownerFaceIds`，driver face 仍排在第一位作为确定性 row 顺序和 tie-break 输入。
+- 右侧实体：本帧 body detections。
+- solver：复用 `.cpp` anonymous namespace 内的 `SolveAssignment`，保持 expanded matrix、dummy edge、forbidden finite cost 和 strict `< dummyLoss` 语义。
+- cost：
+  - 已有 body track 使用预测框与 detection 的 `computeMatchLoss`。
+  - acquisition 使用 `FaceBelongsToBody + FaceAnchorLoss`。
+  - driver acquisition 使用 `kDriverBodyAssignmentBonus = -0.25f`，非 driver acquisition 使用 `kBodyAcquireBias = 0.5f`。
+  - evaluator 不再平权比较 tracking/acquisition：已有 body track 只接受 strict `< body.dummyLoss` 的 tracking edge；tracking 不可靠则本帧 miss，不使用 acquisition 重新绑定。无 body track 的新 owner 才使用 acquisition。
+  - 该保守层级只是实现约束，不等于 loss 已标定完成；tracking/acquisition/dummyLoss 的尺度仍必须用冲突样例验证，标定后才能重新讨论 initialized fallback。
+- Hand matching 同步按同一原则收敛：所有 eligible left/right slots 进入一次全局 assignment；initialized slot 只接受 reliable prediction tracking，tracking 不可靠则 miss；uninitialized slot 只走 body-anchor acquisition。
+- Body/Hand 输出阶段改为 `PrepareTrackForOutput` 后纯写 output map；sanitize failure 只在 finalize 中对本帧 matched body/slot 推进 miss，publish 不再隐式推进 lifecycle。
+
+## 16.3 Cost 标定风险
+
+本阶段不再以 driver-first greedy 等价为验收目标。当前实现已避免 tracking/acquisition 平权竞争，并在 loss 未标定前关闭已有 body / initialized hand 的 acquisition fallback。剩余风险是：若 tracking loss 对错误检测仍低于 `dummyLoss`，仍会错误延续旧 track；若后续重新打开 initialized fallback，acquisition gate 或 bias 过宽也可能把 owner 误绑定到其他轨迹。该风险必须进入后续验证白名单，不能用静态审查或编译证明运行效果。
+
+## 16.4 验证结果
+
+- `git diff --check`：通过。
+- QNX 环境加载前直接 `cmake --build build --target Utils`：失败，原因是当前 shell 未定义 `QNX_HOST` 与 `QNX_TARGET`，属于环境问题。
+- 加载 `/home/jichao/qnx800/qnxsdp-env.sh` 后：
+  - `cmake --build build --target Utils`：通过，最终 `[100%] Built target Utils`。
+  - `cmake --build build --target sdk`：通过，最终 `[100%] Built target sdk`。
+- 独立只读 explorer 确认阶段 1 已落地，Body/Hand 尚未迁移。
+- 独立只读 reviewer 未发现编译/API/header 抽象漂移问题；用户进一步指出 tracking/acquisition 两类 loss 均需标定，已记录为后续 runtime 验证项。
+
+## 16.5 下一步
+
+下一步仍按阶段计划进入：
+
+1. 补 Body/Hand tracking 与 acquisition loss 标定样例，覆盖 tracking 错误低损失、新 owner acquisition 误绑定、未来 initialized fallback 误绑定、driver/non-driver 竞争和 crowded multi-body/hand 场景。
+2. 阶段 4：Hand owner disappearance lifecycle 闭环。
+3. 阶段 5：phase 与局部表示收敛。
+
+在继续扩大行为变化前，应补充或至少明确 Body/Hand global assignment 的冲突样例、driver 竞争样例、hand 左右交叉样例和 runtime diff 白名单，否则本轮只能声明“构建通过和设计目标实现”，不能声明运行效果闭环。

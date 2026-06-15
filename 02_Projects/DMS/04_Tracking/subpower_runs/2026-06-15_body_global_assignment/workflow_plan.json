@@ -1,0 +1,14 @@
+{
+  "session_id": "2026-06-15_body_global_assignment",
+  "producer_agent": "workflow-orchestrator",
+  "subpower_invoked": true,
+  "workflow_id": "bug_fix_with_knowledge_writeback",
+  "planned_steps": [
+    "Read the approved deep-module review and current Tracking recovery bundle.",
+    "Use subagent role separation for read-only implementation scoping and independent review.",
+    "Implement stage 2 only in source/utils/track.cpp.",
+    "Run local QNX build verification.",
+    "Write code-change, review, closure, and knowledge writeback artifacts.",
+    "Synchronize the project maintenance record and current documents."
+  ]
+}

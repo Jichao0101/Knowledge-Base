@@ -49,6 +49,19 @@ risks:
 updated_at: 2026-06-15
 ---
 
+## 0.0.7 2026-06-15 Clean Branch Body Global Assignment
+
+- 代码范围：`/home/jichao/dms/source/utils/track.cpp`。
+- 未修改 `include/utils/track.h`、public `DmsTrack::Init/Update`、Face 行为或 Hand 行为。
+- 当前 clean branch `feat/ljc/track_0615` 已在既有 Face cpp-internal `SolveAssignment` 基础上，把 `updateBodyTracks` 的逐 owner greedy body matching 改为全局 owner-to-body-detection assignment。
+- Body owner row 仍按 driver face 优先构造，用于确定性 row 顺序和 tie-break 输入；不再用 driver-first 遍历抢占 detection。
+- 每条 Body assignment 边由 body phase evaluator 决定：已有 body track 提供 `computeMatchLoss(predBox, detection)`，head geometry acquisition 提供 `FaceBelongsToBody + FaceAnchorLoss`。
+- 新增 `.cpp` internal 常量 `kBodyAcquireBias = 0.5f` 与 `kDriverBodyAssignmentBonus = -0.25f`；driver acquisition cost 可低于非 driver acquisition cost，但 solver 仍通过 strict `< body.dummyLoss` 接受真实边。
+- 对已初始化 body，evaluator 保留 tracking-first 层级：tracking loss 低于 `body.dummyLoss` 时优先延续旧 body track；否则本帧 miss，不使用 acquisition 重新绑定。acquisition 只用于尚无 body track 的新 owner。
+- 该保守层级依赖 loss 标定：tracking loss、acquisition loss、driver/non-driver bias 与 `dummyLoss` 未经场景标定前，不能声明运行效果闭环；标定完成前不打开 initialized acquisition fallback。
+- Hand 已同步收敛为全局 slot assignment：eligible owner 的 left/right rows 一次性进入 solver；initialized slot 只接受 prediction tracking，tracking 不可靠则 miss；uninitialized slot 只走 acquisition。
+- Body/Hand 输出改为 `PrepareTrackForOutput` 后纯写 output map；sanitize failure 只在 finalize 中对本帧 matched body/slot 推进 miss。
+
 ## 0.0.5 2026-06-15 Assignment Helper 删减与非对称分层
 
 - 删除 `AssignmentEdge / AssignmentRejection` 和 rejection 聚合日志；不恢复 `AssignmentPolicyMatrix`。业务 evaluator 直接返回 cost，forbidden edge 使用有限 `kForbiddenAssignmentCost = 1e6f`。
@@ -63,10 +76,10 @@ updated_at: 2026-06-15
 
 - `feat/ljc/track_0609` 当前实现继续作为实验样本保留，但不再作为推荐 clean refactor 基底。
 - public `Init/Update` 已足够深；private header 的完整 step helper 树被判定为过宽。
-- `1237f6c6` 将稳定基线 driver-first greedy body ownership 改为 global Hungarian，属于高风险算法变化。
+- `1237f6c6` 将稳定基线 driver-first greedy body ownership 改为 global Hungarian，属于本次明确目标的高风险算法参考；其 solver/cost 语义可重做，但 step-level helper 和 header 中间类型不作为推荐结构。
 - `FrameBodyView` 解决 output-as-input 问题的目标可保留，但具体类型应降级为局部 finalized body snapshot；`HandSlotKey`、`HandAssignmentRow`、`AssignmentResult` 建议移出 header。
 - 当前 hand owner 消失后 lifecycle 如何继续推进尚未闭合；实验实现可能保留 initialized slot、retired anchor 并阻止 id 复用。
-- 推荐从 `br_develop_forJ6b` 新开 clean branch，只选择性重做 sanitize matched-only miss、finalize-before-publish 和 body-to-hand 内部状态隔离。
+- 推荐从 `br_develop_forJ6b` 新开 clean branch：先以 Face 验证通用 solver 等价，再分阶段重做 Body 全局 assignment、Hand 全局 slot assignment、sanitize matched-only miss、finalize-before-publish 和 body-to-hand 内部状态隔离。
 
 ## 0.0.4 2026-06-13 State Normalization And Body Output View
 
@@ -125,7 +138,7 @@ updated_at: 2026-06-15
   6. `updateHandTracks`
 - `trackId` ownership 已收敛到 head/face：`allocateBodyTrackId` 和 `m_nextBodyTrackId` 已删除，新增 `allocateFaceTrackId` 与 `m_nextFaceTrackId`。
 - `m_bodyTracks` 当前以 head trackId 为 key；body/torso 是 head-owned evidence，不再独立创建 identity id。2026-06-13 起，hand 阶段不再从 body legacy output map 读取 body evidence，而是消费 body 阶段生成的单帧 `FrameBodyView`。
-- `updateBodyTracks` 当前由 head 发起 body evidence matching：已有 evidence 先做 body motion tracking match，失败后和新 head 一样按 `FaceBelongsToBody + FaceAnchorLoss` 获取 body candidate。
+- `updateBodyTracks` 当前由 head 发起 body evidence matching：2026-06-15 clean branch 起，所有有效 owner face 与本帧 body detections 进入一次全局 assignment；已有 evidence 的 body motion tracking cost 与 head geometry acquisition cost 取最小可用值，不再按逐 owner greedy 方式先抢占 detection。
 - `m_bodyTrackResultMap` 仍作为 legacy body map 输出，但 key 使用 head trackId。
 - `m_bodyHandTracks` 的 legacy 变量名仍包含 bodyId；当前语义应理解为 head-owned body evidence id，即 head trackId。
 - driver head 选择由 `selectDriverHead` 完成：small face、front passenger ROI、尺寸突变优先过滤，size continuity 权重大于 position loss。
@@ -184,7 +197,7 @@ updated_at: 2026-06-15
 - 配置读取与 `DEFAULT` / 车型覆盖 -> `loadConfigFromJson`
 - head/face id 分配 -> `allocateFaceTrackId`
 - driver head 选择 -> `selectDriverHead`
-- head-owned body evidence 主流程 -> `updateBodyTracks`
+- head-owned body evidence 主流程与全局 owner-to-detection assignment -> `updateBodyTracks`
 - face/head 常规匹配、driver small-face filtering、face continuity gate -> `updateFaceTracks`
 - driver face 防后排误绑定 -> `selectDriverFace`、`FaceSmallerThanReferenceLoss`、`FaceLargerThanReferenceGain`、`TrackParameters::driverFaceAnchor*`
 - hand 左右槽位、second pass、miss 不输出策略 -> `updateHandTracks`
@@ -199,9 +212,9 @@ updated_at: 2026-06-15
 ### 0.5.1 body
 
 - body/torso 不再独立分配 id；`m_bodyTracks` 以 head trackId 为 key。
-- `updateBodyTracks` 先遍历当前有效 head，driver head 优先。
-- 已有 body evidence 的 head 先使用 body 预测框和 body detection 做常规 tracking match；真实匹配代价高于 `dummyLoss` 时拒绝。
-- 常规 tracking match 失败或当前 head 尚未绑定 body 时，使用当前 head 几何区域做 acquisition，候选评估为 `FaceBelongsToBody + FaceAnchorLoss`。
+- `updateBodyTracks` 先构造当前有效 head owner rows，driver head 优先作为确定性 row 顺序。
+- clean branch 已把 Body 改为全局 owner-to-body-detection assignment；已有 body evidence 的 tracking cost 与 head geometry acquisition cost 同时参与单条边评估，但 evaluator 在未标定前只允许已有 track 走 tracking edge，不允许 acquisition fallback 重新绑定。
+- acquisition 候选必须满足 `FaceBelongsToBody`，并使用 `FaceAnchorLoss` 加 driver/non-driver bias；真实边仍必须 strict `< body.dummyLoss`。
 - 命中的 body detection 写回 `m_bodyTracks[headId]`，并以同一 headId 发布到 `m_bodyTrackResultMap`。
 
 ### 0.5.2 face

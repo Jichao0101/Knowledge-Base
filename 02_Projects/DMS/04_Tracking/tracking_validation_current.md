@@ -46,6 +46,25 @@ updated_at: 2026-06-15
 
 ## 0.1 Evidence Status
 
+### 0.1.0G 2026-06-15 Clean Branch Body Global Assignment 证据
+
+- 代码范围：
+  - `/home/jichao/dms/source/utils/track.cpp`
+- 未修改：
+  - `/home/jichao/dms/include/utils/track.h`
+  - public `DmsTrack::Init/Update`
+  - Face assignment 行为
+  - Hand assignment/lifecycle
+- `git diff --check`：通过。
+- 直接 `cmake --build build --target Utils` 首次失败，原因是当前 shell 未定义 `QNX_HOST` 与 `QNX_TARGET`；加载 QNX SDK 环境后不再复现。
+- QNX 环境加载后 `cmake --build build --target Utils`：通过，最终 `[100%] Built target Utils`。
+- QNX 环境加载后 `cmake --build build --target sdk`：通过，最终 `[100%] Built target sdk`。
+- 独立 explorer：确认阶段 1 Face cpp-internal solver 已落地，Body/Hand 原先尚未迁移，阶段 2 最小落点为 `updateBodyTracks`。
+- 独立 reviewer：未发现编译、API/header 抽象漂移或 Face 非目标修改；确认 Body evaluator 已改为 tracking-first，Hand 已按同类原则做全局 slot assignment，未发现 double-miss publish 路径。当前保守实现关闭已有 body / initialized hand 的 acquisition fallback；剩余风险为 Body/Hand tracking/acquisition loss、driver/non-driver bias 与 `dummyLoss` 尚未用 sequence replay 标定，仍需 body owner 竞争、driver 竞争、hand 左右交叉和 crowded multi-person diff 白名单。
+- `runtime_replay: not_executed`
+- `unit_tests: not_added`
+- `board_validation: not_required`
+
 ### 0.1.0E 2026-06-15 Assignment Helper 删减与非对称分层证据
 
 - 代码范围：
@@ -68,6 +87,7 @@ updated_at: 2026-06-15
 - 高风险 finding：owner 消失后的 initialized hand slot 可能停止 miss/cleanup，长期保留 hand owner 与 retired anchor，并影响 face id 复用。
 - 抽象审计：`FrameBodyView` 降级为局部 snapshot；`HandSlotKey / HandAssignmentRow / AssignmentResult` 移出 header；已删除 matrix/candidate/rejection 不恢复。
 - route：停止继续 `feat/ljc/track_0609`，从 `br_develop_forJ6b` 新开 clean branch。
+- 需求澄清：统一 assignment solver、Body 全局 Hungarian 和 Hand 全局 slot assignment 已确认为目标行为；验证必须区分 Face 等价迁移与 Body/Hand 有意 delta。
 - `runtime_replay: not_executed`
 - `unit_tests: not_executed`
 - `board_validation: not_required`

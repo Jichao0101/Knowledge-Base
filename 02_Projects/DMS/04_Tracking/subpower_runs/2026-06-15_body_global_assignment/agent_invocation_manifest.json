@@ -1,0 +1,26 @@
+{
+  "session_id": "2026-06-15_body_global_assignment",
+  "producer_agent": "workflow-orchestrator",
+  "invocations": [
+    {
+      "invocation_id": "explorer-1",
+      "role_id": "repo-implementer-scope-explorer",
+      "agent_id": "019ecad6-1ad3-7561-845f-a38060d30547",
+      "execution_evidence": {
+        "evidence_type": "runtime_spawn",
+        "evidence_ref": "multi_agent_v1.spawn_agent:019ecad6-1ad3-7561-845f-a38060d30547"
+      },
+      "output_summary": "Confirmed stage 1 Face solver landed, Body/Hand were not yet migrated, and updateBodyTracks was the minimal stage 2 edit point."
+    },
+    {
+      "invocation_id": "reviewer-1",
+      "role_id": "repo-reviewer",
+      "agent_id": "019ecad8-889c-7b11-a239-7b63da13dae7",
+      "execution_evidence": {
+        "evidence_type": "runtime_spawn",
+        "evidence_ref": "multi_agent_v1.spawn_agent:019ecad8-889c-7b11-a239-7b63da13dae7"
+      },
+      "output_summary": "Found no compile/API/header abstraction issue after conservative Body/Hand global assignment; remaining risk is scenario calibration for tracking/acquisition loss and dummyLoss."
+    }
+  ]
+}

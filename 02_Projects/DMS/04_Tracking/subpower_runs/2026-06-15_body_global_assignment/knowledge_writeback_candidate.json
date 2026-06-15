@@ -1,0 +1,24 @@
+{
+  "session_id": "2026-06-15_body_global_assignment",
+  "producer_agent": "knowledge-closer",
+  "candidate_claims": [
+    {
+      "claim": "Stage 2 Body global owner-to-detection assignment is implemented in /home/jichao/dms/source/utils/track.cpp.",
+      "claim_classification": "verified_runtime_fact",
+      "evidence_refs": [
+        "code_change_manifest.json",
+        "evidence_manifest.json"
+      ]
+    },
+    {
+      "claim": "Before loss calibration, existing body tracks and initialized hand slots do not use acquisition fallback; tracking loss, acquisition loss, driver/non-driver bias, and dummyLoss still require scenario calibration before runtime equivalence claims.",
+      "claim_classification": "project_decision",
+      "evidence_refs": [
+        "review_decision.json",
+        "DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15.md"
+      ]
+    }
+  ],
+  "target_scope": "project_current_documents",
+  "promotion_to_formal_knowledge_allowed": false
+}

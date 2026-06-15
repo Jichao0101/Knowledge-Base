@@ -54,13 +54,13 @@ updated_at: 2026-06-15
 - 当前主要设计问题是 private header 和内部组织过浅，不是调用方边界过浅。
 - `feat/ljc/track_0609` 的 solve/apply/advance/finalize/project/publish helper 树只作为实验分支代码事实，不再作为推荐层级设计。
 - 推荐从 `br_develop_forJ6b` 新开 clean branch，以 face/body/hand phase-level helper 为主，单帧 row/key/result/snapshot 使用最低必要可见性。
-- global body Hungarian、hand lifecycle 和 sanitize miss 语义必须分别按算法变化、生命周期契约和行为修复管理，不能统一归入可读性重构。
+- Face/Body/Hand 统一 assignment solver 是明确目标：Face 已在 clean branch 完成等价迁移，Body 已从逐 owner greedy 改为全局 Hungarian，Hand 仍待从 owner 内 two-pass 改为全局 slot assignment；三者仍必须分别按等价迁移、算法变化和生命周期契约管理，不能统一归入可读性重构。
 
 ## 0.2 Current Layering
 
 - 内部职责按短期 matching、长期 state apply、cleanup/finalize、必要的 projection、pure publish 分层；分层不要求 face/body/hand 机械拥有同形 stage。
 - body -> hand 确实需要同帧 finalized body 契约，但不预设必须使用 header-level `FrameBodyView`；优先复用局部 `const map/vector` 或 `.cpp` internal snapshot。
-- assignment policy helper 只在能显著改善正确性或诊断时保留；`AssignmentResult`、solver row 和 slot key 默认降级到 `.cpp` 或函数局部。
+- 通用 solver 只统一 expanded matrix、dummy、forbidden 和结果解析，不统一各 phase 的 row 方向、领域 gating、cost 或 lifecycle；最小 `AssignmentResult`、solver row 和 slot key 降级到 `.cpp` 或函数局部。
 - `head/face`：当前 driver identity 的主入口，负责稳定 driver/head 选择和后续 face/head 模型输入。
 - `body`：当前代码中的 head-owned body/torso evidence，不再单独决定 driver identity。
 - `hand`：当前代码中按 head-owned body evidence id 维护 `left/right` 两个槽位，输出 key 与 driver headId 对齐；hand 阶段只消费 body 阶段给出的单帧 `FrameBodyView`，不再读取 body legacy output map 作为内部输入。
@@ -74,7 +74,7 @@ updated_at: 2026-06-15
 
 - 以 `body` 检测作为 evidence 输入。
 - 每个有效 head 主动维护自己的 body/torso evidence。
-- 已有 evidence 的 head 先按 body 运动预测与当前检测做 tracking match；失败后按 head geometry acquisition 重获 body evidence。
+- Body 全局 assignment 中，已有 evidence 的 head 同时提供 body 运动预测 tracking cost 与 head geometry acquisition cost，但 evaluator 保留 tracking-first 层级：在 loss 完成场景标定前，已有 body track 只接受可靠 tracking edge，tracking 不可靠则 miss，不使用 acquisition 重新绑定；acquisition 只用于新 owner 首次绑定。tracking loss、acquisition loss、driver/non-driver bias 与 `dummyLoss` 必须用冲突样例标定，否则未来打开 initialized fallback 时仍可能误绑定到其他人的 body。
 - 新 head 或未绑定 body 的 head 也使用同一套 acquisition 逻辑首次获取 body evidence。
 - 命中时 `hitCount` 增长并清零 `missCount`，丢失时 `hitCount` 衰减、`missCount` 增长。
 - `missCount` 达阈值后转入 `m_retiredBodyTracks`，供 child handoff 清理使用。

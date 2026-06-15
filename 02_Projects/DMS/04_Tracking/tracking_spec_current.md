@@ -82,7 +82,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - 第一阶段实现必须保持 head-first driver identity：driver 优先由 head/face track 与业务配置约束决定。
 - 2m profile 默认应关闭 body/hand tracking 链路，避免无业务必要的 body/hand 状态污染输出。
 - `body` 必须保持为 driver head-bound body/torso evidence，不得由 raw body center 单独决定 driver identity。
-- `body` evidence 对已有 head 先执行“预测 -> 关联 -> 更新/生命周期衰减”，tracking match 失败或无 evidence 时由 head geometry acquisition 获取。
+- `body` evidence 对已有 head 执行“预测 -> 全局关联 -> 更新/生命周期衰减”；clean branch 中已有 body owner 的 tracking cost 与 head geometry acquisition cost 同时进入同一全局 assignment，但在 loss 标定完成前，已有 body owner 只允许 tracking edge 命中，tracking 不可靠则 miss，不允许 acquisition fallback 重新绑定。
 - `body` evidence 输出只能在达到稳定阈值后对外暴露。
 - `driver body evidence` 最终输出必须唯一且 key 使用 driver headId。
 - `face/head` 不应再被异常 raw body box 扩大 owner；driver face/head reject 不能被同帧 second-pass 绕回。
@@ -131,9 +131,12 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 ## 0.6 Calculation Contracts
 
 - assignment evaluator 返回真实 cost 或有限 forbidden cost；当前 forbidden cost 固定为 `1e6f`，所有配置化 `dummyLoss` 必须显著小于该值。
-- assignment 结果只能是 `.cpp` 或函数局部短期契约，不得进入稳定 header、cleanup、finalize、projection 或 publish；若 `rightByLeft/-1` 足够，不新增 result wrapper。
+- Face/Body/Hand 必须复用同一 `.cpp` internal assignment solver；solver 只负责矩阵扩展、dummy、forbidden 和 index 结果解析，不感知 track/owner/slot 领域语义。
+- Face 保持全局匹配语义；Body 已在 clean branch 落地全局 owner-to-body-detection Hungarian；Hand 目标仍为全局 hand-slot-to-detection assignment。
+- Body/Hand 的 tracking loss、acquisition loss、driver/non-driver bias 与 `dummyLoss` 必须按场景标定；若 tracking loss 对错误检测仍低于门槛，会错误延续旧 track。未标定前，已有 body track 和 initialized hand slot 不得用 acquisition fallback 重新绑定；若未来重新打开该 fallback，必须先证明 acquisition gate/bias 不会把 owner 误绑定到几何更合理但身份错误的检测。
+- assignment 结果只能是 `.cpp` 或函数局部短期契约，不得进入稳定 header、cleanup、finalize、projection 或 publish；最小结果只保留 `rightByLeft/-1` 与确有消费方的 `unmatchedRight`。
 - Body 的 sanitize/lifecycle finalize 必须先于 legacy publish 和 hand 消费；具体 finalized snapshot 表示不得强制为 header-level `FrameBodyView`。Hand 没有 tracker 内部下游，不得为形式统一新增 `FrameHandView`、publish payload 或 eligibility。
-- Hand unmatched miss 只能推进本帧实际 assignment row 中 initialized 且 unmatched 的 slot，不得扫描全量 hand state，也不得只从 matched slot 反推候选域。
+- Hand assignment 的 unmatched 解释只针对本帧候选 rows；lifecycle 必须另行 sweep 所有 initialized slots，确保未进入候选 rows 的 owner/slot 也按明确策略推进或清理。
 - owner 不再可发布或 body 消失时，initialized hand slot 的 bounded lifecycle 必须有明确规则；不得因不再进入 assignment row 而永久停止 miss/cleanup。
 - publish helper 不得调用 `PrepareTrackForOutput`、`AdvanceMiss` 或 cleanup。
 - `body` 和 `face` 使用恒速度运动模型。

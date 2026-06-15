@@ -1,0 +1,19 @@
+{
+  "session_id": "2026-06-15_body_global_assignment",
+  "producer_agent": "repo-reviewer",
+  "decision": "pass_with_risks",
+  "findings": [
+    {
+      "severity": "medium",
+      "summary": "Body/Hand global assignment uses a conservative pre-calibration policy: initialized body/hand state only accepts tracking, while acquisition is limited to new body owners or uninitialized hand slots.",
+      "disposition": "accepted_as_validation_requirement",
+      "required_followup": "Cover wrong low tracking loss, new-owner acquisition misbinding, future initialized fallback misbinding, multi-occupant body competition, driver competition, hand side crossing, and downstream hand impact with sequence replay or a diff whitelist."
+    }
+  ],
+  "no_findings": [
+    "No static compile issue found in the diff.",
+    "No public API or private header abstraction drift.",
+    "No direct Face behavior change.",
+    "No double-miss publish path found in the final reviewed diff."
+  ]
+}

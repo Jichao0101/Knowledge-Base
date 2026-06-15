@@ -1,0 +1,29 @@
+{
+  "session_id": "2026-06-15_body_global_assignment",
+  "producer_agent": "workflow-orchestrator",
+  "subpower_invoked": true,
+  "subagent_execution_required": true,
+  "subagent_execution_mode": "spawned_subagents_with_host_implementation",
+  "spawned_roles": [
+    "repo-implementer-scope-explorer",
+    "repo-reviewer"
+  ],
+  "not_spawned_roles": [
+    "board-runner",
+    "failure-analyst"
+  ],
+  "fallback_used": false,
+  "degraded": false,
+  "execution_evidence_status": "partial_role_separation",
+  "critical_host_participation": [
+    {
+      "role_id": "workflow-orchestrator",
+      "scope": "Task normalization, implementation, build verification, knowledge-base writeback, and final synthesis.",
+      "disclosed": true,
+      "affects_independence": true
+    }
+  ],
+  "complete_subpower_execution": false,
+  "completed_by_subpower": false,
+  "completed_under_subpower_contracts_with_host_only_fallback": false
+}

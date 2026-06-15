@@ -1,0 +1,19 @@
+{
+  "session_id": "2026-06-15_body_global_assignment",
+  "producer_agent": "knowledge-closer",
+  "candidate_artifact": "knowledge_writeback_candidate.json",
+  "plan_artifact": "writeback_plan.json",
+  "status": "host_confirmed",
+  "external_write_performed_by_subpower": false,
+  "writeback_refs": [
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15.md",
+    "02_Projects/DMS/04_Tracking/tracking_overview_current.md",
+    "02_Projects/DMS/04_Tracking/tracking_design_current.md",
+    "02_Projects/DMS/04_Tracking/tracking_spec_current.md",
+    "02_Projects/DMS/04_Tracking/tracking_implementation_current.md",
+    "02_Projects/DMS/04_Tracking/tracking_validation_current.md",
+    "02_Projects/DMS/DMS项目总览.md",
+    "02_Projects/Knowledge-Base/知识库结构审计_current.md"
+  ],
+  "promotion_to_formal_knowledge": false
+}

@@ -1,0 +1,17 @@
+{
+  "session_id": "2026-06-15_body_global_assignment",
+  "producer_agent": "workflow-orchestrator",
+  "subpower_invoked": true,
+  "execution_mode": "subpower_host_orchestrated_with_role_agents",
+  "primary_type": "bug_fix",
+  "task_goal": "Implement clean refactor stage 2: Body global owner-to-detection assignment.",
+  "change_profile": {
+    "repo_change": true,
+    "change_scope": "single_cpp_file",
+    "behavior_change": true,
+    "stateful_module": true,
+    "public_api_change": false,
+    "private_header_change": false,
+    "board_validation_required": false
+  }
+}

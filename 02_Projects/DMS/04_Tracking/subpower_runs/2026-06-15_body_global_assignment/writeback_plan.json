@@ -1,0 +1,21 @@
+{
+  "session_id": "2026-06-15_body_global_assignment",
+  "producer_agent": "knowledge-closer",
+  "candidate_artifact": "knowledge_writeback_candidate.json",
+  "requires_host_write": true,
+  "destination_refs": [
+    "tracking_review_record",
+    "tracking_overview_current",
+    "tracking_design_current",
+    "tracking_spec_current",
+    "tracking_implementation_current",
+    "tracking_validation_current",
+    "dms_project_overview",
+    "knowledge_base_structure_audit_current"
+  ],
+  "writeback_rules": [
+    "Do not promote to 01_Knowledge.",
+    "Record runtime replay and board validation as not executed.",
+    "Keep recoverability_status partial."
+  ]
+}

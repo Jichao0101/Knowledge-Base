@@ -1,0 +1,27 @@
+{
+  "session_id": "2026-06-15_body_global_assignment",
+  "producer_agent": "workflow-orchestrator",
+  "subpower_invoked": true,
+  "subpower_invocation_phrase": "按 subpower 处理本次任务",
+  "observed_symptom": "Clean refactor planning has completed stage 1: extract cpp-internal assignment solver for face equivalence.",
+  "expected_behavior": "Continue the approved staged implementation and write back each step result to the project knowledge base.",
+  "repo_scope": [
+    "/home/jichao/dms"
+  ],
+  "target_record": "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15.md",
+  "constraints": {
+    "code_changes_allowed": true,
+    "tests_allowed": true,
+    "board_validation_required": false,
+    "knowledge_writeback_allowed": true
+  },
+  "validation_criteria": [
+    "Implement the next planned step without expanding public API or private header surface.",
+    "Record the step result in project knowledge-base current documents.",
+    "Run available local build verification."
+  ],
+  "board_context": {
+    "provided": false,
+    "status": "not_required"
+  }
+}

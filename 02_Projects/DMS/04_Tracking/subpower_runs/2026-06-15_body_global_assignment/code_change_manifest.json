@@ -1,0 +1,24 @@
+{
+  "session_id": "2026-06-15_body_global_assignment",
+  "producer_agent": "repo-implementer",
+  "repo": "/home/jichao/dms",
+  "branch": "feat/ljc/track_0615",
+  "base_evidence": "460c54ef refactor:extract cpp-internal assignment solver for face equivalence",
+  "changed_files": [
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "unchanged_contracts": [
+    "No public API change.",
+    "No include/utils/track.h change.",
+    "No Face assignment change.",
+    "No Hand assignment or lifecycle change."
+  ],
+  "implemented_step": "Stage 2 Body global owner-to-detection assignment.",
+  "behavior_delta": [
+    "Body owner rows are solved in a single global assignment instead of driver-first greedy detection claiming.",
+    "Existing body owners only accept reliable tracking edges before loss calibration; tracking failure advances miss instead of acquisition rebinding.",
+    "Body acquisition is limited to new owners without an existing body track.",
+    "Hand slots are solved in a single global assignment; initialized slots only accept reliable tracking edges before loss calibration, while uninitialized slots use acquisition.",
+    "Driver acquisition receives a small negative bias and non-driver acquisition receives a positive bias for new-owner acquisition only."
+  ]
+}
