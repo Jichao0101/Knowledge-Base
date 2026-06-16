@@ -135,13 +135,13 @@ default_recovery_bundle:
   - `/home/jichao/dms/source/models/handpose_model.cpp`
   - `/home/jichao/dms/source/models/humanpose_model.cpp`
 
-Tracking 当前代码事实以 `AtomicResult` 四类 map 和 `DmsTrack::Update -> updateFaceTracks -> selectDriverHead/selectDriverFace -> updateBodyTracks -> updateHandTracks` 为核心，对外仍提供 `body / face / left_hand / right_hand` 跟踪结果。2026-06-16 对比 `1401fc338107f05b9cf` 稳定基线与 `feat/ljc/track_0615` 后，当前推荐路线收缩为：face/head 是唯一 identity 主线，2m 默认 face/head-only，5m 只做 driver-bound body/hand evidence，face missing 时优先 face occlusion，body/hand 只允许 bounded evidence cache。
+Tracking 当前代码事实以 `AtomicResult` 四类 map 和 `DmsTrack::Update -> updateFaceTracks -> selectDriverHead/selectDriverFace -> updateBodyTracks -> updateHandTracks` 为核心，对外仍提供 `body / face / left_hand / right_hand` 跟踪结果。2026-06-16 对比 `1401fc338107f05b9cf` 稳定基线与 `feat/ljc/track_0615` 后，当前推荐路线收缩为：face/head 是唯一 identity 主线，2m 默认 face/head-only，5m 只做 driver-bound body/hand evidence，body/hand 只允许 bounded evidence cache。face occlusion 下游已有接口和判断逻辑，track 内部不新增对应业务分支。
 Tracking 当前已完成 head-first 第一轮实现：driver identity 由 head/face track 决定；body 降级为 head-owned body/torso evidence；hand 只在 driver head-bound body evidence 下输出；四类 legacy map ABI 保持不变。
 2026-06-12 修复 2m 回灌中后排 face/head 被误跟踪为主驾的问题：driver face 选择拒绝稳定类型为 BACK_PASSENGER 的候选；主驾 face 尺寸连续性改为“变小强惩罚、变大增益”；driver face preferred anchor 和权重从 `track_params.json` 配置读取。板端二次回灌显示 `face-first driver face select face=1` 为 0 次，后排候选通过 `reject back passenger` 或 `reject smaller` 被过滤。
 2026-06-09 已完成 DmsTrack 首轮内部阶段拆分，并进一步把 Face / Body / Hand 收敛到统一 assignment helper：`Update`、Face、Body 以及 Hand 的 owner/prediction/cleanup/publish 通过 private helper 显式表达；public API、匹配核心、owner/bodyId/ID/key 和生命周期契约不变。证据级别为 patch check、QNX 编译和独立静态审查。
 2026-06-11 继续完成内部语义收敛：invalid track id、unmatched index、forbidden assignment cost 和 absent diagnostic loss 已分离为明确 sentinel；Body 与 Hand 主流程显式拆为预测、分配、应用、生命周期推进和发布阶段。`bodyId / handId` 初始继承 `faceId` 数值与 map key。当前代码在 face owner 消失时会立即退休并删除 body；hand 对外发布仍要求当前已发布的 DRIVER body evidence，而 owner 消失后的 hand 内部 lifecycle 尚未闭合。2026-06-13 进一步把 hand 阶段对 body 输出的依赖从 `curResult->m_bodyTrackResultMap` 收敛为单帧 `FrameBodyView`。
 2026-06-15 完成 assignment helper 删减与非对称职责分层：删除仅服务 rejection 分类日志的 edge/rejection 包装，forbidden edge 使用有限 `1e6f`，保留 `AssignmentResult`；Body 显式拆分 finalize 与 `FrameBodyView` projection，Hand 以单帧 assignment row 作为 solve/apply/miss 的共同候选域，不新增无下游用途的 hand view/payload，publish 不再推进 lifecycle。
-2026-06-15/2026-06-16 的统一 assignment、Body 全局 Hungarian、Hand global slot assignment、independent lifecycle 和 Body 四态 edge 路线已归档为历史实验路线，不再作为默认推荐目标。`feat/ljc/track_0615` 的 4A 代码小步仍是代码事实，但后续实现应优先从 `1401fc338107f05b9cf` 稳定骨架收缩：Face solver 等价迁移可保留为 `.cpp` internal 工具，Body/Hand 默认 driver-only evidence，复杂 global assignment/Reacquire 必须另行立项并补运行证据。详见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16]]。
+2026-06-15/2026-06-16 的统一 assignment、Body 全局 Hungarian、Hand global slot assignment、independent lifecycle 和 Body 四态 edge 路线已归档为历史实验路线，不再作为默认推荐目标。`feat/ljc/track_0615` 的 4A 代码小步仍是代码事实，但后续实现应优先从 `1401fc338107f05b9cf` 稳定骨架收缩：Face solver 等价迁移可保留为 `.cpp` internal 工具，Body/Hand 默认 driver-only evidence，复杂 global assignment/Reacquire 必须另行立项并补运行证据。组织架构也应回到主分支 `track.h` 的深接口骨架，而不是继续扩大 private step helper 树。详见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16]]。
 后续若继续优化 head-first，必须读取 [[head-first跟踪方案]] 与 [[02_Projects/DMS/04_Tracking/tracking_implementation_current]]；current 组记录当前事实、推荐主线和实现边界，不替代完整设计与实现文档。
 当前文档入口已经从 baseline + 多篇 delta 切换为本组 current 文档；历史记录只保留为证据和决策来源，不再承担默认当前态入口职责。
 当前实现输入链也已从历史补丁式恢复切换为 `design_current + spec_current + implementation_current + validation_current`。
@@ -156,7 +156,7 @@ Tracking 当前已完成 head-first 第一轮实现：driver identity 由 head/f
 - 2026-06-11 sentinel、ID 生命周期语义和 Body/Hand 阶段拆分已通过 patch check、J6B 编译和独立 review；仍未新增 runtime replay 或单元测试。
 - Body 与 Hand 的统一 assignment 已改变局部匹配实现路径；2026-06-13 的 `FrameBodyView` 又改变了 hand 阶段内部 body 输入来源。后续继续扩展时仍需要更强的回归保护。
 - 2026-06-15 分层修复已通过 `Utils` 和 `sdk` 构建，但尚未执行 runtime replay、单元测试、板端验证或独立 review；运行等价性仍未闭合。
-- 2026-06-16 基线对比后，Body global assignment、Hand global slot assignment、Body/Hand independent lifecycle 和 Reacquire 目标均降级为历史实验或未来重启项。当前优先缺口是 2m/5m 第一层分流、5m driver-bound evidence、face occlusion 输出语义和 bounded evidence cache 验证。
+- 2026-06-16 基线对比后，Body global assignment、Hand global slot assignment、Body/Hand independent lifecycle 和 Reacquire 目标均降级为历史实验或未来重启项。当前优先缺口是基于 `track_params.json` 车型配置的 2m/5m 第一层分流、5m driver-bound evidence 和 bounded evidence cache 验证。
 - `tracking_interfaces_evidence` 不再承担默认输入职责，只作为接口边界的辅助证据。
 
 ## 0.5 Current Document Roles

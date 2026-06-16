@@ -54,10 +54,11 @@ updated_at: 2026-06-16
 
 - 对比 `1401fc338107f05b9cf` 与当前 `feat/ljc/track_0615` 后确认：`include/utils/track.h` 未变化，public `DmsTrack::Init/Update` 未变化，架构漂移集中在 `source/utils/track.cpp`。
 - 当前分支已有代码事实包括 `.cpp` internal `SolveAssignment`、Body global owner-to-detection assignment、Hand global slot assignment、tracking-first/acquisition fallback 和 Body/Hand 4A independent lifecycle 小步。
-- 这些代码事实不再作为默认推荐路线；当前推荐实现主线收缩为：保留 face/head identity，2m face/head-only，5m driver-bound body evidence 和 driver-bound hand evidence，face missing 时优先 face occlusion，body/hand 只做 bounded evidence cache。
-- `SolveAssignment` 可作为 `.cpp` internal 薄工具保留，职责限定为 expanded matrix、dummy edge、forbidden edge、strict `< dummyLoss` 和结果解析；不作为统一 assignment 架构目标。
+- 这些代码事实不再作为默认推荐路线；当前推荐实现主线收缩为：保留 face/head identity，2m face/head-only，5m driver-bound body evidence 和 driver-bound hand evidence，body/hand 只做 bounded evidence cache。face occlusion 下游已有接口和判断逻辑，track 内部不新增对应业务分支。
+- `SolveAssignment` 不作为必须保留项；若 clean branch 中只有 Face 使用该 helper，且直接调用 Hungarian 更清晰，则允许删除。若保留，职责限定为 expanded matrix、dummy edge、forbidden edge、strict `< dummyLoss` 和结果解析；不作为统一 assignment 架构目标。
 - Body global assignment、Hand global slot assignment、Body/Hand full independent lifecycle、Body 四态 edge、Reacquire cost band 和 Hand Reacquire 降级为历史实验或未来重启项；重启前必须具备 replay、loss 分布、冲突样例和 diff 白名单。
 - 2026-06-15/2026-06-16 两篇扩张路线记录已移动到 `90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/`，当前推荐记录为 `DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md`。
+- 组织架构同样收缩回主分支 `track.h` 的 private surface：header 只保留长期状态、配置/ID 基础能力和 phase-level 方法；`solve/apply/advance/finalize/project/publish` 不作为 header-level step helper 树，`FrameBodyView` / `HandAssignmentRow` / `AssignmentResult` / `BodyEdgeMode` / `LifecycleContext` 只在确有审计通过时才提升。phase 内部使用 frame-local computation / persistent state transition / output projection 三段式约束，publish 不推进 hit/miss、retire、reset 或 owner migration。
 
 ## 0.0.8 2026-06-16 Head-first 方案优化与历史实现归档（已归档为历史实验路线）
 
@@ -92,6 +93,7 @@ updated_at: 2026-06-16
 - Hand finalize 负责 sanitize 和 matched sanitize failure 的 lifecycle 推进；`publishHandTracks` 不读取 `AssignmentResult`，不调用 `PrepareTrackForOutput`、`AdvanceMiss` 或 cleanup。
 - Hand 没有 tracker 内部下游，因此未新增 `FrameHandView`、publish payload 或 eligibility。
 - public `Init/Update`、Hungarian、strict `< dummyLoss`、四类 legacy map ABI、owner/key 和 left-before-right 顺序未变。
+- 当前实现文档不把“组织更细”当成默认收益；只要 private helper 没有独立契约，就应优先回到 phase-level 组织。
 
 ## 0.0.6 2026-06-15 Deep Module Re-review
 
@@ -263,7 +265,7 @@ updated_at: 2026-06-16
 - 当前实现保留 head/hand 的内部连续性；hand 对外输出 key 已收敛为当前 driver head-owned body evidence id，但区域级唯一性仍需运行验证。
 - `m_humanTrackResultMap` 只在导出层作为 body 兼容映射，不是 tracking 上游事实源。
 - 当前实现并未把 `tracking_interfaces_evidence` 提升为默认实现输入；其接口事实已经并入本文件和 spec。
-- 仓内存在 `track_params_2m.json`，但当前 `loadConfigFromJson` 固定读取 `track_params.json`，尚未实现显式 2m/5m profile 选择。
+- 2m/5m profile 应通过 `track_params.json` 车型配置读取；仓内存在 `track_params_2m.json`，但当前 `loadConfigFromJson` 固定读取 `track_params.json`，尚未实现显式车型 profile 分流。
 
 ## 0.7 Known Gaps
 

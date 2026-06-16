@@ -80,7 +80,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 ## 0.3 Required Behaviors
 
 - 当前代码事实中，`head/face` 是 identity 主锚点；后续修改不得恢复 body-first identity 语义。
-- `bodyId / handId` 初始继承 `faceId` 数值与 legacy map key；这只是身份与兼容输出 key 的继承，不代表 body/hand 是独立 identity owner。`feat/ljc/track_0615` 4A 代码已尝试让已有 body/hand 在 face miss/暂不存在时继续内部推进，但该路线降级为历史实验事实；推荐规范收缩为 bounded evidence cache，face missing 时优先 face occlusion，对外输出继续要求当前 face/body owner 证据。
+- `bodyId / handId` 初始继承 `faceId` 数值与 legacy map key；这只是身份与兼容输出 key 的继承，不代表 body/hand 是独立 identity owner。`feat/ljc/track_0615` 4A 代码已尝试让已有 body/hand 在 face miss/暂不存在时继续内部推进，但该路线降级为历史实验事实；推荐规范收缩为 bounded evidence cache，对外输出继续要求当前 face/body owner 证据。face occlusion 由下游既有接口和逻辑判断处理。
 - 第一阶段实现必须保持 head-first driver identity：driver 优先由 head/face track 与业务配置约束决定。
 - 2m profile 默认应关闭 body/hand tracking 链路，避免无业务必要的 body/hand 状态污染输出。
 - `body` 必须保持为 driver head-bound body/torso evidence，不得由 raw body center 单独决定 driver identity。
@@ -130,18 +130,25 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - `tracking_interfaces_evidence` 只保留接口证据，不是当前默认实现输入链入口。
 - 第一阶段不得破坏四类 map ABI；head-first 的内部绑定关系必须投影回现有 map。
 - Occupant/PersonTrack + PartTrack 不属于当前 required behavior，也不作为默认未来路线；若重新立项，需重新形成独立决策并更新 current 文档和 ABI 边界。
+- `DmsTrack::Init/Update` 是当前唯一 public tracker API；2m/5m profile、driver-bound body evidence 和 hand bounded cache 不得通过新增 public phase API 暴露给调用方。
+- 2m/5m profile 通过 `track_params.json` 的车型配置读取，不需要新增 profile ABI。
+- `track.h` private surface 以 `1401fc338107f05b9cf` 为组织架构基线，只保留长期状态、配置/ID 基础能力和 `updateFaceTracks/selectDriverFace/updateBodyTracks/updateHandTracks` phase-level 方法。
+- 不得把 `solve/apply/advance/finalize/project/publish` 全套步骤提升为 header-level private helper 脚本。只有当某个步骤拥有独立契约、独立复用、独立测试或独立失败边界时，才允许在实现前重新做抽象必要性审计。
+- `FrameBodyView`、`HandAssignmentRow`、`AssignmentResult`、`BodyEdgeMode`、`LifecycleContext/Payload/Eligibility` 不属于当前规范要求的稳定类型；默认使用 `.cpp` internal、函数局部 struct/lambda、局部容器或已有 `TrackInfo` 表达。
+- face occlusion 下游已具备接口与逻辑判断，track 内部不需要再做 face occlusion 业务分支。
 
 ## 0.6 Calculation Contracts
 
 - assignment evaluator 返回真实 cost 或有限 forbidden cost；当前 forbidden cost 固定为 `1e6f`，所有配置化 `dummyLoss` 必须显著小于该值。
-- Face 可复用 `.cpp` internal assignment solver；solver 只负责矩阵扩展、dummy、forbidden 和 index 结果解析，不感知 track/owner/slot 领域语义。Body/Hand 不要求为了“统一 assignment”强制复用该 solver。
+- Face 可复用 `.cpp` internal assignment solver，也可在只有 Face 使用且直接调用 Hungarian 更清晰时删除该 helper。solver 若存在，只负责矩阵扩展、dummy、forbidden 和 index 结果解析，不感知 track/owner/slot 领域语义。Body/Hand 不要求为了“统一 assignment”强制复用该 solver。
 - Face 保持全局匹配语义；Body/Hand 默认收缩为 driver-bound evidence association。`feat/ljc/track_0615` 中 Body global owner-to-detection Hungarian 与 Hand global slot assignment 只保留为历史实验事实和未来重启参考。
 - Body/Hand 的 tracking loss、acquisition loss、driver/non-driver bias 与 `dummyLoss` 若要重新进入 global assignment 或 Reacquire，必须按场景标定；若 tracking loss 对错误检测仍低于门槛，会错误延续旧 track。未标定前，已有 body track 和 initialized hand slot 不得用 acquisition fallback 重新绑定；若未来重新打开该 fallback，必须先证明 acquisition gate/bias 和 face consistency gate 不会把 owner 误绑定到几何更合理但身份错误的检测。
 - assignment 结果只能是 `.cpp` 或函数局部短期契约，不得进入稳定 header、cleanup、finalize、projection 或 publish；最小结果只保留 `rightByLeft/-1` 与确有消费方的 `unmatchedRight`。
 - Body 的 sanitize/lifecycle finalize 必须先于 legacy publish 和 hand 消费；具体 finalized snapshot 表示不得强制为 header-level `FrameBodyView`。Hand 没有 tracker 内部下游，不得为形式统一新增 `FrameHandView`、publish payload 或 eligibility。
 - Hand assignment 的 unmatched 解释只针对本帧候选 rows；lifecycle 必须另行 sweep 所有 initialized slots，确保未进入候选 rows 的 owner/slot 也按明确策略推进或清理。
+- bounded cache 只允许短期保留 box、motion state、hit/miss，用于 face 恢复后的平滑；不得发布为有效 body/hand，不得 acquisition/bootstrap，不得 owner migration，不得反向影响 driver identity。
 - owner 不再可发布、body 消失或 face 短时消失时，initialized hand slot 的 bounded cache 必须有明确 miss/reset/cleanup 规则；不得因不再进入 assignment row 而永久停止 miss/cleanup。`feat/ljc/track_0615` 4A 的 internal owner tracking-only row 只作为历史实验事实，不再作为推荐默认规范。assignment rows 只定义本帧候选匹配，不能替代全量 initialized slot cache sweep。
-- publish helper 不得调用 `PrepareTrackForOutput`、`AdvanceMiss` 或 cleanup。
+- publish helper 不得调用 `PrepareTrackForOutput`、`AdvanceMiss` 或 cleanup；除 sanitize 明确归属于 finalize 外，publish 不得推进 hit/miss、retire、reset 或 owner migration。
 - `body` 和 `face` 使用恒速度运动模型。
 - `hand` 使用恒加速度运动模型。
 - 关联流程必须遵循预测、构造损失矩阵、匈牙利匹配、命中更新、未命中衰减的顺序。
@@ -166,14 +173,14 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 
 - 当前配置来源固定为 `/home/jichao/dms/etc/track_params.json`。
 - 配置必须先加载 `DEFAULT`，再按车型节点覆盖。
-- 下一阶段必须引入可日志化的 profile 选择边界，至少区分 2m head/face only 与 5m handoff/handpose 需要 body/hand 的模式。
+- 下一阶段必须通过 `track_params.json` 车型节点引入可日志化的 profile 选择边界，至少区分 2m head/face only 与 5m handoff/handpose 需要 body/hand 的模式。
 - 阈值、Kf 参数和区域配置必须通过结构化配置项读取，不能依赖手工散落常量。
 - `track_params.json` 的 `presets.driver_face_anchor` 配置 driver face preferred anchor 与尺寸方向性权重；车型节点可覆盖坐标并继承 DEFAULT 权重。
 - 配置变化若影响阈值、运动模型或区域约束，必须同步更新 current 文档。
 
 ## 0.9 Verification Contracts
 
-- 若实现触及 `track.cpp` 的 body/face/hand 输出逻辑，至少重新检查 body 稳定输出门槛、driver 唯一化、2m/5m 分流、face occlusion、driver-bound hand evidence、bounded cache 清理，以及是否误恢复 Body/Hand global assignment 或 Reacquire。
+- 若实现触及 `track.cpp` 的 body/face/hand 输出逻辑，至少重新检查 body 稳定输出门槛、driver 唯一化、2m/5m 分流、driver-bound hand evidence、bounded cache 清理，以及是否误恢复 Body/Hand global assignment 或 Reacquire。
 - head-first 后续验证必须覆盖 2m body/hand disabled、5m driver head-bound body/torso、hand owner source、driver identity source 日志和四类 map ABI 兼容。
 - head-first 后续优化必须同时读取 [[head-first跟踪方案]] 与 [[02_Projects/DMS/04_Tracking/tracking_implementation_current]]，不得只从本 spec 摘要推断完整实现。
 - 若实现宣称修复 face/hand 区域级唯一输出，必须在 `tracking_validation_current` 中更新证据状态。

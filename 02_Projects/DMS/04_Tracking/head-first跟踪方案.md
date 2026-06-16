@@ -34,7 +34,7 @@ risks:
 updated_at: 2026-06-16
 ---
 
-> 文档状态：本文件是 head-first 当前推荐设计方案。2026-05-23 第一轮实现已落地；2026-06-16 重新对比 `1401fc338107f05b9cf` 稳定基线与 `feat/ljc/track_0615` 后，后续默认路线收缩为：face/head 是唯一 identity 主线，2m face/head-only，5m driver-bound body/hand evidence，face missing 时优先 face occlusion。`Body global assignment / Hand global slot assignment / independent lifecycle / Reacquire` 降级为历史实验或未来重启项，不再作为默认推荐目标。
+> 文档状态：本文件是 head-first 当前推荐设计方案。2026-05-23 第一轮实现已落地；2026-06-16 重新对比 `1401fc338107f05b9cf` 稳定基线与 `feat/ljc/track_0615` 后，后续默认路线收缩为：face/head 是唯一 identity 主线，2m face/head-only，5m driver-bound body/hand evidence，body/hand 只允许 bounded cache。`Body global assignment / Hand global slot assignment / independent lifecycle / Reacquire` 降级为历史实验或未来重启项，不再作为默认推荐目标。face occlusion 下游已有接口和判断逻辑，track 内部不新增 face occlusion 业务分支。
 
 # 1 目标
 
@@ -92,7 +92,8 @@ head-first 只改变身份来源，不把 body/hand 提升为 identity lifecycle
 - `face/head` 负责分配和选择 owner identity，是 driver identity 的主来源。
 - `body/torso evidence` 继承 owner face id 作为 legacy key，但只作为 driver-bound evidence cache，不反向创建、扩大或迁移 identity。
 - `left/right hand` 继承 owner face id 作为 legacy key，但只在 driver-bound owner 证据成立时匹配和发布。
-- face 短时消失时，业务语义优先是 face occlusion；body/hand 可以在 bounded grace period 内保留 motion cache，但不得继续承担完整 identity-like lifecycle。
+- face 短时消失时，body/hand 可以在 bounded grace period 内保留 motion cache，但不得继续承担完整 identity-like lifecycle；face occlusion 由下游既有接口和逻辑判断处理。
+- bounded cache 只允许短期保留 box、motion state、hit/miss，用于 face 恢复后的平滑；不得发布为有效 body/hand，不得 acquisition/bootstrap，不得 owner migration，不得反向影响 driver identity。
 - face 已确认退休或 id 复用前，body/hand 必须通过明确 miss、reset 或 cleanup 规则收敛，不能永久悬挂。
 - 这继承历史方案中“部件状态不等于输出发布”的正确部分，但不继承 body-first identity 主线，也不继承完整 independent lifecycle 目标。
 
@@ -104,7 +105,7 @@ head-first 只改变身份来源，不把 body/hand 提升为 identity lifecycle
 2. 对 head/face 历史轨迹执行预测和匹配；
 3. 基于稳定 head/face、业务 ROI、历史连续性和迟滞机制选择 driver head；
 4. 根据车型/摄像头业务配置决定是否继续处理 body/hand；
-5. 2m 或无 body/hand 业务时，不启动 body/hand 链路，或只做 bounded cache 清理，并只输出 head/face 相关结果；
+5. 2m 或无 body/hand 业务时，不启动 body/hand 链路，或只做 bounded cache 清理，并只输出 head/face 相关结果；2m/5m profile 通过 `track_params.json` 车型配置读取；
 6. 5m 且需要 body/hand 业务时，只由已选 driver head 发起 body/torso evidence 匹配；
 7. 仅在 driver head-bound body/torso 或业务搜索区域内匹配 left/right hand；
 8. 根据 hit/miss、owner 证据和左右手迟滞规则输出稳定结果；
@@ -213,7 +214,7 @@ body candidate 必须由 driver head 约束后才能成为 driver body/torso evi
 - 对当前只关心 driver 的业务，不做多 owner body detection 竞争；
 - 已有 body evidence tracking 不可信时先 miss，不默认用 acquisition fallback 重绑定；
 - body 不反向创建、扩大或迁移 identity；
-- face missing 时优先 face occlusion，body 只做 bounded cache，不发布 identity 延续。
+- face missing 时 body 只做 bounded cache，不发布 identity 延续；face occlusion 不在 track 内部新增业务分支。
 
 Body global assignment、Track/Reacquire/Bootstrap/Forbidden 四态 edge 和 Reacquire cost band 只作为未来重启项。重启前必须具备：
 
@@ -296,7 +297,8 @@ orphan hand 接管必须具备 owner 证据。异常大的 body detection box �
 hand assignment 候选域和 bounded cache sweep 必须分离。只有当前可发布 owner 进入 hand assignment row 时，仍不足以定义所有 hand slot 的状态清理。
 
 - initialized slot 即使本帧没有进入 assignment row，也必须按明确策略推进 miss、reset 或 cleanup。
-- owner face 短时消失时，业务语义优先是 face occlusion；hand 只可在 bounded grace period 内保留 motion cache。
+- owner face 短时消失时，hand 只可在 bounded grace period 内保留 motion cache；face occlusion 由下游处理。
+- bounded hand cache 只允许短期保留 box、motion state、hit/miss，用于 face 恢复后的平滑；不得发布为有效 hand，不得 acquisition/bootstrap，不得 owner migration，不得反向影响 driver identity。
 - 对外发布仍要求当前业务允许的 driver body evidence 或等价 owner 证据；内部保留不等于发布放宽。
 - 新 stable body evidence 接管同一区域时，应清理旧 owner 下的 hand cache，避免 face id 复用污染。
 - 不默认支持 hand 跨 owner 迁移、反向创建 owner 或 Hand Reacquire。
@@ -388,13 +390,15 @@ head-first 的差异在于：进入矩阵前，候选集合已按 driver head、
 
 ## 4.7 Deep-module clean refactor 约束
 
-后续代码结构应遵循 2026-06-15 深模块评审结论：
+后续代码结构以 2026-06-16 基线对比记录为准，并以 `1401fc338107f05b9cf` 的 `track.h` 为组织架构基线：
 
 - public `DmsTrack::Init/Update` 保持深接口，不暴露 face/body/hand 内部步骤；
-- private header 只保留长期状态、稳定配置/ID 职责和 phase-level 方法；
-- solver、edge classifier、row、key、snapshot 和临时 result 默认留在 `.cpp` anonymous namespace、函数局部 struct 或局部 lambda；
+- private header 只保留长期状态、稳定配置/ID 职责和 `updateFaceTracks/selectDriverFace/updateBodyTracks/updateHandTracks` phase-level 方法；
+- `solve/apply/advance/finalize/project/publish` 不应展开为 header-level private step helper tree；
+- solver、edge classifier、row、key、snapshot 和临时 result 默认留在 `.cpp` anonymous namespace、函数局部 struct、局部 lambda 或局部容器；
 - `FrameBodyView`、`HandSlotKey`、`HandAssignmentRow`、`AssignmentResult` 不作为稳定 header 抽象；
-- finalize 负责 sanitize 和 lifecycle 副作用，publish 只写 legacy output map；
+- phase 内部采用三段式结构：frame-local computation 只处理当前帧输入、候选集、loss、assignment、profile 判断和输出资格判断；persistent state transition 是唯一允许修改长期状态、motionState、hit/miss 和 cleanup 的阶段；output projection 只读取已完成状态并写 legacy maps；
+- finalize 负责 sanitize 和 lifecycle 副作用，publish 只写 legacy output map；除 sanitize 明确归属于 finalize 外，publish 不得推进 hit/miss、retire、reset 或 owner migration；
 - Body global assignment、Hand global slot assignment、independent lifecycle、Body/Hand Reacquire 都属于高风险行为变更或边界重组，不再作为默认推荐目标；未来重启时必须用 replay、冲突样例和 diff 白名单验证。
 
 ---

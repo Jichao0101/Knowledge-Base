@@ -1,6 +1,6 @@
 ---
 title: Tracking Validation Current
-summary: Tracking 当前验证状态文档，记录 head-first、driver 修复、实验重构证据、2026-06-16 基线对比后的路线收缩结论，以及 2m/5m 分流、driver-bound evidence 和 face occlusion 的未验证项；实验分支不再视为推荐结构基底。
+summary: Tracking 当前验证状态文档，记录 head-first、driver 修复、实验重构证据、2026-06-16 基线对比后的路线收缩结论，以及 2m/5m 分流、driver-bound evidence 和 bounded cache 的未验证项；实验分支不再视为推荐结构基底。
 status: verified
 doc_role: current
 truth_role: current
@@ -59,7 +59,8 @@ updated_at: 2026-06-16
   - `track.h` 未变化，public `DmsTrack::Init/Update` 仍是深接口。
   - 架构漂移集中在 `track.cpp`：Face solver helper、Body global assignment、Hand global slot assignment、tracking/acquisition fallback 和 Body/Hand 4A lifecycle 小步。
   - 当前分支已进入行为扩张链，不应继续作为默认推荐架构基底。
-  - 当前推荐路线收缩为：face/head identity、2m face/head-only、5m driver-bound body/hand evidence、face missing 优先 face occlusion、body/hand bounded evidence cache。
+  - 当前推荐路线收缩为：face/head identity、2m face/head-only、5m driver-bound body/hand evidence、body/hand bounded evidence cache；face occlusion 下游已有接口和判断逻辑，track 内部不新增对应业务分支。
+  - 组织架构基线收缩为 `1401fc338107f05b9cf` 的 `track.h` private surface：保留 phase-level 方法，不把 row/view/payload/result/edge mode 和完整执行脚本提升为 header 认知接口。
 - 归档：
   - 2026-06-15 深模块重新评审与 2026-06-16 方案优化记录已移动到 `90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/`，保留为历史实验路线。
 - 未执行：
@@ -69,8 +70,8 @@ updated_at: 2026-06-16
 - 新验证重点：
   - 2m face/head-only 不输出陈旧 body/hand。
   - 5m driver-bound body/hand evidence 不跨 owner。
-  - face missing 时输出 face occlusion 语义，而不是 body/hand identity continuation。
-  - bounded cache 在 face 恢复、owner retire、id reuse 时正确清理。
+  - face missing 时 body/hand 不输出 identity continuation。
+  - bounded cache 在 face 恢复、owner retire、id reuse 时正确清理，且不发布有效 body/hand、不 acquisition/bootstrap、不 owner migration。
 
 ### 0.1.0I 2026-06-16 Owner/body/hand 4A 生命周期闭环实现（历史实验代码事实）
 
@@ -382,7 +383,7 @@ updated_at: 2026-06-16
 - 若后续要重新评估 DMS driver false-yawn 的根因消除，建议补更长窗口 replay，专门量化 identity-swap 风险
 - 若后续继续优化 2m 场景，建议补更长 2m 视频集，对 `driver face reject`、`driver face match`、`driver second-pass face match orphan=` 做计数型统计，而不是只依赖抽样日志。
 - 若后续进入 head-first 运行验收，必须补：
-  1. 2m profile 下 body/hand disabled 且不发布 stale body/hand 的回放验证；
+  1. `track_params.json` 车型 profile 下 body/hand disabled 且不发布 stale body/hand 的回放验证；
   2. 5m profile 下 driver head-bound body/torso 的 owner 稳定性验证；
   3. hand owner source、left/right slot、orphan takeover 在手部大幅运动和多人干扰下的序列统计；
   4. driver identity source 日志，区分 `head_first`、`body_fallback` 与 reject reason。

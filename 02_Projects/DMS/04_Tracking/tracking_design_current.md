@@ -51,18 +51,24 @@ updated_at: 2026-06-16
 
 本文件只回答“当前设计是什么”，不回答全部“按什么精确规则实现代码”；实现级硬约束收敛到 [[02_Projects/DMS/04_Tracking/tracking_spec_current]]。
 
-## 0.1.1 2026-06-16 基线对比后的路线收缩
+## 0.1.1 2026-06-16 基线对比后的路线收缩与组织架构基线
 
 - public `DmsTrack::Init/Update` 已经形成深接口，不建议改变。
 - `track.h` 从 `1401fc338107f05b9cf` 到 `feat/ljc/track_0615` 未变化；架构漂移集中在 `track.cpp`。
 - `feat/ljc/track_0615` 已从 clean refactor 进入行为扩张链：Body global assignment、Hand global slot assignment、tracking/acquisition 修补和 independent lifecycle 小步连续叠加。
-- 后续推荐不再把 Face/Body/Hand 统一 assignment 作为默认架构目标；`SolveAssignment` 只可作为 `.cpp` internal 薄工具。
+- 后续推荐不再把 Face/Body/Hand 统一 assignment 作为默认架构目标；`SolveAssignment` 不作为必须保留项。若 clean branch 中只有 Face 使用该 helper，且直接调用 Hungarian 更清晰，则允许删除 helper。
 - Body global assignment、Hand global slot assignment、Body/Hand independent lifecycle、Body 四态 edge、Reacquire cost band 降级为历史实验或未来重启项。
-- 当前推荐从 `1401fc338107f05b9cf` 稳定骨架收缩：Face 等价 solver 可选保留，优先实现 2m/5m 分流、5m driver-only body evidence、5m driver-only hand evidence 和 face occlusion 语义。
+- 当前推荐从 `1401fc338107f05b9cf` 稳定骨架收缩：Face 等价 solver 可选保留或删除，优先实现基于 `track_params.json` 车型配置的 2m/5m 分流、5m driver-only body evidence 和 5m driver-only hand evidence。face occlusion 下游已有接口和判断逻辑，track 内部无需新增 face occlusion 业务判断。
+- 组织架构基线同样回到 `1401fc338107f05b9cf` 的 `track.h` private surface：header 只保留长期状态、配置/ID 基础能力和 `updateFaceTracks/selectDriverFace/updateBodyTracks/updateHandTracks` phase-level 方法。
+- 不把 `solve/apply/advance/finalize/project/publish` 全套执行脚本展开为 header-level private helper；只在确有独立契约、复用、测试或失败边界时才提升为 private method。
+- `FrameBodyView`、`HandAssignmentRow`、`AssignmentResult`、`BodyEdgeMode`、`LifecycleContext/Payload/Eligibility` 不作为默认稳定抽象；优先降级到 `.cpp` anonymous namespace、函数局部 struct、局部 lambda、局部 map/vector 或直接复用 `TrackInfo`。
 
 ## 0.2 Current Layering
 
-- 内部职责按短期 matching、长期 state apply、cleanup/finalize、必要的 projection、pure publish 分层；分层不要求 face/body/hand 机械拥有同形 stage。
+- phase 内部按三段式组织：frame-local computation、persistent state transition、output projection；分层不要求 face/body/hand 机械拥有同形 stage。
+- frame-local computation 只处理当前帧输入、候选集、loss、assignment、profile 判断和输出资格判断；结果不得跨帧保存，不得提升为 header 类型。
+- persistent state transition 是唯一允许修改 `m_faceTracks`、`m_bodyTracks`、`m_handTracks`、`m_retiredBodyTracks`、`motionState`、`hitCount`、`missCount` 和 cleanup 的阶段。
+- output projection 只读取已完成状态并写 legacy maps；除 sanitize 明确归属于 finalize 外，publish 不得推进 hit/miss、retire、reset 或 owner migration。
 - body -> hand 确实需要同帧 finalized body 契约，但不预设必须使用 header-level `FrameBodyView`；优先复用局部 `const map/vector` 或 `.cpp` internal snapshot。
 - 通用 solver 只统一 expanded matrix、dummy、forbidden 和结果解析，不统一各 phase 的 row 方向、领域 gating、cost 或 lifecycle；最小 `AssignmentResult`、solver row 和 slot key 降级到 `.cpp` 或函数局部。
 - `head/face`：当前 driver identity 的主入口，负责稳定 driver/head 选择和后续 face/head 模型输入。
@@ -70,19 +76,20 @@ updated_at: 2026-06-16
 - `hand`：当前代码中按 head-owned body evidence id 维护 `left/right` 两个槽位，输出 key 与 driver headId 对齐；推荐路线只在 driver-bound body evidence 下运行 hand，不做跨 owner global slot assignment。
 - `retired body`：仅作为旧 evidence/hand 槽位清理的历史锚点，不是新的主入口。
 - finalized body snapshot：body 阶段产生的单帧只读事实，只用于 hand 阶段和 legacy body publish；具体表示不进入稳定 header 契约，`FrameBodyView` 仅是实验分支当前实现。
-- ID 数值来源与生命周期所有权分离：`bodyId / handId` 初始继承 `faceId` 数值和 map key，但 body/hand 不应成为独立 identity lifecycle owner。face missing 时优先 face occlusion；body/hand 只允许 bounded evidence cache，并在 owner 确认退休、id 复用或 handoff 完成前收敛 cleanup。
+- ID 数值来源与生命周期所有权分离：`bodyId / handId` 初始继承 `faceId` 数值和 map key，但 body/hand 不应成为独立 identity lifecycle owner。body/hand 只允许 bounded evidence cache，并在 owner 确认退休、id 复用或 handoff 完成前收敛 cleanup。
 
 ## 0.3 Current Lifecycle
 
 ### 0.3.1 body/torso evidence
 
 - 以 `body` 检测作为 evidence 输入。
-- 每个有效 head 主动维护自己的 body/torso evidence。
-- Body 全局 assignment 中，已有 evidence 的 head 同时提供 body 运动预测 tracking cost 与 head geometry acquisition cost，但 evaluator 保留 tracking-first 层级：在 loss 完成场景标定前，已有 body track 只接受可靠 tracking edge，tracking 不可靠则 miss，不使用 acquisition 重新绑定；acquisition 只用于新 owner 首次绑定。tracking loss、acquisition loss、driver/non-driver bias 与 `dummyLoss` 必须用冲突样例标定，否则未来打开 initialized fallback 时仍可能误绑定到其他人的 body。
-- 标定后的推荐 edge 语义为：Track 负责可信 tracking 延续；Reacquire 负责已有 owner 在 tracking 不可信但 acquisition 高可信时强校正或重置 motion state 且不重置稳定 hit；Bootstrap 负责无 body track owner 的首次绑定；Forbidden 负责 unmatched、miss 和 retire。
-- 新 head 或未绑定 body 的 head 也使用同一套 acquisition 逻辑首次获取 body evidence。
+- 推荐路线中，只有 selected driver face/head 主动维护 body/torso evidence；2m profile 默认不启用 body 链路。
+- Body association 优先表达为 driver-bound evidence selection，不追求多 owner global assignment。已有 body evidence 的 tracking 不可信时先进入 miss/cache 路径，不使用 acquisition fallback 重新绑定到几何更合理但 identity 风险更高的检测。
+- Body global assignment、Track/Reacquire/Bootstrap/Forbidden 四态 edge、Reacquire cost band 和 initialized acquisition fallback 均降级为历史实验或未来重启项；只有在多 owner body evidence 成为明确业务目标且具备 replay、loss 分布、冲突样例和 diff 白名单后才重新评估。
+- driver head 尚未绑定 body 时，acquisition 只服务 driver-bound body evidence 的首次绑定。
 - 命中时 `hitCount` 增长并清零 `missCount`，丢失时 `hitCount` 衰减、`missCount` 增长。
-- `missCount` 达阈值后转入 `m_retiredBodyTracks`，供 child handoff 清理使用。
+- bounded cache 只允许短期保留 box、motion state、hit/miss，用于 face 恢复后的平滑；不得发布为有效 body，不得 acquisition/bootstrap，不得 owner migration，不得反向影响 driver identity。
+- `missCount` 达阈值后清理或转入 bounded cleanup anchor；该 anchor 只服务 hand slot 清理，不是独立 identity lifecycle。
 - 达到稳定阈值的 `body` evidence 才对外输出，legacy map key 使用 head trackId。
 - body 的稳定输出不能单独成为 driver identity 的主来源。
 
@@ -95,12 +102,12 @@ updated_at: 2026-06-16
 
 ### 0.3.3 hand
 
-- 每个 head-owned body evidence 维护 `left/right` 两个槽位，而不是统一 hand 池。
-- 槽位初始化依赖 driver head-bound body evidence；初始化后优先按各自预测状态继续匹配。
-- 未命中时手部会沿预测框短时输出，并允许短 miss window 维持连续性。
-- 新 stable head-owned body evidence 若与 retired evidence 属于同一区域，会清理旧 orphan hand 槽位。
-- 当前设计保留左右槽位的独立存活，但对外输出 key 必须回到当前 driver headId；是否已经形成运行级唯一闭合，属于 validation 负责的证据结论，不在 design 里提前写死。
-- face 短时消失后，内部 body retired anchor 或 hand slot 可在各自 bounded grace period 内保留原始继承 id 并按自身生命周期推进；这不放宽 hand 发布条件，hand 对外输出仍依赖当前允许发布的 DRIVER body evidence 或等价 owner 证据。owner 确认退休或新 stable owner 接管时必须 cleanup，不能永久悬挂。
+- driver-bound body evidence 维护 `left/right` 两个槽位，而不是统一 hand 池或跨 owner global slot assignment。
+- 槽位初始化依赖 driver head-bound body evidence；初始化后只作为 driver-bound evidence 的 bounded cache，不反向创建、扩大或迁移 owner。
+- 未命中时 hand 内部可短期保留状态以支持遮挡恢复；对外输出仍要求当前允许发布的 DRIVER body evidence 或等价 owner 证据。
+- bounded hand cache 只允许短期保留 box、motion state、hit/miss，用于 face 恢复后的平滑；不得发布为有效 hand，不得 acquisition/bootstrap，不得 owner migration，不得反向影响 driver identity。
+- 新 stable driver body evidence 若接管同一区域，应清理旧 orphan hand 槽位。
+- 当前设计保留左右槽位的短期状态连续性，但不保留完整 independent identity lifecycle；body/hand 不继续承担 identity-like continuation。
 
 ## 0.4 Current Identity And Region Rules
 
