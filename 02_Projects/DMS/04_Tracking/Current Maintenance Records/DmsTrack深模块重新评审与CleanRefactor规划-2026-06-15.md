@@ -1,6 +1,6 @@
 ---
 title: DmsTrack 深模块重新评审与 Clean Refactor 规划
-summary: 对 feat/ljc/track_0609 与 br_develop_forJ6b 的 track.h/track.cpp 进行深模块评审并执行 clean refactor 前两步；结论为停止在实验分支继续叠加结构重构，从稳定基线新开 clean branch，已完成 Face 等价 solver 与 Body 全局 assignment，后续继续 Hand 全局 slot assignment 和 hand lifecycle 闭环。
+summary: 对 feat/ljc/track_0609 与 br_develop_forJ6b 的 track.h/track.cpp 进行深模块评审并执行 clean refactor 前两步；结论为停止在实验分支继续叠加结构重构，从稳定基线新开 clean branch，已完成 Face 等价 solver 与 Body 全局 assignment；2026-06-16 补充吸收 Body 四态 edge、body/hand 独立生命周期和 head-first 方案整理要求。
 status: reviewed
 doc_role: review_record
 truth_role: project_review
@@ -18,8 +18,9 @@ sources:
 risks:
   - 阶段 1/2 已执行 QNX `Utils` 与 `sdk` 构建，但未执行 runtime replay、单元测试或板端验证。
   - Body/Hand 全局 assignment 已作为目标行为落地；在 loss 完成场景标定前，已有 body track 和 initialized hand slot 只接受可靠 tracking edge，tracking 不可靠则 miss，不启用 acquisition fallback 重新绑定。acquisition 仅用于新 body owner 或未初始化 hand slot。
+  - 2026-06-16 方案层新增 Body Reacquire 目标，但当前代码尚未验证；不得把四态 edge 视为已闭环实现。
   - Hand owner 消失后的 hand lifecycle 仍需专项实现与验证。
-updated_at: 2026-06-15
+updated_at: 2026-06-16
 ---
 
 # 1 结论摘要
@@ -395,3 +396,30 @@ Body matching 已从逐 owner greedy 抢占 detection 改为一次性 owner-to-b
 3. 阶段 5：phase 与局部表示收敛。
 
 在继续扩大行为变化前，应补充或至少明确 Body/Hand global assignment 的冲突样例、driver 竞争样例、hand 左右交叉样例和 runtime diff 白名单，否则本轮只能声明“构建通过和设计目标实现”，不能声明运行效果闭环。
+
+# 17 方案整理补充：Body 四态 edge 与独立生命周期
+
+2026-06-16 对 Tracking 方案做整理后，本评审记录补充以下设计输入：
+
+1. `座舱多目标跟踪实现.md` 已从 Tracking 当前工作区归档到 `90_Archive/02_Projects/DMS/04_Tracking/`，只作为历史 body-first baseline 与参数推导参考。
+2. `head-first跟踪方案.md` 继承历史方案中 body/face/hand 生命周期独立的正确原则：owner identity 来自 face/head，body/hand 继承 owner key，但内部生命周期按自身 detection、motion state、hit/miss、handoff 和 cleanup 推进。
+3. 该继承不恢复 body-first identity。body/hand 不能反向决定 driver identity，也不能通过 raw body box 扩大 owner。
+4. Body 全局 assignment 的最终 edge 解释应收敛为 Track / Reacquire / Bootstrap / Forbidden：
+   - Track：owner 有 body track，tracking loss 可信，face consistency 不明显冲突；执行 `CorrectMotion` 与 `AdvanceHit`，保持生命周期连续。
+   - Reacquire：owner 有 body track，tracking loss 不可信，acquisition loss 高可信；保持 ownerFaceId，重置或强校正 motionState，不把 `hitCount` 重置为 1，已稳定输出时保持输出连续。
+   - Bootstrap：owner 没有 body track，acquisition loss 可信；新建 body evidence，`hitCount` 从 1 开始，按 `hitThreshold` 决定是否输出。
+   - Forbidden：tracking 和 acquisition 都不可信，或 face consistency 冲突；owner unmatched，已有 body 执行 `AdvanceMiss`，必要时 retire。
+5. 标定前的当前保守实现仍只打开 Track / Bootstrap；Reacquire 必须等待 tracking/acquisition loss、driver/non-driver bias、face consistency gate 和 runtime diff 白名单完成后再打开。
+6. Hand lifecycle 阶段必须独立 sweep 所有 initialized slots。assignment rows 只代表本帧候选域，不得替代 owner 消失、body 不可发布、face 短时消失、new owner handoff 和 id 复用前 cleanup 的生命周期规则。
+
+## 17.1 对分阶段计划的修正
+
+后续阶段顺序应先解耦生命周期，再做 loss 标定和 Reacquire 打开。原因是：若 face 短时消失时 body/hand owner 根本不进入候选域，loss instrumentation 无法覆盖“脸部遮挡但 body/hand 可继续跟踪”的核心场景，标定结果会缺失最关键的输入分布。
+
+- 阶段 2A：Conservative Body global assignment。保持当前 Track / Bootstrap 策略；已有 body track 的 tracking 不可信时仍 miss，不打开 Reacquire。
+- 阶段 3A：Conservative Hand global slot assignment。保持 initialized slot 只走 tracking、uninitialized slot 只走 acquisition；不把 hand acquisition fallback 扩展到 initialized slot。
+- 阶段 4A：Owner / body / hand 独立生命周期闭环。先保证 face 短时消失、body 仍连续、hand slot 未进入 assignment row、新 stable owner 接管和 face id 复用前 cleanup 都有 bounded lifecycle 规则。
+- 阶段 4B：Loss instrumentation + replay 标定。在 4A 候选域闭合后采集 tracking/acquisition loss、driver/non-driver bias、face consistency gate、dummyLoss 和 hand slot lifecycle sweep 相关分布。
+- 阶段 4C：Body Reacquire 打开。只在 4B 标定后实现 Reacquire，并验证 ownerFaceId、hitCount、输出连续性和 motion reset/strong correction。
+- 阶段 4D：评估 Hand 是否需要类似 Reacquire。先基于 4A/4B 的 hand slot 数据判断需求，不默认把 Body Reacquire 机械复制到 hand。
+- 阶段 5：phase/header 表示收敛。四态 edge classifier 默认留在 `updateBodyTracks` 的 `.cpp` 局部实现，不新增 header-level Edge/Mode/Context 抽象；若后续确需 enum，也必须先补抽象必要性审计。

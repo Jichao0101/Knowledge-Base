@@ -1,8 +1,8 @@
 # Codex plugin skill 集中注册与迁移方案
 
 状态：已落地  
-日期：2026-05-28  
-适用范围：本地自研 Codex plugin/skill 的集中注册、迁移、runtime link、版本锁定与验证。
+日期：2026-06-16  
+适用范围：本地 Codex plugin/skill 的集中注册、能力摘要、portable source、安装策略、runtime link、版本锁定与验证。
 
 ## 结论
 
@@ -11,6 +11,8 @@
 `/mnt/d/codex-capability-registry` 是集中注册仓，不是所有能力源码的唯一仓。它负责：
 
 - 记录 first-party / third-party ownership
+- 记录能力摘要和描述来源
+- 记录 portable source 事实、安装策略和验证规则
 - 锁定自研 plugin submodule commit
 - 保存小型自研 skill 源码
 - 生成 runtime symlink
@@ -23,7 +25,36 @@
 
 - `first_party_submodule`：自研 plugin，保留独立 Git 仓库和历史，通过 submodule 锁定版本。
 - `first_party_embedded`：小型自研 skill，直接纳入 registry 的 `skills/`。
-- `third_party_external`：第三方 skill/plugin，不纳入源码树，只在 manifest 中记录 runtime 路径、恢复来源或安装说明。
+- `third_party_external`：第三方 skill/plugin，不纳入源码树，只在 manifest 中记录能力摘要、provider/source hint、安装策略和可信恢复来源。
+
+## Manifest 字段策略
+
+`manifests/*.yaml` 是能力注册表，不是本机 runtime 快照。
+
+保留字段：
+
+- `name` / `ownership`：能力标识与归属分层。
+- `summary`：面向检索和人工判断的简短简介。
+- `description_source`：一方能力指向仓库内权威描述；三方能力标记为外部 runtime frontmatter 快照来源。
+- `source.distribution`：区分 `bundled`、`git_submodule`、`external`。
+- `source.path`：仅用于随仓库迁移的一方源码相对路径。
+- `source.commit`：仅用于 submodule plugin 版本锁定。
+- `source.restore_from`：仅作为三方能力在已知机器上的可信恢复线索。
+- `install.strategy`：表达安装方式，例如从 registry 建 symlink、从 provider 安装或从备份恢复。
+- `verification`：表达验证约束，例如需要 `SKILL.md`、需要 plugin manifest、禁止三方能力 symlink 回 registry。
+
+删除或避免字段：
+
+- 一方 skill 的绝对 `runtime.skill_path` 和 `runtime.link_target`。
+- plugin 的绝对 `runtime.codex_plugin_path` 和 marketplace symlink 目标路径。
+- 三方 skill 的本机 `source.path`。
+- 重复的 `install_hint` 文本。
+
+原因：
+
+- 一方自研 skill 固定在 registry `skills/<name>`，拷贝仓库即可获得源码，runtime/link 路径可由脚本推导。
+- 三方 skill 不随 registry 迁移，本机 runtime 路径和 symlink 目标没有跨机器语义。
+- 能力简介比路径更影响发现、判断和维护，应作为 manifest 的一等字段。
 
 ## 当前落地结构
 
@@ -45,8 +76,12 @@ Registry 仓库：
     install-runtime-links.sh
     verify-runtime.sh
   skills/
+    deep-module-design-review/
+    interface-abstraction-implementation-guard/
     karpathy-guidelines/
+    knowledge-base-structure-builder/
     lark-doc-to-obsidian/
+    module-comment-and-naming-governance/
   sources/submodules/
     cutepower/
     subpower/
@@ -59,14 +94,19 @@ Registry 仓库：
 
 自研 embedded skill：
 
+- `deep-module-design-review`
+- `interface-abstraction-implementation-guard`
 - `karpathy-guidelines`
+- `knowledge-base-structure-builder`
 - `lark-doc-to-obsidian`
+- `module-comment-and-naming-governance`
 
 第三方 skill：
 
 - 不进入 registry `skills/`
 - 保持在 `/home/jichao/.agents/skills/<name>` 的普通目录
 - 在 `manifests/skills.yaml` 中标记为 `third_party_external`
+- manifest 不记录三方本机 runtime path；只保留 provider/source hint、安装策略和必要的可信备份路径
 
 ## Runtime 链接策略
 
@@ -80,11 +120,12 @@ Plugin runtime 使用软链接：
 自研 embedded skill 使用软链接：
 
 ```text
-/home/jichao/.agents/skills/karpathy-guidelines -> /mnt/d/codex-capability-registry/skills/karpathy-guidelines
-/home/jichao/.agents/skills/lark-doc-to-obsidian -> /mnt/d/codex-capability-registry/skills/lark-doc-to-obsidian
+/home/jichao/.agents/skills/<first_party_skill> -> /mnt/d/codex-capability-registry/skills/<first_party_skill>
 ```
 
 第三方 skill 不链接到 registry。
+
+`scripts/install-runtime-links.sh` 和 `scripts/verify-runtime.sh` 从 manifest 的 `ownership` 读取能力列表；plugin 名单不再在脚本中硬编码。
 
 ## 验证方式
 
@@ -117,6 +158,12 @@ scripts/verify-runtime.sh
 
 第三方 skill 需要通过其原始安装方式安装；若有可信备份，可按 `manifests/skills.yaml` 中记录的路径恢复。
 
+当前三方恢复语义：
+
+- 默认 `scripts/install-runtime-links.sh` 不恢复三方 skill，只报告缺失项。
+- 显式执行 `scripts/install-runtime-links.sh --restore-third-party` 时，才会按 `source.restore_from` 恢复三方 runtime 目录。
+- 恢复后的三方 skill 必须是普通 runtime 目录，不能是指向 registry 的 symlink。
+
 ## 风险与边界
 
 - registry 不负责发布到官方 marketplace。
@@ -126,12 +173,12 @@ scripts/verify-runtime.sh
 
 ## 本次写回说明
 
-- allowed_paths：`/mnt/d/codex-capability-registry`，`/mnt/d/cutepower`，`/mnt/d/subpower`，`/home/jichao/.codex`，`/home/jichao/.agents/skills`，`/mnt/d/Knowledge-Base/02_Projects/codex-capability-registry`
-- files_read：plugin/skill runtime 路径、registry Git 状态、manifest、runtime scripts
-- files_written：本方案文档
+- allowed_paths：`/mnt/d/codex-capability-registry`，`/home/jichao/.agents/skills`，`/mnt/d/Knowledge-Base/README.md`，`/mnt/d/Knowledge-Base/02_Projects/项目总览.md`，`/mnt/d/Knowledge-Base/02_Projects/codex-capability-registry`
+- files_read：registry README/docs、manifest、runtime scripts、plugin manifest、skill frontmatter、知识库入口与项目记录
+- files_written：registry manifest/scripts/docs，知识库总入口，项目总览，本方案文档
 - candidate_created：否
 - source_notes_created：否
 - promoted_to_knowledge：否
 - missing_authorization：无
 - promotion_blockers：本内容是项目方案，保留在项目区，未提升到正式知识区
-- unresolved_items：registry 远程仓库尚未配置
+- unresolved_items：registry 远程仓库状态未在本次任务中处理

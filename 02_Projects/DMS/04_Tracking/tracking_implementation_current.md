@@ -1,6 +1,6 @@
 ---
 title: Tracking Implementation Current
-summary: Tracking 当前实现文档，记录 head-first 功能代码事实、实验分支结构、driver face 防后排误绑定实现和 2026-06-15 clean refactor 路线调整。
+summary: Tracking 当前实现文档，记录 head-first 功能代码事实、历史 body-first 实现归档、body/hand 独立生命周期目标、driver face 防后排误绑定实现和 clean refactor 路线调整。
 status: verified
 doc_role: current
 truth_role: current
@@ -14,7 +14,7 @@ sync_required_when:
   - hand continuity 的实现路径变化
 retrieval_priority: current
 supersedes:
-  - 02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
+  - 90_Archive/02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪实现闭环记录-2026-03-24.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/tracking_interfaces_evidence.md
 merged_into: []
@@ -25,7 +25,7 @@ related_code:
   - /home/jichao/dms/etc/track_params.json
   - /home/jichao/dms/etc/track_params_2m.json
 sources:
-  - 02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
+  - 90_Archive/02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪实现闭环记录-2026-03-24.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪设计失配修复闭环记录-2026-03-25.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/多目标跟踪生命周期与手部关联设计失配修复闭环记录-2026-03-25.md
@@ -38,16 +38,24 @@ sources:
   - /home/jichao/dms/etc/track_params.json
   - /home/jichao/dms/etc/track_params_2m.json
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
-  - 02_Projects/DMS/04_Tracking/head-first渐进跟踪方案.md
-  - 02_Projects/DMS/04_Tracking/head-first渐进跟踪实现.md
+  - 02_Projects/DMS/04_Tracking/head-first跟踪方案.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first跟踪代码重构闭环记录-2026-05-23.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack内部结构与可读性重构分析-2026-06-08.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
 scope: 适用于恢复当前 Tracking 在代码中的主要实现结构、接口事实与行为，不覆盖全部调试历史。
 risks:
   - 本文档基于代码静态读取与 2026-05-23 本地编译证据恢复当前实现；仍不等价于完整代表性样本集验收。
   - 2026-05-23 head-first 重构未做板端验证或视频回放。
-updated_at: 2026-06-15
+updated_at: 2026-06-16
 ---
+
+## 0.0.8 2026-06-16 Head-first 方案优化与历史实现归档
+
+- `座舱多目标跟踪实现.md` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/`，只作为历史 body-first baseline 和参数推导参考，不再位于 Tracking 当前工作区。
+- `head-first跟踪方案.md` 已吸收历史方案中 body/face/hand 生命周期独立的正确原则：owner identity 来自 face/head，body/hand 继承 owner key，但内部生命周期按自身 detection、motion state、hit/miss、handoff 和 cleanup 推进。
+- 当前代码事实仍未完全实现该最终形态：`feat/ljc/track_0615` 的 body owner 消失与 hand owner disappearance lifecycle 仍需后续专项实现和验证。
+- Body 全局 assignment 的目标 edge 解释扩展为 Track / Reacquire / Bootstrap / Forbidden。当前代码在 loss 未标定前仍关闭 Reacquire；标定后打开时必须保持 ownerFaceId、稳定 hitCount 和输出连续性，只允许重置或强校正 motion state。
+- 后续实现仍应沿用 2026-06-15 deep-module 结论：public `Init/Update` 不变，private header 保持 phase-level，solver/row/key/result/snapshot 和 edge classifier 默认留在 `.cpp` 或函数局部。
 
 ## 0.0.7 2026-06-15 Clean Branch Body Global Assignment
 
@@ -153,7 +161,7 @@ updated_at: 2026-06-15
 - 每帧更新顺序固定为 `head/face -> driver head selection -> body evidence -> hand evidence`。
 - 配置入口固定从 `/home/jichao/dms/etc/track_params.json` 读取，并先应用 `DEFAULT`，再按车型节点覆盖。
 - 代码已实现 head-first driver selection 与 head-bound body/torso evidence；尚未实现 2m/5m 运行时模式选择，也未完成 hand owner source 的运行日志验证。
-- head-first 设计和实现细节见 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪方案]] 与 [[02_Projects/DMS/04_Tracking/head-first渐进跟踪实现]]；本文记录当前实现事实。
+- head-first 设计细节见 [[head-first跟踪方案]]；本文记录当前实现事实。
 
 ## 0.2 Current State Containers
 

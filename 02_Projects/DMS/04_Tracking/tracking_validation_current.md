@@ -1,6 +1,6 @@
 ---
 title: Tracking Validation Current
-summary: Tracking 当前验证状态文档，记录 head-first、driver 修复、实验重构证据和 2026-06-15 深模块重新评审结论；实验分支不再视为推荐结构基底。
+summary: Tracking 当前验证状态文档，记录 head-first、driver 修复、实验重构证据、2026-06-15 深模块重新评审结论，以及 2026-06-16 方案优化后的未验证项；实验分支不再视为推荐结构基底。
 status: verified
 doc_role: current
 truth_role: current
@@ -32,8 +32,9 @@ sources:
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/跟踪框越界导致板端coredump调查与修复闭环记录-2026-04-07.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/2m摄像头后排head误绑定主驾修复闭环记录-2026-05-08.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
-  - 02_Projects/DMS/04_Tracking/head-first渐进跟踪方案.md
-  - 02_Projects/DMS/04_Tracking/head-first渐进跟踪实现.md
+  - 02_Projects/DMS/04_Tracking/head-first跟踪方案.md
+  - 02_Projects/DMS/04_Tracking/tracking_implementation_current.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first跟踪代码重构闭环记录-2026-05-23.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack内部结构与可读性重构分析-2026-06-08.md
   - /home/jichao/dms/source/utils/track.cpp
@@ -41,10 +42,28 @@ scope: 适用于判断 Tracking 当前有哪些证据已经成立、哪些结论
 risks:
   - 本文档已整合 2026-05-23 head-first 和 2026-06-09 内部可读性重构的编译/审查证据，但仍不等价于完整代表性视频集验收。
   - 2026-06-09 未执行 runtime replay 或新增单元测试；按任务边界不要求板端验证。
-updated_at: 2026-06-15
+updated_at: 2026-06-16
 ---
 
 ## 0.1 Evidence Status
+
+### 0.1.0H 2026-06-16 Head-first 方案优化状态
+
+- 文档变更：
+  - `座舱多目标跟踪实现.md` 已归档到 `90_Archive/02_Projects/DMS/04_Tracking/`。
+  - `head-first跟踪方案.md` 已吸收 body/hand 独立生命周期、Body 四态 edge 和 deep-module clean refactor 约束。
+- 证据性质：
+  - 本轮是方案整理和 current 同步，不修改 `/home/jichao/dms` 业务代码。
+  - Owner / body / hand 独立生命周期闭环、loss instrumentation + replay 标定、Body Reacquire、Hand 是否需要类似 Reacquire 均未获得新的运行证据。
+- 必补验证：
+  - 先闭合 face 短时消失、owner 确认退休、新 stable owner 接管、face id 复用时的 body/hand cleanup。
+  - 验证 hand slot 未进入 assignment row 时仍推进 miss/reset/cleanup，且每帧最多推进一次 lifecycle。
+  - 在生命周期候选域闭合后，再做 Body Track / Reacquire / Bootstrap / Forbidden 四态 edge 的 loss instrumentation + replay 标定。
+  - Reacquire 打开后再验证 ownerFaceId、hitCount、output continuity 和 motion reset/strong correction 的逐帧对比。
+  - 基于 hand slot replay 数据评估 Hand 是否需要类似 Reacquire，而不是默认复制 Body 策略。
+- `runtime_replay: not_executed`
+- `unit_tests: not_added`
+- `board_validation: not_executed`
 
 ### 0.1.0G 2026-06-15 Clean Branch Body Global Assignment 证据
 
@@ -220,7 +239,7 @@ updated_at: 2026-06-15
 - 2026-06-12 后，driver face selection 已验证在目标 2m 回灌样本中不会选择 stable BACK_PASSENGER 后排候选，且不依赖收紧 `distanceLoss`。
 - 当前代码已完成 head-first 第一轮实现：driver identity 来自 head/face track，body/hand 作为 head-bound evidence 组织。
 - head-first 当前已有本地编译证据，但没有回放或板端证据证明其运行效果。
-- head-first 设计方案已落点到 `head-first渐进跟踪方案.md`，实现事实已落点到 `head-first渐进跟踪实现.md` 和 2026-05-23 闭环记录。
+- head-first 设计方案已落点到 `head-first跟踪方案.md`，实现事实已落点到 `tracking_implementation_current.md` 和 2026-05-23 闭环记录。
 
 ### 0.1.2 由历史记录支撑但本轮未重新执行
 

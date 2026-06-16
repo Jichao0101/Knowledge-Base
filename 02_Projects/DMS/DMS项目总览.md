@@ -3,7 +3,7 @@ type: project_entry
 status: active
 project: DMS
 scope: DMS 项目区模块入口索引；只负责导航和内容简介，不替代各模块 current 文档。
-updated_at: 2026-06-15
+updated_at: 2026-06-16
 ---
 
 # 1 DMS 项目总览
@@ -39,6 +39,7 @@ DMS current 覆盖情况、模块索引状态和待修复项记录在 [[02_Proje
 
 ## 1.4 近期维护状态
 
+- Tracking 2026-06-16：`座舱多目标跟踪实现` 已归档到 `90_Archive`，仅保留为历史 body-first baseline；`head-first跟踪方案` 吸收 body/hand 生命周期独立原则、Body Track/Reacquire/Bootstrap/Forbidden 四态 edge 和 deep-module clean refactor 约束。后续顺序调整为先做 conservative Body/Hand global assignment，再闭合 Owner/body/hand 独立生命周期，之后进行 loss instrumentation + replay 标定，最后打开 Body Reacquire 并评估 Hand 是否需要类似 Reacquire。该轮为方案与知识库整理，未修改 DMS 代码。详见 [[02_Projects/DMS/04_Tracking/head-first跟踪方案]] 与 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15]]。
 - Tracking 2026-06-15 clean refactor 阶段 2/3：`feat/ljc/track_0615` 在阶段 1 Face cpp-internal solver 等价迁移后，已将 Body 改为全局 owner-to-body-detection assignment，并将 Hand 改为全局 slot assignment；`track.h` 与 public API 未改，QNX `Utils` 与 `sdk` 构建通过。当前保守实现关闭已有 body / initialized hand 的 acquisition fallback，两类 loss、bias 与 `dummyLoss` 仍需 runtime replay、冲突样例和 diff 白名单标定。详见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15]]。
 - Tracking 2026-06-15 深模块重新评审：public `Init/Update` 判定为深接口，主要问题是 private header 和内部组织过浅；统一 assignment solver、Body 全局 Hungarian、Hand 全局 slot assignment 已确认为目标行为，hand owner 消失后的 lifecycle 仍有高风险缺口。停止继续 `feat/ljc/track_0609`，建议从 `br_develop_forJ6b` 新开 clean branch，先以 Face 做 solver 等价迁移，再分阶段重做 Body/Hand，不整提交 cherry-pick。详见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15]]。
 - Tracking 2026-06-15：删除低收益 assignment edge/rejection helper，forbidden edge 改为有限 `1e6f` 并保留 `AssignmentResult`；Body 完成 finalize/projection 拆分，Hand 以单帧 row 收敛 solve/apply/miss 候选域且不引入无下游用途的 view/payload，publish 不再推进 lifecycle。`git diff --check`、`Utils` 和完整 `sdk` 构建通过；独立 review、runtime replay 和板端验证待补。详见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrackHand短期匹配结果隐藏与miss候选域修复实施前方案-2026-06-13]]。

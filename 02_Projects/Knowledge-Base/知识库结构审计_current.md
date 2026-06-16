@@ -2,7 +2,7 @@
 type: structure_audit
 status: active
 scope: 记录知识库结构化、current 标准化、总览内容化的当前迁移状态；不作为具体主题事实源。
-updated_at: 2026-06-15
+updated_at: 2026-06-16
 supersedes:
   - 02_Projects/Knowledge-Base/知识库结构审计-2026-06-05.md
 ---
@@ -122,3 +122,13 @@ supersedes:
 - Tracking 默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
 - 未新增或保留 `single_pass_recoverable: true`。
 - 本轮代码验证为 QNX `Utils` 与 `sdk` 构建通过；runtime replay、单元测试和板端验证未执行。当前保守实现关闭已有 body / initialized hand 的 acquisition fallback；tracking loss、acquisition loss、driver/non-driver bias 与 `dummyLoss` 的标定仍待后续冲突样例与 diff 白名单验证。
+
+## 1.14 2026-06-16 Tracking 方案优化与历史实现归档
+
+- `02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md`，角色收敛为历史 body-first baseline。
+- 已局部同步 `head-first跟踪方案.md`、Tracking 五份 current 文档、DMS 项目总览和 `DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15.md`。
+- 本轮将 body/hand 生命周期独立原则、Body Track/Reacquire/Bootstrap/Forbidden 四态 edge、deep-module phase-level 约束吸收到当前方案；不声明代码已实现或运行效果已验证。
+- 后续阶段顺序已修正为先完成 Owner/body/hand 独立生命周期闭环，再做 loss instrumentation + replay 标定，最后打开 Body Reacquire 并评估 Hand 是否需要类似 Reacquire。
+- Tracking 默认入口、默认恢复顺序和 default recovery bundle 未变化。
+- `recoverability_status` 仍为 `partial`；未新增或保留 `single_pass_recoverable: true`。
+- 本轮未修改 DMS 业务代码，未执行 runtime replay、单元测试或板端验证。

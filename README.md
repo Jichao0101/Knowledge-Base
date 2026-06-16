@@ -38,7 +38,7 @@ updated_at: 2026-06-05
 | DMS | [[02_Projects/DMS/DMS项目总览]] | DMS 算法、SDK、训练、后处理、状态机、FaceID 与 EyeStatus 项目资料 |
 | cutepower | [[02_Projects/cutepower/cutepower_overview_current]] | Agent workflow 治理插件、contracts-first 路由、runtime gate 与 writeback 规则 |
 | subpower | [[02_Projects/subpower/subpower_architecture_blueprint_current]] | subagent-first 三侧协作流程、架构蓝图和实现记录 |
-| codex capability registry | [[02_Projects/codex-capability-registry/Codex plugin skill 集中注册与迁移方案]] | Codex plugin/skill 集中注册、迁移、runtime link 和版本锁定 |
+| codex capability registry | [[02_Projects/codex-capability-registry/Codex plugin skill 集中注册与迁移方案]] | Codex plugin/skill 集中注册、能力摘要、portable source、安装策略和版本锁定 |
 | investment-advisor | [[02_Projects/investment-advisor/investment-advisor项目总览]] | 个人美股投资研究 Agent 系统 MVP，含 mock 数据层、SEC 证据层、反馈调节和 thesis memory |
 
 ## 1.4 入口说明
