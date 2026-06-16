@@ -1,9 +1,12 @@
 ---
 title: DmsTrack 深模块重新评审与 Clean Refactor 规划
-summary: 对 feat/ljc/track_0609 与 br_develop_forJ6b 的 track.h/track.cpp 进行深模块评审并执行 clean refactor 前两步；结论为停止在实验分支继续叠加结构重构，从稳定基线新开 clean branch，已完成 Face 等价 solver 与 Body 全局 assignment；2026-06-16 补充吸收 Body 四态 edge、body/hand 独立生命周期和 head-first 方案整理要求。
-status: reviewed
+summary: 历史实验路线记录。对 feat/ljc/track_0609 与 br_develop_forJ6b 的 track.h/track.cpp 进行深模块评审并执行 clean refactor 前两步；其中统一 assignment、Body 全局 assignment、body/hand 独立生命周期和四态 edge 路线已被 2026-06-16 基线对比后的收缩路线取代。
+status: archived
 doc_role: review_record
 truth_role: project_review
+archived_reason: 2026-06-16 基线对比后，统一 assignment 与 independent lifecycle 路线不再作为当前推荐方案。
+current_replacement:
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md
 scope: DmsTrack public/private API、body/hand phase 边界、assignment 抽象、生命周期与 clean refactor 规划，以及 2026-06-15 clean branch 阶段 1/2 实施回写；不包含板端验证。
 sources:
   - /home/jichao/dms/include/utils/track.h
@@ -22,6 +25,8 @@ risks:
   - Hand owner 消失后的 hand lifecycle 仍需专项实现与验证。
 updated_at: 2026-06-16
 ---
+
+> 归档说明：本记录保留为历史实验路线和当时代码事实证据。当前推荐路线以 `DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md` 为准。
 
 # 1 结论摘要
 
@@ -418,7 +423,7 @@ Body matching 已从逐 owner greedy 抢占 detection 改为一次性 owner-to-b
 
 - 阶段 2A：Conservative Body global assignment。保持当前 Track / Bootstrap 策略；已有 body track 的 tracking 不可信时仍 miss，不打开 Reacquire。
 - 阶段 3A：Conservative Hand global slot assignment。保持 initialized slot 只走 tracking、uninitialized slot 只走 acquisition；不把 hand acquisition fallback 扩展到 initialized slot。
-- 阶段 4A：Owner / body / hand 独立生命周期闭环。先保证 face 短时消失、body 仍连续、hand slot 未进入 assignment row、新 stable owner 接管和 face id 复用前 cleanup 都有 bounded lifecycle 规则。
+- 阶段 4A：Owner / body / hand 独立生命周期闭环。先保证 face 短时消失、body 仍连续、hand slot 未进入 assignment row、新 stable owner 接管和 face id 复用前 cleanup 都有 bounded lifecycle 规则。2026-06-16 已完成代码小步：已有 body owner 可在 face miss/暂不存在时以 tracking-only 方式进入 assignment，body retire 不再因 face absence 立即触发；initialized hand slot 可基于内部 DRIVER body track 继续 tracking，未进入 row 的 initialized slot 由全量 sweep 推进 miss。该步未打开 Reacquire，也未完成 replay 标定。
 - 阶段 4B：Loss instrumentation + replay 标定。在 4A 候选域闭合后采集 tracking/acquisition loss、driver/non-driver bias、face consistency gate、dummyLoss 和 hand slot lifecycle sweep 相关分布。
 - 阶段 4C：Body Reacquire 打开。只在 4B 标定后实现 Reacquire，并验证 ownerFaceId、hitCount、输出连续性和 motion reset/strong correction。
 - 阶段 4D：评估 Hand 是否需要类似 Reacquire。先基于 4A/4B 的 hand slot 数据判断需求，不默认把 Body Reacquire 机械复制到 hand。

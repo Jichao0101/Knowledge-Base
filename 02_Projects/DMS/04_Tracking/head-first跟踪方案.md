@@ -1,6 +1,6 @@
 ---
 title: DMS Head-first 渐进跟踪方案
-summary: DMS Tracking head-first 当前推荐设计方案。身份 owner 来自 head/face track；body/hand 继承 owner key 但保持独立生命周期；后续实现应吸收 deep-module clean refactor 约束、Body 四态 edge 和运行标定要求。
+summary: DMS Tracking head-first 当前推荐设计方案。身份 owner 来自 head/face track；2m 默认 face/head-only；5m 在 driver face/head 选定后只做 driver-bound body/hand evidence；body/hand 不默认维持完整 independent lifecycle。
 status: verified
 doc_role: solution_design
 truth_role: plan
@@ -18,22 +18,23 @@ sources:
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first双阶段body-torso匹配静态分析记录-2026-05-23.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first跟踪代码重构闭环记录-2026-05-23.md
-  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15.md
-  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md
+  - 90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15.md
+  - 90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
   - 02_Projects/DMS/04_Tracking/座舱乘员多目标跟踪方案.md
   - 90_Archive/02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md
   - /home/jichao/dms/source/utils/track.cpp
   - /home/jichao/dms/include/utils/track.h
   - /home/jichao/dms/include/models/atomic_result.h
-scope: 适用于 DMS Tracking head-first 设计评审、clean refactor 实现复核和后续运行验证准备；第一轮代码已落地并完成本地编译，后续 body/hand lifecycle 和四态 edge 仍需标定与验证。
+scope: 适用于 DMS Tracking head-first 设计评审、clean refactor 实现复核和后续运行验证准备；第一轮代码已落地并完成本地编译，后续默认路线收缩为 2m face/head-only 与 5m driver-bound evidence。
 risks:
   - 本文档是项目设计方案，不替代代码 diff、回放报告或板端验收。
   - 第一轮实现只有本地编译证据，没有实车、板端或代表性视频回放证据。
-  - 具体代码落地应读取 tracking_implementation_current.md、tracking_spec_current.md 和 DmsTrack 深模块重新评审记录。
+  - 具体代码落地应读取 tracking_implementation_current.md、tracking_spec_current.md 和 DmsTrack 基线对比与路线收缩记录。
 updated_at: 2026-06-16
 ---
 
-> 文档状态：本文件是 head-first 当前推荐设计方案。2026-05-23 第一轮实现已落地；2026-06-15 深模块重新评审后，后续实现应以 phase-level 接口、局部 solver 表示、Body 四态 edge 和独立 lifecycle sweep 为目标。代码事实与验证边界应同时读取 `tracking_implementation_current.md`、`tracking_validation_current.md` 和闭环记录。
+> 文档状态：本文件是 head-first 当前推荐设计方案。2026-05-23 第一轮实现已落地；2026-06-16 重新对比 `1401fc338107f05b9cf` 稳定基线与 `feat/ljc/track_0615` 后，后续默认路线收缩为：face/head 是唯一 identity 主线，2m face/head-only，5m driver-bound body/hand evidence，face missing 时优先 face occlusion。`Body global assignment / Hand global slot assignment / independent lifecycle / Reacquire` 降级为历史实验或未来重启项，不再作为默认推荐目标。
 
 # 1 目标
 
@@ -41,10 +42,10 @@ updated_at: 2026-06-16
 
 - driver identity 优先由 head/face track 稳定决定；
 - raw body detection box 不再作为稳定 driver/person 主锚点；
-- 在短时漏检、局部遮挡、检测抖动、手部大幅运动场景下保持 driver 身份连续；
+- 在短时漏检、局部遮挡、检测抖动场景下保持 driver face/head 身份连续；
 - 2m 场景默认只保留 head/face 相关链路，不输出陈旧 body/hand；
 - 5m 场景在 driver head 选定后再绑定 body/torso evidence，并基于该证据进行 hand association；
-- 对双手保持左手/右手连续性，避免异常 body 框扩大 hand owner；
+- 在 5m 且业务需要 hand 时，对 driver-bound 双手保持左手/右手连续性，避免异常 body 框扩大 hand owner；
 - 保持现有四类 map ABI：`body / face / left_hand / right_hand`；
 - 为后续 HumanPose 辅助 hand association 预留边界；
 - 不引入 `Occupant/PersonTrack + PartTrack` 作为当前或默认后续路线。
@@ -71,10 +72,10 @@ head-first 设计主线为：
    负责建立 driver identity 的主入口。head/face track 先于 body/hand 参与 driver 选择，提供后续 body/torso evidence 与 hand association 的上游约束。
 
 2. **人体/躯干证据跟踪**  
-   body detection 仍可跟踪和输出，但不再建立 driver identity。5m 场景中，body 作为 driver head 约束后的 body/torso evidence，用于兼容 body map、约束手部搜索和服务后续 HumanPose 输入。body 的 owner key 来自 face，生命周期仍由 body 自身连续性决定。
+   body detection 仍可作为 evidence 使用，但不再建立 driver identity。2m 场景默认关闭 body/hand 链路；5m 场景中，body 只作为已选 driver head 约束后的 body/torso evidence，用于兼容 body map、约束手部搜索和服务后续 HumanPose 输入。body 的 owner key 来自 face，但不默认维持完整 independent identity-like lifecycle。
 
 3. **手部跟踪**  
-   手部不再直接依附 raw body box 扩大的范围。手部 owner 需要由 driver head-bound body/torso 或业务搜索区域约束，并结合自身时序连续性与 left/right 历史状态。hand 的发布受 owner 证据约束，但内部 slot 生命周期不应只由本帧是否可发布决定。
+   手部不再直接依附 raw body box 扩大的范围。手部 owner 需要由 driver head-bound body/torso 或业务搜索区域约束，并结合自身时序连续性与 left/right 历史状态。hand 不跨 owner 创建、迁移或扩大 identity；内部状态只允许 bounded evidence cache。
 
 4. **姿态辅助证据**  
    HumanPose 不是第一阶段必须项。未来若 hand association 仍不足，优先使用 wrist / elbow / shoulder / arm direction evidence 辅助手部 owner、left/right 和丢失恢复。
@@ -84,16 +85,16 @@ head-first 设计主线为：
 - **短期状态**：解决逐帧匹配、命中、丢失、轨迹延续问题；
 - **长期状态**：解决轨迹是否稳定输出、driver identity 是否可信、手部左右槽位是否可发布的问题。
 
-## 2.2 Owner 与生命周期分离原则
+## 2.2 Owner 与 Evidence Cache 原则
 
-head-first 只改变身份来源，不应把 body/hand 的生命周期重新收缩为 face 生命周期的附属物。
+head-first 只改变身份来源，不把 body/hand 提升为 identity lifecycle owner。
 
 - `face/head` 负责分配和选择 owner identity，是 driver identity 的主来源。
-- `body/torso evidence` 继承 owner face id 作为 legacy key，但自身仍按 body detection、motion state、hit/miss 和 retire 阈值独立推进。
-- `left/right hand` 继承 owner face id 作为 legacy key，但左右槽位按自身 prediction、match、hit/miss、reset/cleanup 独立推进。
-- face 短时消失时，body/hand 可以在 bounded grace period 内保留原 owner key 和 motion state；是否对外发布仍受当前业务 owner 证据和稳定输出条件约束。
-- face 已确认退休或 id 复用前，body/hand 必须通过明确的 handoff、miss sweep 或 cleanup 规则收敛，不能永久悬挂。
-- 这继承了历史方案中 body/face/hand 生命周期解耦的正确部分，但不继承 body-first identity 主线。
+- `body/torso evidence` 继承 owner face id 作为 legacy key，但只作为 driver-bound evidence cache，不反向创建、扩大或迁移 identity。
+- `left/right hand` 继承 owner face id 作为 legacy key，但只在 driver-bound owner 证据成立时匹配和发布。
+- face 短时消失时，业务语义优先是 face occlusion；body/hand 可以在 bounded grace period 内保留 motion cache，但不得继续承担完整 identity-like lifecycle。
+- face 已确认退休或 id 复用前，body/hand 必须通过明确 miss、reset 或 cleanup 规则收敛，不能永久悬挂。
+- 这继承历史方案中“部件状态不等于输出发布”的正确部分，但不继承 body-first identity 主线，也不继承完整 independent lifecycle 目标。
 
 ## 2.3 基本流程
 
@@ -103,9 +104,9 @@ head-first 只改变身份来源，不应把 body/hand 的生命周期重新收�
 2. 对 head/face 历史轨迹执行预测和匹配；
 3. 基于稳定 head/face、业务 ROI、历史连续性和迟滞机制选择 driver head；
 4. 根据车型/摄像头业务配置决定是否继续处理 body/hand；
-5. 2m 或无 body/hand 业务时，清理 body/hand 陈旧状态并只输出 head/face 相关结果；
-6. 5m 且需要 handoff/handpose 时，在 driver head 约束下匹配 body/torso evidence；
-7. 在 driver head-bound body/torso 或业务搜索区域内匹配 left/right hand；
+5. 2m 或无 body/hand 业务时，不启动 body/hand 链路，或只做 bounded cache 清理，并只输出 head/face 相关结果；
+6. 5m 且需要 body/hand 业务时，只由已选 driver head 发起 body/torso evidence 匹配；
+7. 仅在 driver head-bound body/torso 或业务搜索区域内匹配 left/right hand；
 8. 根据 hit/miss、owner 证据和左右手迟滞规则输出稳定结果；
 9. 将内部 head-first 绑定关系投影回现有四类 map。
 
@@ -204,25 +205,24 @@ body candidate 必须由 driver head 约束后才能成为 driver body/torso evi
 - 不因手部伸出导致异常大 body 而扩大 owner；
 - body miss 不清空稳定 driver head。
 
-### 3.2.4 Body 全局 assignment 与四态 edge
+### 3.2.4 Body association 收缩原则
 
-后续 body/torso evidence 应采用 owner-to-body-detection 全局 assignment。solver 只负责一对一最小代价分配；Track、Reacquire、Bootstrap、Forbidden 是 body phase 对 edge 的业务解释，不进入通用 solver。
+默认推荐路线不再追求多 owner Body global assignment。后续实现应先回到 `1401fc338107f05b9cf` 的稳定骨架：
 
-四态 edge 规则：
+- 只由 live driver face/head 发起 body evidence association；
+- 对当前只关心 driver 的业务，不做多 owner body detection 竞争；
+- 已有 body evidence tracking 不可信时先 miss，不默认用 acquisition fallback 重绑定；
+- body 不反向创建、扩大或迁移 identity；
+- face missing 时优先 face occlusion，body 只做 bounded cache，不发布 identity 延续。
 
-| 模式 | 条件 | 处理 |
-|---|---|---|
-| Track | owner 有 body track；tracking loss 可信；face consistency 不明显冲突 | `CorrectMotion`、`AdvanceHit`，保持 body 生命周期连续 |
-| Reacquire | owner 有 body track；tracking loss 不可信；acquisition loss 高可信 | 保持 owner face id；重置或强校正 motion state；不把 `hitCount` 重置为 1；若之前已可输出，保持输出连续 |
-| Bootstrap | owner 没有 body track；acquisition loss 可信 | 新建 body evidence；`hitCount` 从 1 开始；按 `hitThreshold` 决定是否输出 |
-| Forbidden | tracking 与 acquisition 都不可信，或 face consistency 冲突 | owner unmatched；已有 body 执行 `AdvanceMiss`；必要时 retire |
+Body global assignment、Track/Reacquire/Bootstrap/Forbidden 四态 edge 和 Reacquire cost band 只作为未来重启项。重启前必须具备：
 
-标定前的保守实现可以只打开 Track 与 Bootstrap：已有 body track 的 tracking 不可信时直接 miss，不启用 Reacquire。标定后打开 Reacquire 必须满足：
-
-- tracking loss、acquisition loss、driver/non-driver bias 与 `dummyLoss` 已有场景分布依据；
-- acquisition gate 不会把 owner 绑定到几何更合理但身份错误的其他 body；
-- face consistency gate 能拒绝后排/副驾探头、异常大 body 或跨 owner 竞争；
-- runtime replay 明确允许 Reacquire 带来的输出 delta。
+- 明确多 owner body evidence 业务需求；
+- replay 运行数据；
+- tracking/acquisition loss 分布；
+- driver/non-driver 冲突样例；
+- diff 白名单；
+- 2m/5m 分别验收样例。
 
 ### 3.2.5 双阶段匹配边界
 
@@ -293,12 +293,13 @@ orphan hand 接管必须具备 owner 证据。异常大的 body detection box �
 
 ### 3.3.8 Owner 消失后的 hand lifecycle
 
-hand assignment 候选域和 lifecycle sweep 必须分离。只有当前可发布 owner 进入 hand assignment row 时，仍不足以定义所有 hand slot 的生命周期。
+hand assignment 候选域和 bounded cache sweep 必须分离。只有当前可发布 owner 进入 hand assignment row 时，仍不足以定义所有 hand slot 的状态清理。
 
 - initialized slot 即使本帧没有进入 assignment row，也必须按明确策略推进 miss、reset 或 cleanup。
-- owner face 短时消失但 body/hand motion 连续时，可在 bounded grace period 内保留内部 slot，等待 owner 恢复或新 stable owner handoff。
+- owner face 短时消失时，业务语义优先是 face occlusion；hand 只可在 bounded grace period 内保留 motion cache。
 - 对外发布仍要求当前业务允许的 driver body evidence 或等价 owner 证据；内部保留不等于发布放宽。
-- 新 stable body evidence 接管同一区域时，应清理旧 owner 下的 orphan hand slot，避免 face id 复用污染。
+- 新 stable body evidence 接管同一区域时，应清理旧 owner 下的 hand cache，避免 face id 复用污染。
+- 不默认支持 hand 跨 owner 迁移、反向创建 owner 或 Hand Reacquire。
 
 ---
 
@@ -394,7 +395,7 @@ head-first 的差异在于：进入矩阵前，候选集合已按 driver head、
 - solver、edge classifier、row、key、snapshot 和临时 result 默认留在 `.cpp` anonymous namespace、函数局部 struct 或局部 lambda；
 - `FrameBodyView`、`HandSlotKey`、`HandAssignmentRow`、`AssignmentResult` 不作为稳定 header 抽象；
 - finalize 负责 sanitize 和 lifecycle 副作用，publish 只写 legacy output map；
-- Body 四态 edge、Hand lifecycle sweep、global assignment 都属于行为变更或边界重组，必须用 replay、冲突样例和 diff 白名单验证。
+- Body global assignment、Hand global slot assignment、independent lifecycle、Body/Hand Reacquire 都属于高风险行为变更或边界重组，不再作为默认推荐目标；未来重启时必须用 replay、冲突样例和 diff 白名单验证。
 
 ---
 
@@ -507,6 +508,6 @@ driver identity 稳定属性由 head/face 主导。body center ROI 只能作为 
 - 不删除 body 相关逻辑。
 - 不破坏四类 map ABI。
 - 不在 tracking 方案中发明车型配置字段名或配置路径。
-- 不引入新的 public `Occupant/PersonTrack + PartTrack` ID 层。必要的 body/hand 独立生命周期应留在 `DmsTrack` 内部 phase，不扩散成新的上游 ABI。
+- 不引入新的 public `Occupant/PersonTrack + PartTrack` ID 层。必要的 body/hand bounded cache 应留在 `DmsTrack` 内部 phase，不扩散成新的上游 ABI。
 
 ---

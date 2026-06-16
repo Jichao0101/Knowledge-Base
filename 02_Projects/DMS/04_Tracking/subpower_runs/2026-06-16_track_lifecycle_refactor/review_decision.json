@@ -1,0 +1,18 @@
+{
+  "task_id": "2026-06-16_track_lifecycle_refactor",
+  "status": "approved_after_fix",
+  "review_agent_id": "019ecf38-92f2-7c13-bcdf-42f0fc211753",
+  "findings": [
+    {
+      "severity": "medium",
+      "summary": "Matched initialized hand slot could receive both hit and miss in one frame if output sanitize failed.",
+      "resolution": "Removed lifecycle AdvanceMiss from hand publish failure path; lifecycle now advances in assignment/sweep only."
+    }
+  ],
+  "residual_test_gaps": [
+    "runtime replay for face-short-loss body continuity",
+    "no body bootstrap without live face evidence",
+    "initialized internal-driver hand tracking without uninitialized bootstrap",
+    "per-frame hand hit/miss invariant including output-sanitization failure cases"
+  ]
+}

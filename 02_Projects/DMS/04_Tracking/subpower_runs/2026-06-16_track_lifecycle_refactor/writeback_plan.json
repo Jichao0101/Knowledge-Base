@@ -1,0 +1,18 @@
+{
+  "task_id": "2026-06-16_track_lifecycle_refactor",
+  "targets": [
+    "tracking_spec_current.md",
+    "tracking_implementation_current.md",
+    "tracking_validation_current.md",
+    "tracking_overview_current.md",
+    "DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15.md",
+    "DMS项目总览.md",
+    "知识库结构审计_current.md",
+    "subpower run artifacts"
+  ],
+  "no_write_targets": [
+    "01_Knowledge",
+    "03_Inbox",
+    "04_Sources"
+  ]
+}

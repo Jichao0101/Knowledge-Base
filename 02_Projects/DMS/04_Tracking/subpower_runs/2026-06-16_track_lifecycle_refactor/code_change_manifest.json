@@ -1,0 +1,26 @@
+{
+  "task_id": "2026-06-16_track_lifecycle_refactor",
+  "repo_changes": [
+    {
+      "path": "/home/jichao/dms/source/utils/track.cpp",
+      "change": "4A lifecycle closure for body and hand tracking state.",
+      "public_api_changed": false,
+      "reacquire_enabled": false
+    }
+  ],
+  "temporary_validation_changes_reverted": [
+    {
+      "path": "/home/jichao/dms/scripts/compile_j6b.sh",
+      "reason": "Temporarily enabled build directory cleanup for validation, then restored to HEAD."
+    }
+  ],
+  "knowledge_changes": [
+    "02_Projects/DMS/04_Tracking/tracking_spec_current.md",
+    "02_Projects/DMS/04_Tracking/tracking_implementation_current.md",
+    "02_Projects/DMS/04_Tracking/tracking_validation_current.md",
+    "02_Projects/DMS/04_Tracking/tracking_overview_current.md",
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15.md",
+    "02_Projects/DMS/DMS项目总览.md",
+    "02_Projects/Knowledge-Base/知识库结构审计_current.md"
+  ]
+}

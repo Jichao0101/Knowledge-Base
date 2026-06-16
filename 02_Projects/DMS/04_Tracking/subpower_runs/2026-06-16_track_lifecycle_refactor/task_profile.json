@@ -1,0 +1,21 @@
+{
+  "task_id": "2026-06-16_track_lifecycle_refactor",
+  "change_type": "stateful_tracking_refactor",
+  "current_phase_target": "4A_owner_body_hand_independent_lifecycle_closure",
+  "completed_phase_assumption": [
+    "2A_conservative_body_global_assignment",
+    "3A_conservative_hand_global_slot_assignment"
+  ],
+  "explicit_non_goals": [
+    "do_not_enable_body_reacquire",
+    "do_not_add_loss_instrumentation_in_this_step",
+    "do_not_change_public_header_surface_unless_required",
+    "do_not_run_board_validation"
+  ],
+  "risk_level": "medium",
+  "primary_risks": [
+    "state_lifecycle_regression",
+    "identity_reuse_or_orphan_cleanup_gap",
+    "accidentally_enabling_acquisition_fallback"
+  ]
+}

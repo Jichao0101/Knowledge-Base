@@ -108,6 +108,33 @@ supersedes:
 - `recoverability_status` 仍为 `partial`；未新增或保留 `single_pass_recoverable: true`。
 - 本轮未修改 DMS 业务代码，未执行 runtime replay、单元测试或板端验证。
 
+## 1.15 2026-06-16 Tracking 4A 生命周期闭环代码写回
+
+- 因 `feat/ljc/track_0615` 已在 `source/utils/track.cpp` 补齐 Owner/body/hand 4A 生命周期候选域和 hand initialized slot sweep，已局部同步 Tracking overview/spec/implementation/validation、DMS 项目总览和目标维护记录。
+- 本轮未整组重写 current 文档；`tracking_design_current.md` 未修改，因为 public API、身份主线和分阶段设计目标未变化。
+- Tracking 默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
+- 新增证据为 subpower explorer/worker 结果、`git diff --check`、`track.cpp.o` 对象级编译，以及临时打开 build 清理后的 `compile_j6b.sh` 完整构建通过；验证后 `compile_j6b.sh` 已恢复注释状态且未保留脚本改动。
+- Runtime replay、单元测试和板端验证未执行；Body Reacquire、loss instrumentation 与 Hand Reacquire 评估仍待后续阶段。
+- 未新增或保留 `single_pass_recoverable: true` 声明。
+
+## 1.16 2026-06-16 Tracking 基线对比与路线收缩写回
+
+- 因重新对比 `1401fc338107f05b9cf` 与 `feat/ljc/track_0615` 后，Tracking 当前推荐路线发生变化，已局部同步：
+  - `02_Projects/DMS/04_Tracking/head-first跟踪方案.md`
+  - `tracking_overview_current.md`
+  - `tracking_design_current.md`
+  - `tracking_spec_current.md`
+  - `tracking_implementation_current.md`
+  - `tracking_validation_current.md`
+  - `02_Projects/DMS/DMS项目总览.md`
+- 新增项目级维护记录：`02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md`。
+- 将两篇已过时的扩张路线记录移动到归档区，保留历史可追溯但不再作为默认推荐入口：
+  - `90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15.md`
+  - `90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md`
+- 当前推荐路线收缩为 face/head identity、2m face/head-only、5m driver-bound body/hand evidence、face missing 优先 face occlusion、body/hand bounded evidence cache；Body/Hand global assignment、independent lifecycle、四态 edge 和 Reacquire 降级为历史实验或未来重启项。
+- Tracking 默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
+- 未新增或保留 `single_pass_recoverable: true` 声明。
+
 ## 1.12 2026-06-15 Tracking 统一 Assignment 目标澄清
 
 - 用户明确 Face 全局匹配、Body 全局 Hungarian 和 Hand 全局 slot assignment 均属于本次行为重构目标。
@@ -127,8 +154,8 @@ supersedes:
 
 - `02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md`，角色收敛为历史 body-first baseline。
 - 已局部同步 `head-first跟踪方案.md`、Tracking 五份 current 文档、DMS 项目总览和 `DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15.md`。
-- 本轮将 body/hand 生命周期独立原则、Body Track/Reacquire/Bootstrap/Forbidden 四态 edge、deep-module phase-level 约束吸收到当前方案；不声明代码已实现或运行效果已验证。
-- 后续阶段顺序已修正为先完成 Owner/body/hand 独立生命周期闭环，再做 loss instrumentation + replay 标定，最后打开 Body Reacquire 并评估 Hand 是否需要类似 Reacquire。
+- 本轮当时将 body/hand 生命周期独立原则、Body Track/Reacquire/Bootstrap/Forbidden 四态 edge、deep-module phase-level 约束吸收到方案；该推荐路线已在 1.16 基线对比后被收缩路线取代。
+- 当时的后续阶段顺序为先完成 Owner/body/hand 独立生命周期闭环，再做 loss instrumentation + replay 标定，最后打开 Body Reacquire 并评估 Hand 是否需要类似 Reacquire；该顺序现已归档为历史实验路线，不再作为当前默认路线。
 - Tracking 默认入口、默认恢复顺序和 default recovery bundle 未变化。
 - `recoverability_status` 仍为 `partial`；未新增或保留 `single_pass_recoverable: true`。
 - 本轮未修改 DMS 业务代码，未执行 runtime replay、单元测试或板端验证。

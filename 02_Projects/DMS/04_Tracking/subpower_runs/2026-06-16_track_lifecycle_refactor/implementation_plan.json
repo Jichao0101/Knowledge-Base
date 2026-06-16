@@ -1,0 +1,22 @@
+{
+  "task_id": "2026-06-16_track_lifecycle_refactor",
+  "phase": "4A_owner_body_hand_independent_lifecycle_closure",
+  "repo_change_scope": [
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "planned_code_rules": [
+    "Existing body tracks remain tracking-only candidates during bounded owner face loss.",
+    "Body acquisition/bootstrap remains restricted to live face evidence.",
+    "Body retirement is driven by body missThreshold instead of immediate face absence.",
+    "Initialized hand slots can track against internal DRIVER body evidence when output is not publishable.",
+    "Uninitialized hand slots cannot bootstrap from internal-only owners.",
+    "Every initialized hand slot advances hit or at most one miss per frame."
+  ],
+  "publish_semantics": "unchanged_conservative_face_or_published_body_required",
+  "explicitly_deferred": [
+    "4B_loss_instrumentation_and_replay_calibration",
+    "4C_body_reacquire_enable",
+    "4D_hand_reacquire_evaluation",
+    "phase_header_representation_convergence"
+  ]
+}

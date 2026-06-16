@@ -1,0 +1,15 @@
+{
+  "task_id": "2026-06-16_track_lifecycle_refactor",
+  "created_at": "2026-06-16",
+  "repo": "/home/jichao/dms",
+  "compile_command": "bash scripts/compile_j6b.sh",
+  "knowledge_scope": "02_Projects/DMS/04_Tracking",
+  "source_plan": "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15.md",
+  "user_intent": "按照 current plan 逐步完成 tracking 重构优化；阅读代码分析进度，单步完成后更新知识库。",
+  "allowed": {
+    "code_changes": true,
+    "tests": true,
+    "board_validation": false,
+    "knowledge_writeback": true
+  }
+}

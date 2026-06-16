@@ -1,0 +1,16 @@
+{
+  "task_id": "2026-06-16_track_lifecycle_refactor",
+  "handoff_to": "implementation",
+  "required_change": "Close 4A owner/body/hand independent lifecycle without enabling Reacquire.",
+  "repo_files_expected": [
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "kb_files_expected": [
+    "02_Projects/DMS/04_Tracking/tracking_implementation_current.md",
+    "02_Projects/DMS/04_Tracking/tracking_validation_current.md",
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15.md"
+  ],
+  "validation": [
+    "bash scripts/compile_j6b.sh"
+  ]
+}

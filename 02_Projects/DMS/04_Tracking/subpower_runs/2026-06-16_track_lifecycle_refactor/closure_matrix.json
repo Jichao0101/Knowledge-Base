@@ -1,0 +1,37 @@
+{
+  "task_id": "2026-06-16_track_lifecycle_refactor",
+  "closure_status": "complete_with_residual_runtime_validation",
+  "requirements": [
+    {
+      "requirement": "Read code and analyze current refactor progress.",
+      "status": "met",
+      "evidence": "Subagent explorer confirmed 2A/3A complete and 4A gaps."
+    },
+    {
+      "requirement": "Continue step by step from current plan.",
+      "status": "met",
+      "evidence": "Implemented only 4A lifecycle closure; 4B/4C/4D deferred."
+    },
+    {
+      "requirement": "Do not enable Reacquire before calibration.",
+      "status": "met",
+      "evidence": "Existing body tracks remain tracking-only; acquisition remains face-anchored bootstrap only."
+    },
+    {
+      "requirement": "Update knowledge base after the step.",
+      "status": "met",
+      "evidence": "Tracking current docs, DMS overview, structure audit, maintenance record, and subpower run artifacts updated."
+    },
+    {
+      "requirement": "Run allowed validation.",
+      "status": "met",
+      "evidence": "diff check, track.cpp.o, and clean compile_j6b.sh pass."
+    }
+  ],
+  "residual_items": [
+    "runtime replay for face-short-loss continuity",
+    "loss instrumentation and replay calibration",
+    "Body Reacquire enable after calibration",
+    "Hand Reacquire need assessment"
+  ]
+}

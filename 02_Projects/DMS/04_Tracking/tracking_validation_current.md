@@ -1,6 +1,6 @@
 ---
 title: Tracking Validation Current
-summary: Tracking 当前验证状态文档，记录 head-first、driver 修复、实验重构证据、2026-06-15 深模块重新评审结论，以及 2026-06-16 方案优化后的未验证项；实验分支不再视为推荐结构基底。
+summary: Tracking 当前验证状态文档，记录 head-first、driver 修复、实验重构证据、2026-06-16 基线对比后的路线收缩结论，以及 2m/5m 分流、driver-bound evidence 和 face occlusion 的未验证项；实验分支不再视为推荐结构基底。
 status: verified
 doc_role: current
 truth_role: current
@@ -34,7 +34,8 @@ sources:
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
   - 02_Projects/DMS/04_Tracking/head-first跟踪方案.md
   - 02_Projects/DMS/04_Tracking/tracking_implementation_current.md
-  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md
+  - 90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first跟踪代码重构闭环记录-2026-05-23.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack内部结构与可读性重构分析-2026-06-08.md
   - /home/jichao/dms/source/utils/track.cpp
@@ -47,17 +48,66 @@ updated_at: 2026-06-16
 
 ## 0.1 Evidence Status
 
-### 0.1.0H 2026-06-16 Head-first 方案优化状态
+### 0.1.0J 2026-06-16 基线对比后的路线收缩审查
+
+- 对比对象：
+  - `1401fc338107f05b9cf`
+  - `feat/ljc/track_0615`
+  - `/home/jichao/dms/include/utils/track.h`
+  - `/home/jichao/dms/source/utils/track.cpp`
+- 静态结论：
+  - `track.h` 未变化，public `DmsTrack::Init/Update` 仍是深接口。
+  - 架构漂移集中在 `track.cpp`：Face solver helper、Body global assignment、Hand global slot assignment、tracking/acquisition fallback 和 Body/Hand 4A lifecycle 小步。
+  - 当前分支已进入行为扩张链，不应继续作为默认推荐架构基底。
+  - 当前推荐路线收缩为：face/head identity、2m face/head-only、5m driver-bound body/hand evidence、face missing 优先 face occlusion、body/hand bounded evidence cache。
+- 归档：
+  - 2026-06-15 深模块重新评审与 2026-06-16 方案优化记录已移动到 `90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/`，保留为历史实验路线。
+- 未执行：
+  - `runtime_replay: not_executed`
+  - `unit_tests: not_added`
+  - `board_validation: not_executed`
+- 新验证重点：
+  - 2m face/head-only 不输出陈旧 body/hand。
+  - 5m driver-bound body/hand evidence 不跨 owner。
+  - face missing 时输出 face occlusion 语义，而不是 body/hand identity continuation。
+  - bounded cache 在 face 恢复、owner retire、id reuse 时正确清理。
+
+### 0.1.0I 2026-06-16 Owner/body/hand 4A 生命周期闭环实现（历史实验代码事实）
+
+- 代码范围：
+  - `/home/jichao/dms/source/utils/track.cpp`
+- 未修改：
+  - `/home/jichao/dms/include/utils/track.h`
+  - public `DmsTrack::Init/Update`
+  - Body Reacquire / loss instrumentation / Hand Reacquire
+- 静态结论：
+  - 2A Conservative Body global assignment 与 3A Conservative Hand global slot assignment 已作为当前分支代码事实保留，但不再作为当前推荐路线。
+  - 4A 已补齐 body/hand 生命周期候选域：已有 body owner 可在 face miss/暂不存在时以 tracking-only 方式参与 assignment；initialized hand slot 可基于内部 DRIVER body track 继续 tracking；未进入 hand row 的 initialized slot 会被 sweep 推进 miss。该行为降级为历史实验事实，后续推荐改为 bounded evidence cache。
+  - 输出语义仍保守：body 输出仍要求当前 face evidence；hand 输出仍基于当前发布的 DRIVER body evidence。
+- 验证：
+  - `git -C /home/jichao/dms diff --check -- source/utils/track.cpp`: pass
+  - `make -C build source/utils/CMakeFiles/Utils.dir/track.cpp.o`: pass
+  - 临时打开 `scripts/compile_j6b.sh` 中 `rm -r build` / `mkdir build` 后执行 `bash scripts/compile_j6b.sh`: pass，`sdk` 目标构建到 100%，随后已把脚本恢复为注释状态且未保留脚本 diff。
+- 独立 review：
+  - 首轮发现 hand matched slot 在 output sanitize 失败路径可能同帧 `AdvanceHit` 后再 `AdvanceMiss`。
+  - 已修复：hand publish 路径不再推进 lifecycle，hand hit/miss 只由 assignment/sweep 阶段负责。
+- 证据限制：
+  - `runtime_replay: not_executed`
+  - `unit_tests: not_added`
+  - `board_validation: not_required`
+  - Body/Hand loss 标定、Reacquire 打开和 Hand 是否需要 Reacquire 仍未开始；这些不再是默认下一步。
+
+### 0.1.0H 2026-06-16 Head-first 方案优化状态（已被 0.1.0J 收缩路线取代）
 
 - 文档变更：
   - `座舱多目标跟踪实现.md` 已归档到 `90_Archive/02_Projects/DMS/04_Tracking/`。
-  - `head-first跟踪方案.md` 已吸收 body/hand 独立生命周期、Body 四态 edge 和 deep-module clean refactor 约束。
+  - `head-first跟踪方案.md` 当时吸收 body/hand 独立生命周期、Body 四态 edge 和 deep-module clean refactor 约束；该路线已被 0.1.0J 收缩路线取代。
 - 证据性质：
-  - 本轮是方案整理和 current 同步，不修改 `/home/jichao/dms` 业务代码。
-  - Owner / body / hand 独立生命周期闭环、loss instrumentation + replay 标定、Body Reacquire、Hand 是否需要类似 Reacquire 均未获得新的运行证据。
+  - 本节记录方案整理和 current 同步；随后 0.1.0I 已补充 `/home/jichao/dms` 4A 代码小步实现。
+  - loss instrumentation + replay 标定、Body Reacquire、Hand 是否需要类似 Reacquire 均未获得新的运行证据。
 - 必补验证：
-  - 先闭合 face 短时消失、owner 确认退休、新 stable owner 接管、face id 复用时的 body/hand cleanup。
-  - 验证 hand slot 未进入 assignment row 时仍推进 miss/reset/cleanup，且每帧最多推进一次 lifecycle。
+  - 基于 replay 验证 face 短时消失时 body/hand 内部 tracking 可连续，hand slot 未进入 assignment row 时仍推进 miss/reset/cleanup，且每帧最多推进一次 lifecycle。
+  - 继续检查 owner 确认退休、新 stable owner 接管、face id 复用时的 body/hand cleanup。
   - 在生命周期候选域闭合后，再做 Body Track / Reacquire / Bootstrap / Forbidden 四态 edge 的 loss instrumentation + replay 标定。
   - Reacquire 打开后再验证 ownerFaceId、hitCount、output continuity 和 motion reset/strong correction 的逐帧对比。
   - 基于 hand slot replay 数据评估 Hand 是否需要类似 Reacquire，而不是默认复制 Body 策略。
@@ -106,7 +156,7 @@ updated_at: 2026-06-16
 - 高风险 finding：owner 消失后的 initialized hand slot 可能停止 miss/cleanup，长期保留 hand owner 与 retired anchor，并影响 face id 复用。
 - 抽象审计：`FrameBodyView` 降级为局部 snapshot；`HandSlotKey / HandAssignmentRow / AssignmentResult` 移出 header；已删除 matrix/candidate/rejection 不恢复。
 - route：停止继续 `feat/ljc/track_0609`，从 `br_develop_forJ6b` 新开 clean branch。
-- 需求澄清：统一 assignment solver、Body 全局 Hungarian 和 Hand 全局 slot assignment 已确认为目标行为；验证必须区分 Face 等价迁移与 Body/Hand 有意 delta。
+- 历史需求澄清：当时统一 assignment solver、Body 全局 Hungarian 和 Hand 全局 slot assignment 被确认为目标行为；2026-06-16 基线对比后，该目标已降级为历史实验或未来重启项。
 - `runtime_replay: not_executed`
 - `unit_tests: not_executed`
 - `board_validation: not_required`

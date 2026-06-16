@@ -1,0 +1,23 @@
+{
+  "task_id": "2026-06-16_track_lifecycle_refactor",
+  "invocations": [
+    {
+      "agent_id": "019ecf29-7a3a-78d2-9301-aa53e5b48812",
+      "role": "repo_explorer",
+      "purpose": "Read DMS tracking code and compare completed progress against KB plan 17.1.",
+      "status": "completed"
+    },
+    {
+      "agent_id": "019ecf2c-385e-7470-8348-7e0c02ec4de6",
+      "role": "repo_change_worker",
+      "purpose": "Implement 4A lifecycle closure in source/utils/track.cpp only.",
+      "status": "completed"
+    },
+    {
+      "agent_id": "019ecf38-92f2-7c13-bcdf-42f0fc211753",
+      "role": "independent_review",
+      "purpose": "Review track.cpp diff for scope creep, Reacquire leakage, lifecycle double miss, and output semantic changes.",
+      "status": "completed"
+    }
+  ]
+}

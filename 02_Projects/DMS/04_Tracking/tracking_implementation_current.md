@@ -1,6 +1,6 @@
 ---
 title: Tracking Implementation Current
-summary: Tracking 当前实现文档，记录 head-first 功能代码事实、历史 body-first 实现归档、body/hand 独立生命周期目标、driver face 防后排误绑定实现和 clean refactor 路线调整。
+summary: Tracking 当前实现文档，记录 head-first 功能代码事实、历史 body-first 实现归档、1401fc 基线对比后的路线收缩、driver face 防后排误绑定实现和 clean refactor 边界。
 status: verified
 doc_role: current
 truth_role: current
@@ -41,7 +41,8 @@ sources:
   - 02_Projects/DMS/04_Tracking/head-first跟踪方案.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first跟踪代码重构闭环记录-2026-05-23.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack内部结构与可读性重构分析-2026-06-08.md
-  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md
+  - 90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
 scope: 适用于恢复当前 Tracking 在代码中的主要实现结构、接口事实与行为，不覆盖全部调试历史。
 risks:
   - 本文档基于代码静态读取与 2026-05-23 本地编译证据恢复当前实现；仍不等价于完整代表性样本集验收。
@@ -49,13 +50,25 @@ risks:
 updated_at: 2026-06-16
 ---
 
-## 0.0.8 2026-06-16 Head-first 方案优化与历史实现归档
+## 0.0.9 2026-06-16 基线对比后的路线收缩
+
+- 对比 `1401fc338107f05b9cf` 与当前 `feat/ljc/track_0615` 后确认：`include/utils/track.h` 未变化，public `DmsTrack::Init/Update` 未变化，架构漂移集中在 `source/utils/track.cpp`。
+- 当前分支已有代码事实包括 `.cpp` internal `SolveAssignment`、Body global owner-to-detection assignment、Hand global slot assignment、tracking-first/acquisition fallback 和 Body/Hand 4A independent lifecycle 小步。
+- 这些代码事实不再作为默认推荐路线；当前推荐实现主线收缩为：保留 face/head identity，2m face/head-only，5m driver-bound body evidence 和 driver-bound hand evidence，face missing 时优先 face occlusion，body/hand 只做 bounded evidence cache。
+- `SolveAssignment` 可作为 `.cpp` internal 薄工具保留，职责限定为 expanded matrix、dummy edge、forbidden edge、strict `< dummyLoss` 和结果解析；不作为统一 assignment 架构目标。
+- Body global assignment、Hand global slot assignment、Body/Hand full independent lifecycle、Body 四态 edge、Reacquire cost band 和 Hand Reacquire 降级为历史实验或未来重启项；重启前必须具备 replay、loss 分布、冲突样例和 diff 白名单。
+- 2026-06-15/2026-06-16 两篇扩张路线记录已移动到 `90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/`，当前推荐记录为 `DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md`。
+
+## 0.0.8 2026-06-16 Head-first 方案优化与历史实现归档（已归档为历史实验路线）
 
 - `座舱多目标跟踪实现.md` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/`，只作为历史 body-first baseline 和参数推导参考，不再位于 Tracking 当前工作区。
-- `head-first跟踪方案.md` 已吸收历史方案中 body/face/hand 生命周期独立的正确原则：owner identity 来自 face/head，body/hand 继承 owner key，但内部生命周期按自身 detection、motion state、hit/miss、handoff 和 cleanup 推进。
-- 当前代码事实仍未完全实现该最终形态：`feat/ljc/track_0615` 的 body owner 消失与 hand owner disappearance lifecycle 仍需后续专项实现和验证。
+- `head-first跟踪方案.md` 当时吸收了 body/face/hand 生命周期独立原则、Body 四态 edge 和 deep-module clean refactor 约束；该路线现已由 0.0.9 收缩，不再作为当前默认推荐。
+- 2026-06-16 已在 `feat/ljc/track_0615` 小步实现 4A 生命周期闭环：已有 body track owner 会被纳入 tracking-only assignment 候选域，face miss/暂不存在时仍可按 body prediction 延续；body 未匹配时推进 miss，并只在 `body.missThreshold` 后 retire，不因 face absence 立即删除。
+- Hand 4A 同步补齐：published DRIVER body 仍是 hand 对外发布依据；内部 initialized hand slot 可基于已有 DRIVER body track 进入 tracking-only row，internal-only owner 不 bootstrap 未初始化 slot；未进入 row 的 initialized left/right slot 会在全量 sweep 中推进 miss，避免 owner/body 不可发布时 lifecycle 停滞。
+- Hand publish 阶段不再因 output sanitize 失败推进 miss，避免 matched initialized slot 在同帧先 hit 后 miss；hand lifecycle 统一收敛到 assignment/sweep 阶段推进。
 - Body 全局 assignment 的目标 edge 解释扩展为 Track / Reacquire / Bootstrap / Forbidden。当前代码在 loss 未标定前仍关闭 Reacquire；标定后打开时必须保持 ownerFaceId、稳定 hitCount 和输出连续性，只允许重置或强校正 motion state。
-- 后续实现仍应沿用 2026-06-15 deep-module 结论：public `Init/Update` 不变，private header 保持 phase-level，solver/row/key/result/snapshot 和 edge classifier 默认留在 `.cpp` 或函数局部。
+- 本次未修改 `include/utils/track.h` 或 public `Init/Update`；仍沿用 2026-06-15 deep-module 结论：private header 保持 phase-level，solver/row/key/result/snapshot 和 edge classifier 默认留在 `.cpp` 或函数局部。
+- 本次仍未打开 Body Reacquire、loss instrumentation 或 Hand Reacquire；运行 replay、冲突样例 diff 和板端验证未执行。
 
 ## 0.0.7 2026-06-15 Clean Branch Body Global Assignment
 

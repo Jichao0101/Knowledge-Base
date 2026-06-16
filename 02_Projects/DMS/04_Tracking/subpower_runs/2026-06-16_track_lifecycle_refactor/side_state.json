@@ -1,0 +1,7 @@
+{
+  "task_id": "2026-06-16_track_lifecycle_refactor",
+  "repo_branch": "feat/ljc/track_0615",
+  "repo_dirty_at_start": false,
+  "kb_dirty_context": "Knowledge base had pre-existing unrelated changes; this run writes only under DMS tracking scope and subpower run artifacts.",
+  "board_side": "not_in_scope"
+}

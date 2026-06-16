@@ -1,6 +1,6 @@
 ---
 title: Tracking Design Current
-summary: Tracking 当前设计文档，记录 head-first 功能边界、body/hand 独立生命周期、driver face 防后排误绑定设计、Body 四态 edge 与 clean refactor 路线；实验分支的 step-level helper 和中间类型不再视为推荐设计。
+summary: Tracking 当前设计文档，记录 head-first 功能边界、2m/5m 第一层分流、driver face 防后排误绑定设计、body/hand driver-bound evidence 与 clean refactor 收缩路线；统一 assignment 和 independent lifecycle 降级为历史实验路线。
 status: verified
 doc_role: current
 truth_role: current
@@ -31,7 +31,9 @@ sources:
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first优先于body-first跟踪主线决策记录-2026-05-09.md
   - 02_Projects/DMS/04_Tracking/head-first跟踪方案.md
   - 02_Projects/DMS/04_Tracking/tracking_implementation_current.md
-  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md
+  - 90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md
   - /home/jichao/dms/source/utils/track.cpp
 scope: 适用于恢复当前 Tracking 的设计真相，重点描述目标、边界、层级、生命周期和设计原则；不单独承担完整实现规范职责。
 risks:
@@ -43,20 +45,20 @@ updated_at: 2026-06-16
 
 当前代码事实已采用 `head/face` 作为 identity 主锚点，向下挂载 `body/torso evidence`、`left_hand`、`right_hand` evidence，并向下游输出 `body / face / left_hand / right_hand` legacy 结果。
 
-当前设计主线为 `head-first 跟踪方案`：driver identity 由 head/face track 决定；body 不再作为 driver/person identity 的主来源，而是 head-bound body/torso evidence；hand association 必须受 driver head-bound body evidence 约束。body/hand 继承 face owner key，但生命周期按各自 motion state、hit/miss 和 cleanup 规则独立推进。完整设计见 [[head-first跟踪方案]]，实现记录见 [[02_Projects/DMS/04_Tracking/tracking_implementation_current]]。
+当前设计主线为 `head-first 跟踪方案`：driver identity 由 head/face track 决定；body 不再作为 driver/person identity 的主来源，而是 driver head-bound body/torso evidence；hand association 必须受 driver head-bound body evidence 约束。2m 默认 face/head-only，不启动或不输出陈旧 body/hand；5m 在 driver face/head 选定后只做 driver-bound body/hand evidence。body/hand 继承 face owner key，但只允许 bounded evidence cache，不默认维持完整 independent identity-like lifecycle。完整设计见 [[head-first跟踪方案]]，实现记录见 [[02_Projects/DMS/04_Tracking/tracking_implementation_current]]。
 
 本文件声称 head-first 第一轮已实现并通过本地编译；运行效果、2m/5m profile 和板端/视频回放仍以 [[02_Projects/DMS/04_Tracking/tracking_validation_current]] 的证据边界为准。
 
 本文件只回答“当前设计是什么”，不回答全部“按什么精确规则实现代码”；实现级硬约束收敛到 [[02_Projects/DMS/04_Tracking/tracking_spec_current]]。
 
-## 0.1.1 2026-06-15 Deep Module Re-review
+## 0.1.1 2026-06-16 基线对比后的路线收缩
 
 - public `DmsTrack::Init/Update` 已经形成深接口，不建议改变。
-- 当前主要设计问题是 private header 和内部组织过浅，不是调用方边界过浅。
-- `feat/ljc/track_0609` 的 solve/apply/advance/finalize/project/publish helper 树只作为实验分支代码事实，不再作为推荐层级设计。
-- 推荐从 `br_develop_forJ6b` 新开 clean branch，以 face/body/hand phase-level helper 为主，单帧 row/key/result/snapshot 使用最低必要可见性。
-- Face/Body/Hand 统一 assignment solver 是明确目标：Face 已在 clean branch 完成等价迁移，Body 已从逐 owner greedy 改为全局 Hungarian，Hand 仍待从 owner 内 two-pass 改为全局 slot assignment；三者仍必须分别按等价迁移、算法变化和生命周期契约管理，不能统一归入可读性重构。
-- Body 全局 assignment 的最终推荐形态是四态 edge：Track、Reacquire、Bootstrap、Forbidden。标定前保守实现只打开 Track/Bootstrap；标定后 Reacquire 可在 tracking 不可信但 acquisition 高可信时保持 ownerFaceId 和输出连续。
+- `track.h` 从 `1401fc338107f05b9cf` 到 `feat/ljc/track_0615` 未变化；架构漂移集中在 `track.cpp`。
+- `feat/ljc/track_0615` 已从 clean refactor 进入行为扩张链：Body global assignment、Hand global slot assignment、tracking/acquisition 修补和 independent lifecycle 小步连续叠加。
+- 后续推荐不再把 Face/Body/Hand 统一 assignment 作为默认架构目标；`SolveAssignment` 只可作为 `.cpp` internal 薄工具。
+- Body global assignment、Hand global slot assignment、Body/Hand independent lifecycle、Body 四态 edge、Reacquire cost band 降级为历史实验或未来重启项。
+- 当前推荐从 `1401fc338107f05b9cf` 稳定骨架收缩：Face 等价 solver 可选保留，优先实现 2m/5m 分流、5m driver-only body evidence、5m driver-only hand evidence 和 face occlusion 语义。
 
 ## 0.2 Current Layering
 
@@ -65,10 +67,10 @@ updated_at: 2026-06-16
 - 通用 solver 只统一 expanded matrix、dummy、forbidden 和结果解析，不统一各 phase 的 row 方向、领域 gating、cost 或 lifecycle；最小 `AssignmentResult`、solver row 和 slot key 降级到 `.cpp` 或函数局部。
 - `head/face`：当前 driver identity 的主入口，负责稳定 driver/head 选择和后续 face/head 模型输入。
 - `body`：当前代码中的 head-owned body/torso evidence，不再单独决定 driver identity。
-- `hand`：当前代码中按 head-owned body evidence id 维护 `left/right` 两个槽位，输出 key 与 driver headId 对齐；hand 阶段只消费 body 阶段给出的单帧 `FrameBodyView`，不再读取 body legacy output map 作为内部输入。
+- `hand`：当前代码中按 head-owned body evidence id 维护 `left/right` 两个槽位，输出 key 与 driver headId 对齐；推荐路线只在 driver-bound body evidence 下运行 hand，不做跨 owner global slot assignment。
 - `retired body`：仅作为旧 evidence/hand 槽位清理的历史锚点，不是新的主入口。
 - finalized body snapshot：body 阶段产生的单帧只读事实，只用于 hand 阶段和 legacy body publish；具体表示不进入稳定 header 契约，`FrameBodyView` 仅是实验分支当前实现。
-- ID 数值来源与生命周期所有权分离：`bodyId / handId` 初始继承 `faceId` 数值和 map key，但 body/hand 不应被设计为 face 生命周期的机械附属。当前代码仍可能在 face owner 消失时立即退休 body，hand 的 owner-disappearance lifecycle 尚未形成明确、已验证契约；后续方案应允许 body/hand 在 bounded grace period 内按自身连续性推进，并在 owner 确认退休、id 复用或 handoff 完成前收敛 cleanup。
+- ID 数值来源与生命周期所有权分离：`bodyId / handId` 初始继承 `faceId` 数值和 map key，但 body/hand 不应成为独立 identity lifecycle owner。face missing 时优先 face occlusion；body/hand 只允许 bounded evidence cache，并在 owner 确认退休、id 复用或 handoff 完成前收敛 cleanup。
 
 ## 0.3 Current Lifecycle
 

@@ -1,0 +1,12 @@
+{
+  "task_id": "2026-06-16_track_lifecycle_refactor",
+  "state": "complete",
+  "last_completed_step": "closure_artifacts",
+  "current_step": null,
+  "notes": [
+    "2A and 3A are treated as code-complete based on subagent read-only review.",
+    "4A must precede 4B calibration so face-short-loss body/hand tracking enters candidate domains.",
+    "Clean build validation passed after temporarily enabling build directory cleanup in compile_j6b.sh and then restoring the script.",
+    "Independent review finding on hand double hit/miss was fixed and revalidated."
+  ]
+}

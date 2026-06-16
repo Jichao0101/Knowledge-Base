@@ -1,0 +1,21 @@
+{
+  "task_id": "2026-06-16_track_lifecycle_refactor",
+  "subpower_mode": "subagent_first",
+  "capabilities": [
+    {
+      "name": "repo_explorer",
+      "status": "completed",
+      "agent_id": "019ecf29-7a3a-78d2-9301-aa53e5b48812"
+    },
+    {
+      "name": "repo_change_worker",
+      "status": "planned"
+    },
+    {
+      "name": "host_integration_and_kb_writeback",
+      "status": "planned"
+    }
+  ],
+  "board_validation": "not_required_by_user",
+  "knowledge_writeback": "allowed"
+}

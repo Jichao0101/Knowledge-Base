@@ -1,0 +1,25 @@
+{
+  "task_id": "2026-06-16_track_lifecycle_refactor",
+  "validation": [
+    {
+      "command": "git -C /home/jichao/dms diff --check -- source/utils/track.cpp",
+      "result": "pass"
+    },
+    {
+      "command": "make -C build source/utils/CMakeFiles/Utils.dir/track.cpp.o",
+      "workdir": "/home/jichao/dms",
+      "result": "pass"
+    },
+    {
+      "command": "bash scripts/compile_j6b.sh",
+      "workdir": "/home/jichao/dms",
+      "result": "pass",
+      "notes": "Temporarily enabled rm -r build and mkdir build, then restored compile_j6b.sh. Build reached 100% and built target sdk. Re-run after review fix also passed."
+    }
+  ],
+  "not_executed": [
+    "runtime_replay",
+    "unit_tests",
+    "board_validation"
+  ]
+}
