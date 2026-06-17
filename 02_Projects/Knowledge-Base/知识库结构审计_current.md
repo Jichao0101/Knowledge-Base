@@ -244,14 +244,22 @@ supersedes:
 - 新增证据为 interface guard 记录、独立 repo-reviewer `approve`、`git diff --check` 和 `bash scripts/compile_j6b.sh` 完整构建通过；runtime replay、单元测试和板端验证未执行。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
-## 1.26 2026-06-15 Tracking 统一 Assignment 目标澄清
+## 1.26 2026-06-17 Tracking Face/Body/Hand 主流程叙述化重构修订方案写回
+
+- 因用户指出当前主要问题不是 public API 或短时匹配算法，而是 Face/Body/Hand phase 主流程不够高层叙述化，本轮新增项目级修订方案：`02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack FaceBodyHand主流程叙述化重构修订方案-2026-06-17.md`。
+- 本修订方案将优先级调整为“可读性高于 private interface 最小化”，允许用少量 `DmsTrack` private helper 表达稳定 phase 子流程，同时禁止新增搬运型 `Row/View/Payload/Result/Context` 类型。
+- 本轮只写回方案，不修改 DMS 业务代码；后续 Face、Body 与 Hand 主流程叙述化需分步执行、分别编译和 review。
+- 本轮不更新 Tracking current 文档组和 DMS 项目总览：当前行为事实、默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
+- 未新增或保留 `single_pass_recoverable: true` 声明。
+
+## 1.27 2026-06-15 Tracking 统一 Assignment 目标澄清
 
 - 用户明确 Face 全局匹配、Body 全局 Hungarian 和 Hand 全局 slot assignment 均属于本次行为重构目标。
 - 已局部同步 Tracking review、overview、design、spec、implementation、validation 与 DMS 项目总览；未整组重写 current 文档。
 - 推荐分支路线仍为从 `br_develop_forJ6b` 新开 clean branch；`feat/ljc/track_0609` 仅作为 solver/cost/row 算法参考和结构反例。
 - `recoverability_status` 仍为 `partial`；未新增 `single_pass_recoverable: true`，未修改 DMS 业务代码。
 
-## 1.27 2026-06-15 Tracking clean branch Body 全局 assignment 写回
+## 1.28 2026-06-15 Tracking clean branch Body 全局 assignment 写回
 
 - 因 `feat/ljc/track_0615` 已完成 clean refactor 阶段 2 Body 全局 owner-to-detection assignment，已局部同步 Tracking review、overview、design、spec、implementation、validation 与 DMS 项目总览。
 - 本轮未整组重写 current 文档；只更新 Body matching 当前事实、验证证据和后续风险。
@@ -259,7 +267,7 @@ supersedes:
 - 未新增或保留 `single_pass_recoverable: true`。
 - 本轮代码验证为 QNX `Utils` 与 `sdk` 构建通过；runtime replay、单元测试和板端验证未执行。当前保守实现关闭已有 body / initialized hand 的 acquisition fallback；tracking loss、acquisition loss、driver/non-driver bias 与 `dummyLoss` 的标定仍待后续冲突样例与 diff 白名单验证。
 
-## 1.28 2026-06-16 Tracking 方案优化与历史实现归档
+## 1.29 2026-06-16 Tracking 方案优化与历史实现归档
 
 - `02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md`，角色收敛为历史 body-first baseline。
 - 已局部同步 `head-first跟踪方案.md`、Tracking 五份 current 文档、DMS 项目总览和 `DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15.md`。
