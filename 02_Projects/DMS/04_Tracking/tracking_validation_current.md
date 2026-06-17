@@ -179,6 +179,28 @@ updated_at: 2026-06-16
   - `board_validation: not_required`
   - 本轮只闭合 Step 1 publish 段；updateHandTracks 中候选构造、assignment、slot lifecycle 和 retired-owner cleanup 的阅读复杂度仍待后续小步处理。
 
+### 0.1.0P 2026-06-17 updateHandTracks unmatched miss 可读性整理
+
+- 代码范围：
+  - `/home/jichao/dms/source/utils/track.cpp`
+- interface guard 结论：
+  - public `DmsTrack::Init/Update` 未变化。
+  - `track.h` private phase 方法签名未变化。
+  - 新增抽象仅为函数局部 lambda `advanceUnmatchedSlotMiss`，未新增 Row/View/Payload/Result、header-level helper 或跨 phase wrapper。
+- 静态结论：
+  - `advanceUnmatchedSlotMiss` 只提取原有 owner lookup、owner 缺失保护、left/right slot 选择和 `AdvanceMiss(slot.track)`。
+  - 两个调用点保留原触发条件和每 slot miss 次数。
+  - 未修改 `unmatchedSlots` 构造、`matchedSlots`、`usedDetections`、second pass Hungarian 输入、match acceptance、cleanup/reset/publish 或 profile split。
+- 验证：
+  - `git -C /home/jichao/dms diff --check -- source/utils/track.cpp`: pass
+  - `bash scripts/compile_j6b.sh`: pass，最终 `[100%] Built target sdk`
+  - 独立 repo-reviewer: `approved`
+- 证据限制：
+  - `runtime_replay: not_executed`
+  - `unit_tests: not_added`
+  - `board_validation: not_required`
+  - 本轮只闭合 Step 2 unmatched miss 段；driver owner candidate collection 和 retired-owner cleanup 的阅读复杂度仍待后续小步处理。
+
 ### 0.1.0I 2026-06-16 Owner/body/hand 4A 生命周期闭环实现（历史实验代码事实）
 
 - 代码范围：

@@ -107,6 +107,15 @@ updated_at: 2026-06-16
 - 本轮未修改 `track.h`、public `DmsTrack::Init/Update`、private phase 方法签名、hand matching、miss 推进、cleanup 或 retired-owner 清理。
 - 本轮新增抽象仅为函数局部 lambda，不新增 Row/View/Payload/Result、header-level helper 或跨 phase wrapper。
 
+## 0.0.15 2026-06-17 updateHandTracks unmatched miss 可读性整理
+
+- 代码范围：
+  - `/home/jichao/dms/source/utils/track.cpp`
+- `updateHandTracks` 在 `unmatchedSlots` 构造后新增函数局部 lambda `advanceUnmatchedSlotMiss`，统一执行 owner lookup、left/right slot 选择和 `AdvanceMiss`。
+- second pass Hungarian 未匹配分支和无 hand detection 分支改为调用该 lambda。
+- 本轮不改变 `unmatchedSlots` 构造、`matchedSlots`、`usedDetections`、second pass Hungarian 输入、match acceptance、cleanup/reset/publish 或 profile split。
+- 本轮未修改 `track.h`、public `DmsTrack::Init/Update` 或 private phase 方法签名；未新增 Row/View/Payload/Result、header-level helper 或跨 phase wrapper。
+
 ## 0.0.8 2026-06-16 Head-first 方案优化与历史实现归档（已归档为历史实验路线）
 
 - `座舱多目标跟踪实现.md` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/`，只作为历史 body-first baseline 和参数推导参考，不再位于 Tracking 当前工作区。

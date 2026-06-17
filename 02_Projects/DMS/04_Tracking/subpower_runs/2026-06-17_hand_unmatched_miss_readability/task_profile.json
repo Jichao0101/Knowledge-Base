@@ -1,0 +1,17 @@
+{
+  "workflow_pattern": "bug_fix",
+  "change_profile": {
+    "type": "readability_refactor",
+    "non_mechanical_repository_change": true,
+    "module_boundary_change": false,
+    "public_api_change": false,
+    "private_header_api_change": false,
+    "behavior_change_intended": false,
+    "stateful_behavior_change_intended": false
+  },
+  "validation_required": [
+    "git diff --check",
+    "bash scripts/compile_j6b.sh",
+    "independent repo-reviewer"
+  ]
+}

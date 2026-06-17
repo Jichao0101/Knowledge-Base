@@ -1,0 +1,34 @@
+{
+  "skill": "interface-abstraction-implementation-guard",
+  "design_source": [
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack updateHandTracks第二阶段可读性优化方案-2026-06-17.md"
+  ],
+  "active_plan_step": "Step 2: organize unmatched hand slot miss advance only",
+  "allowed": [
+    "Use a function-local lambda to share duplicate slot lookup and AdvanceMiss call",
+    "Keep changes limited to source/utils/track.cpp updateHandTracks unmatched miss section"
+  ],
+  "not_allowed": [
+    "Public API changes",
+    "Private header API or signature changes",
+    "New Row/View/Payload/Result types",
+    "Header-level helper tree",
+    "Changes to unmatchedSlots candidate domain, matchedSlots, usedDetections, second-pass Hungarian inputs, cleanup/reset/publish, stage tags, or profile split"
+  ],
+  "behavior_api_invariants": [
+    "DmsTrack::Init and DmsTrack::Update signatures unchanged",
+    "track.h unchanged",
+    "AdvanceMiss trigger conditions and per-slot count unchanged",
+    "No intended behavior change"
+  ],
+  "new_abstraction_decision": {
+    "candidate": "function-local advanceUnmatchedSlotMiss lambda",
+    "decision": "allowed",
+    "reason": "Local lambda hides repeated slot lookup and miss advance without creating stable API/type surface or moving state ownership"
+  },
+  "verification": [
+    "git -C /home/jichao/dms diff --check -- source/utils/track.cpp",
+    "bash scripts/compile_j6b.sh",
+    "independent repo-reviewer"
+  ]
+}

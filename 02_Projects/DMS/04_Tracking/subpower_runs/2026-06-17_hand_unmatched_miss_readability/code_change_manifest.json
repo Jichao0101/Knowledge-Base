@@ -1,0 +1,14 @@
+{
+  "changed_files": [
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "summary": [
+    "Added function-local advanceUnmatchedSlotMiss lambda inside updateHandTracks.",
+    "Replaced the second-pass unmatched AdvanceMiss site with advanceUnmatchedSlotMiss.",
+    "Replaced the no-detection unmatched AdvanceMiss loop body with advanceUnmatchedSlotMiss."
+  ],
+  "public_api_changed": false,
+  "private_header_api_changed": false,
+  "new_stable_types": false,
+  "behavior_change_intended": false
+}
