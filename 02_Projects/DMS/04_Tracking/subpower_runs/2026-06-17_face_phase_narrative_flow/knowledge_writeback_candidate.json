@@ -1,0 +1,8 @@
+{
+  "writeback_type": "project_record",
+  "target_zone": "02_Projects",
+  "formal_knowledge_promotion": false,
+  "reason": "This is a project-specific DmsTrack readability refactor step.",
+  "current_group_update_required": false,
+  "current_group_update_reason": "The step changes internal organization only and does not change current behavior facts, default entry, recovery order, or recoverability status."
+}

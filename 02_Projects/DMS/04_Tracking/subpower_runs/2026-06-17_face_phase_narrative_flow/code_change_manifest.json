@@ -1,0 +1,15 @@
+{
+  "changed_files": [
+    "/home/jichao/dms/include/utils/track.h",
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "summary": [
+    "Added Face phase private helpers for prediction, assignment apply, bootstrap, and miss/erase.",
+    "Changed updateFaceTracks into a high-level phase flow.",
+    "Added CollectDetectionsByClass in the anonymous namespace."
+  ],
+  "public_api_changed": false,
+  "private_header_api_changed": true,
+  "new_stable_types": false,
+  "behavior_change_intended": false
+}

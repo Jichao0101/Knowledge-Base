@@ -1,0 +1,21 @@
+{
+  "skill": "interface-abstraction-implementation-guard",
+  "design_source": [
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack FaceBodyHand主流程叙述化重构修订方案-2026-06-17.md"
+  ],
+  "active_plan_step": "Stage 1: Face phase narrative flow",
+  "allowed": [
+    "Add a small set of DmsTrack private phase-level helpers for Face phase",
+    "Add .cpp anonymous namespace helper for class-based detection collection",
+    "Keep behavior semantics unchanged"
+  ],
+  "not_allowed": [
+    "Public API changes",
+    "New Row/View/Payload/Result/Context types",
+    "Changes to matching, bootstrap, miss/erase behavior, output ABI, Body phase, or Hand phase"
+  ],
+  "private_interface_cost_decision": {
+    "decision": "accepted",
+    "reason": "The helpers operate on m_faceTracks, m_parameters, and allocateFaceTrackId; private methods keep dependencies explicit and make updateFaceTracks read as a phase state-machine summary."
+  }
+}
