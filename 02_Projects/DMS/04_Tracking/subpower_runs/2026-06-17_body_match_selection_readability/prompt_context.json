@@ -1,0 +1,17 @@
+{
+  "task": "按照 DmsTrack 整体内部架构可读性优化评审与方案逐步优化架构",
+  "requested_workflow": "subpower",
+  "repo": "/home/jichao/dms",
+  "knowledge_base": "/mnt/d/Knowledge-Base",
+  "active_design_source": "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack整体内部架构可读性优化评审与方案-2026-06-17.md",
+  "current_step": "Body phase match selection readability organization",
+  "board_validation": "not_in_scope",
+  "constraints": [
+    "No push",
+    "Code changes allowed",
+    "Tests/build allowed",
+    "Knowledge-base writeback allowed",
+    "Interface or abstraction changes must use interface-abstraction-implementation-guard",
+    "Current document group must represent current facts, not plan/history enumeration"
+  ]
+}

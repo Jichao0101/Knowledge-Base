@@ -1,0 +1,12 @@
+{
+  "requested_mode": "subagent_first",
+  "actual_mode": "subagent_review_with_host_implementation",
+  "degraded": false,
+  "critical_host_participation": [
+    "implementation",
+    "diff_audit",
+    "build_verification",
+    "knowledge_writeback"
+  ],
+  "execution_evidence_status": "local_verification_and_static_review_available"
+}

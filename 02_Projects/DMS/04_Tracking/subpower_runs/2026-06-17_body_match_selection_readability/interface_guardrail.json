@@ -1,0 +1,31 @@
+{
+  "skill": "interface-abstraction-implementation-guard",
+  "design_source": [
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack整体内部架构可读性优化评审与方案-2026-06-17.md"
+  ],
+  "active_plan_step": "Stage 3: Body phase local organization, tracked match and face-anchored acquisition selection only",
+  "allowed": [
+    "Add .cpp anonymous namespace helpers for stable Body detection selection mechanics",
+    "Keep updateBodyTracks as the phase-level private method",
+    "Keep changes limited to source/utils/track.cpp"
+  ],
+  "not_allowed": [
+    "Public API changes",
+    "Private header API or signature changes",
+    "New Row/View/Payload/Result/Context types",
+    "Changes to body acquisition semantics, retire rules, publish rules, profile split, Face phase, or Hand phase"
+  ],
+  "behavior_api_invariants": [
+    "DmsTrack::Init and DmsTrack::Update signatures unchanged",
+    "track.h unchanged",
+    "Existing body track prediction still updates bodyTrack.predBox before tracking match",
+    "Tracking match still gates by body dummyLoss",
+    "Face acquisition still filters by FaceBelongsToBody and ranks by FaceAnchorLoss",
+    "No intended behavior change"
+  ],
+  "new_abstraction_decision": {
+    "candidate": "TrackBoxMatchLoss, SelectTrackedBodyDetection, SelectFaceAnchoredBodyDetection .cpp anonymous namespace helpers",
+    "decision": "allowed",
+    "reason": "The helpers hide stable local Body phase matching mechanics without adding header surface, new state ownership, or field-moving wrapper types."
+  }
+}

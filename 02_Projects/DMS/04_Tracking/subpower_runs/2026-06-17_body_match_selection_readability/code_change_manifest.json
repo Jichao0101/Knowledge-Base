@@ -1,0 +1,15 @@
+{
+  "changed_files": [
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "summary": [
+    "Added TrackBoxMatchLoss in the anonymous namespace and kept DmsTrack::computeMatchLoss as a compatibility wrapper.",
+    "Added SelectTrackedBodyDetection for existing body track motion-predicted matching.",
+    "Added SelectFaceAnchoredBodyDetection for face-anchored body acquisition.",
+    "Replaced the corresponding inline candidate scans in DmsTrack::updateBodyTracks with helper calls."
+  ],
+  "public_api_changed": false,
+  "private_header_api_changed": false,
+  "new_stable_types": false,
+  "behavior_change_intended": false
+}
