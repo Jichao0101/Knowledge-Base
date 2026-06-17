@@ -163,6 +163,14 @@ supersedes:
 - 新增证据为 subpower planner/reviewer 结果、interface guard 工件、`git diff --check` 和 `bash scripts/compile_j6b.sh` 完整构建通过；runtime replay、单元测试和板端验证未执行。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
+## 1.20 2026-06-17 Tracking updateHandTracks 第二阶段可读性优化方案写回
+
+- 新增项目级方案记录：`02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack updateHandTracks第二阶段可读性优化方案-2026-06-17.md`。
+- 已局部同步 DMS 项目总览、Tracking implementation current 和 validation current。
+- 本方案不改变 current 默认入口、默认恢复顺序、default recovery bundle 或 `recoverability_status: partial`。
+- 本方案只规划行为不变的可读性优化，不声明运行效果闭合，不新增 `single_pass_recoverable: true`。
+- 后续每个实现小步仍需单独记录验证、review 和写回。
+
 ## 1.12 2026-06-15 Tracking 统一 Assignment 目标澄清
 
 - 用户明确 Face 全局匹配、Body 全局 Hungarian 和 Hand 全局 slot assignment 均属于本次行为重构目标。

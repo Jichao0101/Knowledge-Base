@@ -139,6 +139,23 @@ updated_at: 2026-06-16
   - `board_validation: not_required`
   - hand 现在只消费 body phase 发布成功后的 driver snapshot；若未来需要 hand 使用未发布、未达到输出阈值或 sanitize 前的内部 body 状态，需要重新评审契约。
 
+### 0.1.0N 2026-06-17 updateHandTracks 第二阶段可读性优化方案
+
+- 方案性质：
+  - 只规划可读性优化，不声明新运行事实。
+  - 当前功能代码路径已落地，但运行效果仍未验收。
+- 主要问题：
+  - `updateHandTracks` 中策略、候选构造、assignment、lifecycle、publish 与 cleanup 层级混杂。
+  - 若机械新增 Row/View/Payload/Result，会转移复杂度而非降低复杂度。
+- 推荐执行顺序：
+  - Step 1：整理 hand publish 段，保持行为不变。
+  - Step 2：整理 unmatched slot advance。
+  - Step 3：整理 driver owner candidate collection。
+  - Step 4：可选整理 retired-owner cleanup。
+- 验证要求：
+  - 每步必须 `git diff --check`、J6B 编译和独立 review。
+  - 任何触及 private API、helper 可见性或新增抽象的步骤必须执行 `interface-abstraction-implementation-guard`。
+
 ### 0.1.0I 2026-06-16 Owner/body/hand 4A 生命周期闭环实现（历史实验代码事实）
 
 - 代码范围：

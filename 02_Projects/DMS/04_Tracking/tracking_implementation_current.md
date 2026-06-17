@@ -91,6 +91,13 @@ updated_at: 2026-06-16
 - 未新增 `FrameBodyView`、Row/View/Payload/Result 或新的 header-level稳定类型；本轮 private API 变化仅限 phase-level 方法签名。
 - 本轮不改变 public `DmsTrack::Init/Update`、legacy 四类 map ABI、Hand matching/lifecycle 主体行为、2m profile split 或 5m driver-bound body evidence。
 
+## 0.0.13 2026-06-17 updateHandTracks 第二阶段可读性优化方案
+
+- 当前功能代码路径已完成到本地编译与独立 review 级别，但 runtime replay、单元测试和板端验证仍未执行。
+- `updateHandTracks` 当前主要问题是层级混杂：driver owner 策略、候选构造、Hungarian assignment、slot lifecycle、legacy publish 和 retired-owner cleanup 同处一个函数。
+- 第二阶段目标不是增加抽象数量，而是降低阅读时同时持有的上下文数量；抽象只允许隐藏局部机制，不允许把复杂度转移为新的 Row/View/Payload/Result 类型。
+- 当前推荐先执行 Step 1：只整理 hand publish 段，保持输出条件、stage tag、occupied set、fallback 行为不变。
+
 ## 0.0.8 2026-06-16 Head-first 方案优化与历史实现归档（已归档为历史实验路线）
 
 - `座舱多目标跟踪实现.md` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/`，只作为历史 body-first baseline 和参数推导参考，不再位于 Tracking 当前工作区。
