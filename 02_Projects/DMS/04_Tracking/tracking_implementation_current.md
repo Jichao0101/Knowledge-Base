@@ -126,6 +126,14 @@ updated_at: 2026-06-16
 - 本轮不改变 matching matrix、`matchedSlots`、`usedDetections`、lifecycle、cleanup/reset/publish 或 profile split。
 - 本轮未修改 `track.h`、public `DmsTrack::Init/Update` 或 private phase 方法签名；未新增 Row/View/Payload/Result、header-level helper 或跨 phase wrapper。
 
+## 0.0.17 2026-06-17 DmsTrack 整体内部架构可读性评审
+
+- 本轮只更新设计判断，不修改业务代码。
+- 重新评估后确认：`DmsTrack::Init/Update` public API 已是深接口，后续不应扩大 public surface。
+- `Update` 继续作为帧级 pipeline：clear outputs -> `updateFaceTracks` -> `selectDriverFace` -> face output -> `updateBodyTracks` -> `updateHandTracks`。
+- `updateFaceTracks`、`selectDriverFace`、`updateBodyTracks`、`updateHandTracks` 继续作为 private header 中的 phase-level 方法；不把 hand 的 collect/predict/publish/miss 等局部机制提升为 private header step helper。
+- 三笔 hand lambda 提交保留为行为等价的历史代码事实，但对应局部路线已被整体架构方案 supersede；后续实现以 Face/Body/Hand 整体 phase 边界和主流程可读性为准。
+
 ## 0.0.8 2026-06-16 Head-first 方案优化与历史实现归档（已归档为历史实验路线）
 
 - `座舱多目标跟踪实现.md` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/`，只作为历史 body-first baseline 和参数推导参考，不再位于 Tracking 当前工作区。

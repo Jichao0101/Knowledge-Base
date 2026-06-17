@@ -1,0 +1,22 @@
+{
+  "steps": [
+    {
+      "name": "deep_module_design_review",
+      "owner": "host",
+      "status": "completed",
+      "artifact": "design_review_decision.json"
+    },
+    {
+      "name": "independent_design_review",
+      "owner": "repo-reviewer subagent",
+      "status": "completed",
+      "artifact": "review_decision.json"
+    },
+    {
+      "name": "knowledge_writeback",
+      "owner": "host",
+      "status": "completed",
+      "artifact": "writeback_receipt.json"
+    }
+  ]
+}

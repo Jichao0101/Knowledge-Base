@@ -1,0 +1,15 @@
+{
+  "decision": "supersede_hand_local_lambda_plan_with_overall_dms_track_architecture_review",
+  "public_api_change_recommended": false,
+  "private_header_surface_recommendation": [
+    "Keep long-lived state and phase-level methods in private header.",
+    "Do not promote hand local mechanisms to private header.",
+    "Evaluate future helper visibility by phase-level semantics, not low visibility alone."
+  ],
+  "historical_commits": {
+    "3aca62d6": "inherit_and_supersede",
+    "b506f023": "inherit_and_supersede",
+    "8c42571c": "inherit_and_supersede"
+  },
+  "formal_knowledge_promotion": false
+}

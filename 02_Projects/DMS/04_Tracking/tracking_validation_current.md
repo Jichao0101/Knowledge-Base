@@ -224,6 +224,25 @@ updated_at: 2026-06-16
   - `board_validation: not_required`
   - 本轮只闭合 Step 3 owner/candidate 准备区；retired-owner cleanup 是否继续整理仍为可选后续小步。
 
+### 0.1.0R 2026-06-17 DmsTrack 整体内部架构可读性评审
+
+- 评审性质：
+  - 只做 deep-module 设计评审和方案重定向，不声明新运行事实。
+  - 未修改 `/home/jichao/dms` 业务代码。
+- 静态结论：
+  - public `Init/Update` 应保持不变。
+  - `Update` 当前作为帧级 pipeline 基本可读。
+  - `updateFaceTracks`、`selectDriverFace`、`updateBodyTracks`、`updateHandTracks` 是合理的 phase-level private 方法。
+  - 三笔 hand lambda 提交不直接 revert，但被整体架构方案 supersede；后续不继续以局部 lambda 累积作为 active plan。
+  - private header surface 只保留长期状态和 phase-level 方法；局部 collect/predict/publish/miss 机制不提升为 header step helper。
+- 独立设计 review：
+  - subpower independent reviewer: `approved`
+- 证据限制：
+  - `build: not_run`
+  - `runtime_replay: not_executed`
+  - `unit_tests: not_added`
+  - `board_validation: not_required`
+
 ### 0.1.0I 2026-06-16 Owner/body/hand 4A 生命周期闭环实现（历史实验代码事实）
 
 - 代码范围：

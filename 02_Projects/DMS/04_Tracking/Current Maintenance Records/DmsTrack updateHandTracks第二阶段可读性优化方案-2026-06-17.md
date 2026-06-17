@@ -1,7 +1,7 @@
 ---
 title: DmsTrack updateHandTracks 第二阶段可读性优化方案
-summary: 在 head-first、2m/5m 分流、driver-bound body evidence 与 body-to-hand snapshot 已落地后，评估 updateHandTracks 的层级混杂问题，并规划不改变行为的可读性优化步骤。
-status: planned
+summary: 在 head-first、2m/5m 分流、driver-bound body evidence 与 body-to-hand snapshot 已落地后，评估 updateHandTracks 的层级混杂问题，并规划不改变行为的可读性优化步骤；该局部方案已被 DmsTrack 整体内部架构可读性优化方案取代。
+status: superseded
 doc_role: refactor_plan
 truth_role: project_plan
 scope: DMS Tracking updateHandTracks 第二阶段可读性优化方案；只规划结构整理，不声明运行效果闭合，不改变功能规范。
@@ -16,7 +16,11 @@ risks:
   - 本方案只针对阅读复杂度，不应借机改变 hand matching、lifecycle、cleanup 或 publish 条件。
   - 若新增 Row/View/Payload/Result 类型，容易把复杂度转移到新的认知接口，必须重新执行 interface guard。
 updated_at: 2026-06-17
+superseded_by:
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack整体内部架构可读性优化评审与方案-2026-06-17.md
 ---
+
+> Superseded note: 本方案过度聚焦 `updateHandTracks` 局部 lambda 小步。2026-06-17 重新评估后，当前 active plan 改为 DmsTrack 整体内部架构可读性优化；本记录仅保留为历史方案和问题来源。
 
 # 1 功能完成度评估
 
@@ -68,7 +72,7 @@ updated_at: 2026-06-17
 
 # 4 分步方案
 
-## Step 1：整理 hand publish 段
+## 4.1 Step 1：整理 hand publish 段
 
 目标：
 
@@ -82,7 +86,7 @@ updated_at: 2026-06-17
 - `bash scripts/compile_j6b.sh`
 - 独立 review 确认行为等价和抽象未漂移。
 
-## Step 2：整理 unmatched slot advance
+## 4.2 Step 2：整理 unmatched slot advance
 
 目标：
 
@@ -94,7 +98,7 @@ updated_at: 2026-06-17
 - 静态 diff 审计确认 `AdvanceMiss` 次数和触发条件不扩大。
 - J6B 编译。
 
-## Step 3：整理 driver owner candidate collection
+## 4.3 Step 3：整理 driver owner candidate collection
 
 目标：
 
@@ -109,7 +113,7 @@ updated_at: 2026-06-17
 - 静态 diff 审计确认 allowed owner 仍只来自 `driverBodyEvidence` 且 stable `DRIVER`。
 - J6B 编译。
 
-## Step 4：可选整理 retired-owner cleanup
+## 4.4 Step 4：可选整理 retired-owner cleanup
 
 目标：
 

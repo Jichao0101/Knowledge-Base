@@ -198,6 +198,16 @@ supersedes:
 - 新增证据为 subpower reviewer 结果、interface guard 工件、`git diff --check` 和 `bash scripts/compile_j6b.sh` 完整构建通过；runtime replay、单元测试和板端验证未执行。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
+## 1.24 2026-06-17 Tracking DmsTrack 整体内部架构可读性评审写回
+
+- 因用户指出 handtrack 只是例子，优化范围应覆盖 Face/Body/Hand 整体架构，本轮新增项目级设计评审记录：`02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack整体内部架构可读性优化评审与方案-2026-06-17.md`。
+- 已将 `DmsTrack updateHandTracks第二阶段可读性优化方案-2026-06-17.md` 标记为 `superseded`。
+- 已将三条 updateHandTracks 局部 lambda 小步记录标记为 `superseded`，保留对应代码提交和验证证据，但不再作为 active plan。
+- 已局部同步 Tracking implementation current、validation current、DMS 项目总览和本结构审计。
+- 本轮未修改 DMS 业务代码，未执行编译、runtime replay、单元测试或板端验证。
+- Tracking 默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
+- 未新增或保留 `single_pass_recoverable: true` 声明。
+
 ## 1.12 2026-06-15 Tracking 统一 Assignment 目标澄清
 
 - 用户明确 Face 全局匹配、Body 全局 Hungarian 和 Hand 全局 slot assignment 均属于本次行为重构目标。

@@ -1,0 +1,14 @@
+{
+  "workflow_pattern": "knowledge_writeback",
+  "change_profile": {
+    "type": "design_review",
+    "repository_code_change": false,
+    "module_boundary_review": true,
+    "public_api_change_recommended": false,
+    "private_header_surface_reviewed": true
+  },
+  "validation_required": [
+    "independent design review",
+    "knowledge-base diff audit"
+  ]
+}

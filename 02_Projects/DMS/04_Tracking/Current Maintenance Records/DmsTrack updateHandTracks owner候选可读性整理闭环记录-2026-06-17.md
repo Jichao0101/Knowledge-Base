@@ -1,7 +1,7 @@
 ---
 title: DmsTrack updateHandTracks owner 候选可读性整理闭环记录
-summary: 第二阶段可读性优化 Step 3，仅将 allowed owner 收集、slot prediction 与 body-constrained hand candidate 收集拆成函数局部 lambda。
-status: reviewed
+summary: 第二阶段可读性优化 Step 3，仅将 allowed owner 收集、slot prediction 与 body-constrained hand candidate 收集拆成函数局部 lambda；该局部路线已被 DmsTrack 整体内部架构可读性优化方案取代。
+status: superseded
 doc_role: implementation_record
 truth_role: project_record
 scope: DMS Tracking updateHandTracks owner/candidate 准备区行为不变整理、编译验证、interface guard 审计、独立 review 与知识库写回；不包含 runtime replay、单元测试或板端验证。
@@ -15,7 +15,11 @@ risks:
   - 本轮只完成静态 review、diff check 与本地 J6B 编译；未执行 runtime replay、单元测试或板端验证。
   - 本轮不处理 matching matrix、slot lifecycle、cleanup/reset 或 publish 段。
 updated_at: 2026-06-17
+superseded_by:
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack整体内部架构可读性优化评审与方案-2026-06-17.md
 ---
+
+> Superseded note: 本记录对应的代码提交和验证证据仍保留；但“继续通过局部 lambda 小步提升可读性”的路线已被整体 DmsTrack 架构评审取代。后续不以本记录作为 active plan。
 
 # 1 变更摘要
 

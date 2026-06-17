@@ -1,0 +1,12 @@
+{
+  "task": "DmsTrack overall internal architecture readability review",
+  "user_instruction": "handtrack只是个例子，要对包括body face的整体架构优化以提高可读性",
+  "repo": "/home/jichao/dms",
+  "knowledge_base": "/mnt/d/Knowledge-Base",
+  "scope": [
+    "/home/jichao/dms/include/utils/track.h",
+    "/home/jichao/dms/source/utils/track.cpp",
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/"
+  ],
+  "board_validation": "not_required"
+}
