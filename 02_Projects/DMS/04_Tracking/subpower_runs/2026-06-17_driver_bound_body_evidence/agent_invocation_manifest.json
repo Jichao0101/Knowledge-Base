@@ -1,0 +1,16 @@
+{
+  "invocations": [
+    {
+      "role": "knowledge-planner",
+      "agent_id": "019ed40a-c778-7462-8f6e-a0000dd2955d",
+      "status": "completed",
+      "evidence": "Recommended 5m driver-bound body evidence as next single step"
+    },
+    {
+      "role": "repo-reviewer",
+      "agent_id": "019ed422-8bea-7c01-a201-ed9b143e52a6",
+      "status": "completed",
+      "evidence": "Returned approved decision with no findings"
+    }
+  ]
+}

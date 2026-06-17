@@ -39,6 +39,7 @@ DMS current 覆盖情况、模块索引状态和待修复项记录在 [[02_Proje
 
 ## 1.4 近期维护状态
 
+- Tracking 2026-06-17 5m driver-bound body evidence 收缩：已将 `updateBodyTracks` 收缩为只对 selected driver face 获取和发布 body evidence，非 driver body cache 只推进 miss/cleanup 且不发布；`driverFaceId < 0` 时不 fallback 到其他 face。`git diff --check`、`bash scripts/compile_j6b.sh` 和独立 review 通过；runtime replay、单元测试和板端验证未执行。详见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack 5m DriverBound Body Evidence收缩闭环记录-2026-06-17]]。
 - Tracking 2026-06-17 2m/5m 配置分流单步重构：已基于 `track_params.json` 的 `camera_type` 实现第一层 profile 分流，`2m` 关闭并清理 body/hand tracking cache，`5m` 保持现有 body/hand 路径；`DmsTrack::Init/Update` public API 未变，未新增 Row/View/Payload/Result 抽象。`git diff --check`、`bash scripts/compile_j6b.sh` 和独立 review 通过；runtime replay、单元测试和板端验证未执行。详见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack 2m5m配置分流单步重构闭环记录-2026-06-17]]。
 - Tracking 2026-06-16 基线对比与路线收缩：已对比 `1401fc338107f05b9cf` 与 `feat/ljc/track_0615`，确认 `track.h` 与 public `Init/Update` 未变，行为扩张集中在 `track.cpp`。当前推荐路线收缩为 face/head identity、2m face/head-only、5m driver-bound body/hand evidence、face missing 优先 face occlusion、body/hand bounded evidence cache；Body/Hand global assignment、independent lifecycle、四态 edge 与 Reacquire 降级为历史实验或未来重启项。详见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16]]。
 - Tracking 2026-06-16 历史实验路线归档：`DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15` 与 `Tracking方案优化与历史实现归档记录-2026-06-16` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/`，不再作为默认推荐入口。

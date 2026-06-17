@@ -1,0 +1,27 @@
+{
+  "workflow_pattern": "bug_fix",
+  "module": "DMS Tracking",
+  "change_profile": {
+    "repository_change": true,
+    "non_mechanical": true,
+    "public_api_change": false,
+    "private_header_surface_change": false,
+    "stateful_behavior_change": true,
+    "primary_step": "5m driver-bound body evidence 收缩",
+    "excluded_routes": [
+      "2m profile split changes",
+      "Hand assignment rewrite",
+      "Face matching rewrite",
+      "Body global assignment",
+      "Reacquire"
+    ]
+  },
+  "success_criteria": [
+    "updateBodyTracks only acquires/publishes body evidence for selected driverFaceId",
+    "Non-driver body tracks age through bounded cache cleanup and do not publish",
+    "driverFaceId invalid does not fallback to non-driver body evidence",
+    "git diff --check passes",
+    "bash scripts/compile_j6b.sh passes",
+    "independent review approves"
+  ]
+}

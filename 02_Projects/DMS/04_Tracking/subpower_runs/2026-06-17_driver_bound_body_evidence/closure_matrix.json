@@ -1,0 +1,35 @@
+{
+  "closure_gate": "ready",
+  "requirements": [
+    {
+      "name": "code implemented",
+      "status": "pass",
+      "evidence_ref": "code_change_manifest.json"
+    },
+    {
+      "name": "local validation",
+      "status": "pass",
+      "evidence_ref": "evidence_manifest.json"
+    },
+    {
+      "name": "independent review",
+      "status": "pass",
+      "evidence_ref": "review_decision.json"
+    },
+    {
+      "name": "board validation",
+      "status": "not_required",
+      "evidence_ref": "prompt_context.json"
+    },
+    {
+      "name": "route history",
+      "status": "not_required",
+      "reason": "No failed review or board-validation decision point was traversed"
+    }
+  ],
+  "residual_risks": [
+    "runtime replay not executed",
+    "unit tests not added",
+    "5m sequence behavior requires later sample validation"
+  ]
+}

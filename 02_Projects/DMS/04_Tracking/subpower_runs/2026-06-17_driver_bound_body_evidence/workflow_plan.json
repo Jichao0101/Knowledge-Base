@@ -1,0 +1,29 @@
+{
+  "plan": [
+    {
+      "step": "Confirm next single step from current spec and code facts",
+      "owner": "knowledge-planner + host",
+      "status": "completed"
+    },
+    {
+      "step": "Implement driver-only Body owner acquisition and publish gate",
+      "owner": "host implementation",
+      "status": "completed"
+    },
+    {
+      "step": "Run local formatting and J6B build validation",
+      "owner": "host",
+      "status": "completed"
+    },
+    {
+      "step": "Independent code review",
+      "owner": "repo-reviewer",
+      "status": "completed"
+    },
+    {
+      "step": "Knowledge writeback and commits",
+      "owner": "host",
+      "status": "completed"
+    }
+  ]
+}

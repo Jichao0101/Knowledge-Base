@@ -135,7 +135,7 @@ default_recovery_bundle:
   - `/home/jichao/dms/source/models/handpose_model.cpp`
   - `/home/jichao/dms/source/models/humanpose_model.cpp`
 
-Tracking 当前代码事实以 `AtomicResult` 四类 map 和 `DmsTrack::Update -> updateFaceTracks -> selectDriverHead/selectDriverFace -> profile gate -> updateBodyTracks -> updateHandTracks` 为核心，对外仍提供 `body / face / left_hand / right_hand` 跟踪结果。2026-06-16 对比 `1401fc338107f05b9cf` 稳定基线与 `feat/ljc/track_0615` 后，当前推荐路线收缩为：face/head 是唯一 identity 主线，2m 默认 face/head-only，5m 只做 driver-bound body/hand evidence，body/hand 只允许 bounded evidence cache。2026-06-17 已基于 `track_params.json` 的 `camera_type` 落地第一层分流：`2m` 跳过并清理 body/hand，`5m` 维持既有 body/hand 路径。face occlusion 下游已有接口和判断逻辑，track 内部不新增对应业务分支。
+Tracking 当前代码事实以 `AtomicResult` 四类 map 和 `DmsTrack::Update -> updateFaceTracks -> selectDriverHead/selectDriverFace -> profile gate -> updateBodyTracks -> updateHandTracks` 为核心，对外仍提供 `body / face / left_hand / right_hand` 跟踪结果。2026-06-16 对比 `1401fc338107f05b9cf` 稳定基线与 `feat/ljc/track_0615` 后，当前推荐路线收缩为：face/head 是唯一 identity 主线，2m 默认 face/head-only，5m 只做 driver-bound body/hand evidence，body/hand 只允许 bounded evidence cache。2026-06-17 已基于 `track_params.json` 的 `camera_type` 落地第一层分流：`2m` 跳过并清理 body/hand，`5m` 进入 body/hand 路径；同日已将 body evidence 收缩为只对 selected driver face 获取和发布。face occlusion 下游已有接口和判断逻辑，track 内部不新增对应业务分支。
 Tracking 当前已完成 head-first 第一轮实现：driver identity 由 head/face track 决定；body 降级为 head-owned body/torso evidence；hand 只在 driver head-bound body evidence 下输出；四类 legacy map ABI 保持不变。
 2026-06-12 修复 2m 回灌中后排 face/head 被误跟踪为主驾的问题：driver face 选择拒绝稳定类型为 BACK_PASSENGER 的候选；主驾 face 尺寸连续性改为“变小强惩罚、变大增益”；driver face preferred anchor 和权重从 `track_params.json` 配置读取。板端二次回灌显示 `face-first driver face select face=1` 为 0 次，后排候选通过 `reject back passenger` 或 `reject smaller` 被过滤。
 2026-06-09 已完成 DmsTrack 首轮内部阶段拆分，并进一步把 Face / Body / Hand 收敛到统一 assignment helper：`Update`、Face、Body 以及 Hand 的 owner/prediction/cleanup/publish 通过 private helper 显式表达；public API、匹配核心、owner/bodyId/ID/key 和生命周期契约不变。证据级别为 patch check、QNX 编译和独立静态审查。
@@ -156,7 +156,7 @@ Tracking 当前已完成 head-first 第一轮实现：driver identity 由 head/f
 - 2026-06-11 sentinel、ID 生命周期语义和 Body/Hand 阶段拆分已通过 patch check、J6B 编译和独立 review；仍未新增 runtime replay 或单元测试。
 - Body 与 Hand 的统一 assignment 已改变局部匹配实现路径；2026-06-13 的 `FrameBodyView` 又改变了 hand 阶段内部 body 输入来源。后续继续扩展时仍需要更强的回归保护。
 - 2026-06-15 分层修复已通过 `Utils` 和 `sdk` 构建，但尚未执行 runtime replay、单元测试、板端验证或独立 review；运行等价性仍未闭合。
-- 2026-06-16 基线对比后，Body global assignment、Hand global slot assignment、Body/Hand independent lifecycle 和 Reacquire 目标均降级为历史实验或未来重启项。2026-06-17 已实现基于 `track_params.json` 车型配置的 2m/5m 第一层分流；当前优先缺口转为 2m/5m runtime replay、5m driver-bound evidence 和 bounded evidence cache 验证。
+- 2026-06-16 基线对比后，Body global assignment、Hand global slot assignment、Body/Hand independent lifecycle 和 Reacquire 目标均降级为历史实验或未来重启项。2026-06-17 已实现基于 `track_params.json` 车型配置的 2m/5m 第一层分流和 5m driver-bound body evidence 收缩；当前优先缺口转为 2m/5m runtime replay、driver-bound hand evidence 和 bounded cache 验证。
 - `tracking_interfaces_evidence` 不再承担默认输入职责，只作为接口边界的辅助证据。
 
 ## 0.5 Current Document Roles

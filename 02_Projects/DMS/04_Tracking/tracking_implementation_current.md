@@ -71,6 +71,15 @@ updated_at: 2026-06-16
 - 2m 关闭 body/hand 时会清理 `m_bodyTracks`、`m_retiredBodyTracks` 和 `m_handTracks`，避免旧 body/hand cache 在 face/head-only profile 中继续污染状态或输出。
 - 本轮未新增 Row/View/Payload/Result 类型，未恢复 Body global assignment、Hand global slot assignment、Reacquire 或 independent lifecycle 扩张。
 
+## 0.0.11 2026-06-17 5m Driver-bound Body Evidence 收缩
+
+- 代码范围：
+  - `/home/jichao/dms/source/utils/track.cpp`
+- `updateBodyTracks` 不再把非 driver face owner 加入 body acquisition owner 集合；只有当前 selected `driverFaceId` 可发起 body evidence acquisition。
+- 旧 `m_bodyTracks` 中 owner 不是当前 `driverFaceId` 的 body track 会推进 miss，并通过既有 miss threshold 清理；该路径只作为 bounded cache cleanup，不发布。
+- body publish 阶段新增 `ownerFaceId == driverFaceId` 门槛；`driverFaceId < 0` 时不会 fallback 到其他 face owner 获取或发布 body evidence。
+- 本轮未修改 header、public API、Face 匹配、Hand assignment 主体结构或 2m profile split。
+
 ## 0.0.8 2026-06-16 Head-first 方案优化与历史实现归档（已归档为历史实验路线）
 
 - `座舱多目标跟踪实现.md` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/`，只作为历史 body-first baseline 和参数推导参考，不再位于 Tracking 当前工作区。
@@ -246,10 +255,10 @@ updated_at: 2026-06-16
 ### 0.5.1 body
 
 - body/torso 不再独立分配 id；`m_bodyTracks` 以 head trackId 为 key。
-- `updateBodyTracks` 先构造当前有效 head owner rows，driver head 优先作为确定性 row 顺序。
+- `updateBodyTracks` 只构造当前 selected driver face owner row；非 driver face 不再参与 body acquisition。
 - clean branch 已把 Body 改为全局 owner-to-body-detection assignment；已有 body evidence 的 tracking cost 与 head geometry acquisition cost 同时参与单条边评估，但 evaluator 在未标定前只允许已有 track 走 tracking edge，不允许 acquisition fallback 重新绑定。
 - acquisition 候选必须满足 `FaceBelongsToBody`，并使用 `FaceAnchorLoss` 加 driver/non-driver bias；真实边仍必须 strict `< body.dummyLoss`。
-- 命中的 body detection 写回 `m_bodyTracks[headId]`，并以同一 headId 发布到 `m_bodyTrackResultMap`。
+- 命中的 body detection 写回 `m_bodyTracks[driverFaceId]`，并仅在 owner 仍为当前 selected driver face 时以同一 headId 发布到 `m_bodyTrackResultMap`。
 
 ### 0.5.2 face
 

@@ -1,0 +1,13 @@
+{
+  "changed_files": [
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "summary": [
+    "updateBodyTracks no longer appends non-driver face owners to body acquisition.",
+    "Existing body tracks whose owner is not the current driverFaceId now advance miss and cleanup through the bounded cache path.",
+    "Body output projection now requires ownerFaceId == driverFaceId."
+  ],
+  "public_api_changed": false,
+  "header_changed": false,
+  "hand_logic_changed": false
+}

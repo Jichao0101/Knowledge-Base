@@ -93,6 +93,26 @@ updated_at: 2026-06-16
   - `board_validation: not_required`
   - 仍缺少 2m empty body/hand output 与 5m unchanged output 的专项回归证据。
 
+### 0.1.0L 2026-06-17 5m Driver-bound Body Evidence 收缩
+
+- 代码范围：
+  - `/home/jichao/dms/source/utils/track.cpp`
+- 静态结论：
+  - `updateBodyTracks` 只加入有效且当前命中的 `driverFaceId` 作为 body owner。
+  - 非当前 driver owner 的旧 body cache 会推进 miss，不再刷新或发布。
+  - body publish 阶段显式要求 `ownerFaceId == driverFaceId`。
+  - `driverFaceId < 0` 时不会 fallback 到其他 face owner。
+  - 未修改 public API、header、Face 匹配、Hand assignment 主体结构或 profile split。
+- 验证：
+  - `git -C /home/jichao/dms diff --check -- source/utils/track.cpp`: pass
+  - `bash scripts/compile_j6b.sh`: pass，最终 `[100%] Built target sdk`
+  - 独立 repo-reviewer: `approved`
+- 证据限制：
+  - `runtime_replay: not_executed`
+  - `unit_tests: not_added`
+  - `board_validation: not_required`
+  - 非 driver body/hand cache 会按 miss threshold 延迟清理，期间不发布；驻留时长仍需后续日志或 replay 确认。
+
 ### 0.1.0I 2026-06-16 Owner/body/hand 4A 生命周期闭环实现（历史实验代码事实）
 
 - 代码范围：
@@ -404,7 +424,7 @@ updated_at: 2026-06-16
 - 若后续继续优化 2m 场景，建议补更长 2m 视频集，对 `driver face reject`、`driver face match`、`driver second-pass face match orphan=` 做计数型统计，而不是只依赖抽样日志。
 - 若后续进入 head-first 运行验收，必须补：
   1. `track_params.json` 车型 profile 下 body/hand disabled 且不发布 stale body/hand 的回放验证；
-  2. 5m profile 下 driver head-bound body/torso 的 owner 稳定性与本轮前行为一致性验证；
+  2. 5m profile 下只发布 selected driver face-bound body/torso 的 owner 稳定性验证；
   3. hand owner source、left/right slot、orphan takeover 在手部大幅运动和多人干扰下的序列统计；
   4. driver identity source 日志，区分 `head_first`、`body_fallback` 与 reject reason。
 - 若后续使用 HumanPose-assisted hand association，需要单独验证 wrist 已有证据链，以及 elbow/shoulder/arm direction 对 hand owner、left/right、miss recovery 的增益。

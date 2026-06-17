@@ -1,0 +1,14 @@
+{
+  "next_role": "repo-reviewer",
+  "review_focus": [
+    "Body acquisition is selected-driver-only",
+    "Non-driver body tracks do not publish and age toward cleanup",
+    "No fallback when driverFaceId is invalid",
+    "No Hand/Face/public API changes"
+  ],
+  "required_before_closure": [
+    "review_decision.json",
+    "closure_matrix.json",
+    "knowledge writeback artifacts"
+  ]
+}

@@ -85,6 +85,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - 2m profile 默认应关闭 body/hand tracking 链路，避免无业务必要的 body/hand 状态污染输出。
 - `body` 必须保持为 driver head-bound body/torso evidence，不得由 raw body center 单独决定 driver identity。
 - 推荐路线中，`body` evidence 默认只服务 selected driver face/head，不追求多 owner global assignment。已有 body evidence tracking 不可信时先 miss，不默认使用 acquisition fallback 重绑定；acquisition 只服务 driver-bound body evidence 的明确首次绑定。
+- 当前实现已将 `updateBodyTracks` 的 body acquisition 和 publish 收缩到 selected driver face；非 driver body cache 不发布，只通过 miss/cleanup 收敛。
 - Body global assignment、Track/Reacquire/Bootstrap/Forbidden 四态 edge 和 Reacquire cost band 不再作为当前 required behavior。若未来重新立项，必须先具备多 owner body evidence 业务需求、replay 运行数据、tracking/acquisition loss 分布、冲突样例和 diff 白名单。
 - `body` evidence 输出只能在达到稳定阈值后对外暴露。
 - `driver body evidence` 最终输出必须唯一且 key 使用 driver headId。

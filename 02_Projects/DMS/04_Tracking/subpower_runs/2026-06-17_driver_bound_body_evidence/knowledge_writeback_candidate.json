@@ -1,0 +1,24 @@
+{
+  "candidates": [
+    {
+      "claim": "DmsTrack body evidence acquisition and publish are now restricted to the selected driver face.",
+      "claim_classification": "verified_runtime_fact",
+      "evidence_refs": [
+        "code_change_manifest.json",
+        "evidence_manifest.json",
+        "review_decision.json"
+      ],
+      "destination_class": "project_current_and_maintenance_record"
+    },
+    {
+      "claim": "5m driver-bound body evidence still lacks runtime replay validation.",
+      "claim_classification": "project_decision",
+      "evidence_refs": [
+        "evidence_manifest.json",
+        "review_decision.json"
+      ],
+      "destination_class": "project_validation_current"
+    }
+  ],
+  "current_knowledge_allowed": true
+}

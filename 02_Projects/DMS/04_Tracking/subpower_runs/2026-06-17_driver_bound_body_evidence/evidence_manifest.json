@@ -1,0 +1,28 @@
+{
+  "evidence": [
+    {
+      "kind": "format_check",
+      "command": "git -C /home/jichao/dms diff --check -- source/utils/track.cpp",
+      "status": "pass"
+    },
+    {
+      "kind": "build",
+      "command": "bash scripts/compile_j6b.sh",
+      "status": "pass",
+      "key_output": "[100%] Built target sdk"
+    },
+    {
+      "kind": "board_validation",
+      "status": "not_required",
+      "reason": "User boundary states board validation is not involved"
+    },
+    {
+      "kind": "runtime_replay",
+      "status": "not_executed"
+    },
+    {
+      "kind": "unit_tests",
+      "status": "not_added"
+    }
+  ]
+}

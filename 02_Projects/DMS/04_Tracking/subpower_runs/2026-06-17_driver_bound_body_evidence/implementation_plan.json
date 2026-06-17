@@ -1,0 +1,19 @@
+{
+  "active_plan_step": "Restrict Body evidence to selected driver face",
+  "allowed_changes": [
+    "Remove non-driver face owners from updateBodyTracks acquisition owner set",
+    "Age non-current-driver body tracks through existing miss cleanup path",
+    "Only publish body evidence when ownerFaceId equals driverFaceId"
+  ],
+  "disallowed_changes": [
+    "Public API changes",
+    "Header changes",
+    "Hand assignment rewrite",
+    "Face matching rewrite",
+    "Reacquire or global assignment expansion"
+  ],
+  "verification": [
+    "git diff --check -- source/utils/track.cpp",
+    "bash scripts/compile_j6b.sh"
+  ]
+}
