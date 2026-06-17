@@ -1,0 +1,17 @@
+{
+  "workflow_pattern": "bug_fix",
+  "task_type": "readability_refactor",
+  "change_profile": {
+    "non_mechanical_repository_change": true,
+    "module_or_cross_module_change": false,
+    "public_api_change": false,
+    "private_header_api_change": true,
+    "stateful_behavior_change": false,
+    "abstraction_or_helper_change": true
+  },
+  "target_files": [
+    "/home/jichao/dms/include/utils/track.h",
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "knowledge_writeback_required": true
+}

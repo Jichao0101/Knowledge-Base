@@ -1,0 +1,15 @@
+{
+  "changed_files": [
+    "/home/jichao/dms/include/utils/track.h",
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "summary": [
+    "Added Body phase private helpers for eligible owner collection, match/acquire, advance/retire, and publish snapshot.",
+    "Changed updateBodyTracks into a high-level phase flow.",
+    "Reused CollectDetectionsByClass for body detection collection."
+  ],
+  "public_api_changed": false,
+  "private_header_api_changed": true,
+  "new_stable_types": false,
+  "behavior_change_intended": false
+}

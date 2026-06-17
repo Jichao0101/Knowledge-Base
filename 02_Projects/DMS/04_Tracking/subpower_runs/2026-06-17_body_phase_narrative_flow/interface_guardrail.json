@@ -1,0 +1,21 @@
+{
+  "skill": "interface-abstraction-implementation-guard",
+  "design_source": [
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack FaceBodyHand主流程叙述化重构修订方案-2026-06-17.md"
+  ],
+  "active_plan_step": "Stage 2: Body phase narrative flow",
+  "allowed": [
+    "Add a small set of DmsTrack private phase-level helpers for Body phase",
+    "Reuse existing .cpp matching helpers",
+    "Keep behavior semantics unchanged"
+  ],
+  "not_allowed": [
+    "Public API changes",
+    "New Row/View/Payload/Result/Context types",
+    "Changes to body matching, state update, miss/retire, publish snapshot behavior, output ABI, Face phase, or Hand phase"
+  ],
+  "private_interface_cost_decision": {
+    "decision": "accepted",
+    "reason": "The helpers operate on m_bodyTracks, m_retiredBodyTracks, m_faceTracks, and m_parameters; private methods keep dependencies explicit and make updateBodyTracks read as a lifecycle summary."
+  }
+}

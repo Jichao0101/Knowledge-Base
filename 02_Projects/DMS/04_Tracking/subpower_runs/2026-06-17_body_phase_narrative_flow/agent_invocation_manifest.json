@@ -1,0 +1,11 @@
+{
+  "invocations": [
+    {
+      "role": "repo-reviewer",
+      "status": "completed",
+      "agent_id": "019ed4ed-1d8d-7a73-a903-32f62369d02c",
+      "complete_subagent_execution_evidence": true
+    }
+  ],
+  "host_only_fallback": false
+}
