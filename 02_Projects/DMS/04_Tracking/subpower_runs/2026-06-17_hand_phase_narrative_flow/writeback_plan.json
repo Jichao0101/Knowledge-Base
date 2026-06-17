@@ -1,0 +1,14 @@
+{
+  "external_write_performed_by": "host_agent",
+  "subpower_direct_external_write": false,
+  "files_to_write": [
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack HandPhase主流程叙述化闭环记录-2026-06-17.md",
+    "02_Projects/Knowledge-Base/知识库结构审计_current.md"
+  ],
+  "files_not_written": [
+    {
+      "path": "02_Projects/DMS/04_Tracking/tracking_*_current.md",
+      "reason": "Current behavior facts and recoverability status are unchanged."
+    }
+  ]
+}

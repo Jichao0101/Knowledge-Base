@@ -1,0 +1,16 @@
+{
+  "task": "DmsTrack Face/Body/Hand phase 主流程叙述化重构",
+  "requested_workflow": "subpower",
+  "repo": "/home/jichao/dms",
+  "knowledge_base": "/mnt/d/Knowledge-Base",
+  "active_design_source": "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack FaceBodyHand主流程叙述化重构修订方案-2026-06-17.md",
+  "current_step": "Hand phase narrative flow",
+  "board_validation": "not_in_scope",
+  "constraints": [
+    "No push",
+    "Public DmsTrack::Init/Update unchanged",
+    "No Row/View/Payload/Result/Context types",
+    "Behavior semantics unchanged",
+    "Knowledge-base writeback required after step"
+  ]
+}

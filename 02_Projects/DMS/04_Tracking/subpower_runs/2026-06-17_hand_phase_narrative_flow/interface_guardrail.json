@@ -1,0 +1,21 @@
+{
+  "skill": "interface-abstraction-implementation-guard",
+  "design_source": [
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack FaceBodyHand主流程叙述化重构修订方案-2026-06-17.md"
+  ],
+  "active_plan_step": "Stage 3: Hand phase narrative flow",
+  "allowed": [
+    "Add a small set of DmsTrack private phase-level helpers for Hand phase",
+    "Add .cpp helper for first-pass slot update mechanism",
+    "Keep behavior semantics unchanged"
+  ],
+  "not_allowed": [
+    "Public API changes",
+    "New Row/View/Payload/Result/Context types",
+    "Changes to hand first pass, second pass, miss, cleanup, publish, fallback publish, output ABI, Face phase, or Body phase"
+  ],
+  "private_interface_cost_decision": {
+    "decision": "accepted",
+    "reason": "The helpers operate on m_handTracks, m_bodyTracks, m_retiredBodyTracks, and m_parameters; private methods make updateHandTracks read as first pass, second pass, cleanup, and publish summary instead of retaining complex local closures."
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "changed_files": [
+    "/home/jichao/dms/include/utils/track.h",
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "summary": [
+    "Added Hand phase private helpers for prediction, first pass, second pass, cleanup, and publish.",
+    "Moved complex first-pass slot update closure into ApplyHandFirstPassSlot .cpp helper.",
+    "Changed updateHandTracks into a high-level phase flow."
+  ],
+  "public_api_changed": false,
+  "private_header_api_changed": true,
+  "new_stable_types": false,
+  "behavior_change_intended": false
+}
