@@ -1,0 +1,16 @@
+{
+  "changed_files": [
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "summary": [
+    "Moved allowed hand owner collection to CollectAllowedHandOwners.",
+    "Moved initialized hand slot prediction to PredictHandSlot.",
+    "Moved body-constrained hand candidate collection to CollectBodyConstrainedHandCandidates.",
+    "Moved unmatched slot miss, expired slot reset, and publish gate logic to .cpp internal helpers.",
+    "Kept updateHandTracks phase method and first-pass/second-pass solver flow unchanged."
+  ],
+  "public_api_changed": false,
+  "private_header_api_changed": false,
+  "new_stable_types": false,
+  "behavior_change_intended": false
+}

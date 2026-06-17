@@ -1,0 +1,30 @@
+{
+  "skill": "interface-abstraction-implementation-guard",
+  "design_source": [
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack整体内部架构可读性优化评审与方案-2026-06-17.md"
+  ],
+  "active_plan_step": "Stage 4: Hand phase local organization, local mechanism helper extraction only",
+  "allowed": [
+    "Move local hand mechanism lambdas into .cpp anonymous namespace helpers",
+    "Keep updateHandTracks as the phase-level private method",
+    "Keep changes limited to source/utils/track.cpp"
+  ],
+  "not_allowed": [
+    "Public API changes",
+    "Private header API or signature changes",
+    "New Row/View/Payload/Result/Context types",
+    "Changes to hand solver setup, matchedSlots, usedDetections, miss/cleanup/publish semantics, stage tags, output map keys, or profile split"
+  ],
+  "behavior_api_invariants": [
+    "DmsTrack::Init and DmsTrack::Update signatures unchanged",
+    "track.h unchanged",
+    "Allowed hand owners remain driver-only from driverBodyEvidence",
+    "Prediction, candidate collection, miss, reset, and publish gates preserve previous lambda semantics",
+    "No intended behavior change"
+  ],
+  "new_abstraction_decision": {
+    "candidate": "CollectAllowedHandOwners, PredictHandSlot, CollectBodyConstrainedHandCandidates, AdvanceUnmatchedHandSlotMiss, ResetExpiredHandSlot, PublishHandSlot .cpp anonymous namespace helpers",
+    "decision": "allowed",
+    "reason": "The helpers remove local lambda stacking without adding header surface, new state ownership, or field-moving wrapper types."
+  }
+}

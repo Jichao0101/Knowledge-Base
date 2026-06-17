@@ -1,0 +1,10 @@
+{
+  "code_change_done": true,
+  "local_diff_check_passed": true,
+  "local_build_passed": true,
+  "independent_review_done": true,
+  "board_validation_required": false,
+  "knowledge_writeback_done": true,
+  "closure_status": "closed",
+  "remaining_gap": "Runtime replay and unit tests were not executed."
+}
