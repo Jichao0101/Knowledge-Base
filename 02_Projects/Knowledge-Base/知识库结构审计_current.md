@@ -2,7 +2,7 @@
 type: structure_audit
 status: active
 scope: 记录知识库结构化、current 标准化、总览内容化的当前迁移状态；不作为具体主题事实源。
-updated_at: 2026-06-16
+updated_at: 2026-06-17
 supersedes:
   - 02_Projects/Knowledge-Base/知识库结构审计-2026-06-05.md
 ---
@@ -206,6 +206,18 @@ supersedes:
 - 已局部同步 Tracking implementation current、validation current、DMS 项目总览和本结构审计。
 - 本轮未修改 DMS 业务代码，未执行编译、runtime replay、单元测试或板端验证。
 - Tracking 默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
+- 未新增或保留 `single_pass_recoverable: true` 声明。
+
+## 1.25 2026-06-17 Tracking current 文档组去历史化治理
+
+- 因用户指出 current 文档组被写成预期方案和历史提交枚举，本轮按 current lifecycle 的 `hardening_refactor` 模式清理 Tracking current 表达。
+- 已将 `tracking_overview_current.md` 的 Current Truth 从长段历史变化压缩为当前 Tracking 代码事实、profile gate、driver-bound evidence 和验证边界摘要。
+- 已将 `tracking_design_current.md` 中的基线对比/路线收缩段压缩为当前内部架构边界，不再把对比过程作为 current 主内容。
+- 已将 `tracking_implementation_current.md` 从按日期/提交枚举改为当前代码事实的主题式说明：入口、状态容器、profile gate、motion model、spec-to-code mapping、Face/Body/Hand 当前 lifecycle、实现约束、验证缺口和历史追溯入口。
+- 已将 `tracking_validation_current.md` 从逐小步验证日志改为当前证据等级、未闭合验证项、review conclusion、required next verification 和 recoverability 判定。
+- 已将 `DMS项目总览.md` 恢复为项目入口职责，只保留 Tracking 当前摘要和追溯入口，不再列出 Tracking 每条维护记录。
+- 历史提交、superseded 方案、review 细节和命令证据继续保留在 `Current Maintenance Records/` 与 `subpower_runs/`，不作为 current 正文主内容。
+- 本轮未改变 Tracking 默认入口、默认恢复顺序、default recovery bundle 或 `recoverability_status: partial`。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
 ## 1.12 2026-06-15 Tracking 统一 Assignment 目标澄清

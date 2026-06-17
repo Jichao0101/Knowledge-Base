@@ -38,7 +38,7 @@ sources:
 scope: 适用于恢复当前 Tracking 的设计真相，重点描述目标、边界、层级、生命周期和设计原则；不单独承担完整实现规范职责。
 risks:
   - 文档明确区分“当前设计目标”和“当前代码已证实行为”；对未被代码静态证据完全支撑的项保持保守表述。
-updated_at: 2026-06-16
+updated_at: 2026-06-17
 ---
 
 ## 0.1 Current Goal
@@ -51,17 +51,13 @@ updated_at: 2026-06-16
 
 本文件只回答“当前设计是什么”，不回答全部“按什么精确规则实现代码”；实现级硬约束收敛到 [[02_Projects/DMS/04_Tracking/tracking_spec_current]]。
 
-## 0.1.1 2026-06-16 基线对比后的路线收缩与组织架构基线
+## 0.1.1 Current Internal Architecture Boundary
 
-- public `DmsTrack::Init/Update` 已经形成深接口，不建议改变。
-- `track.h` 从 `1401fc338107f05b9cf` 到 `feat/ljc/track_0615` 未变化；架构漂移集中在 `track.cpp`。
-- `feat/ljc/track_0615` 已从 clean refactor 进入行为扩张链：Body global assignment、Hand global slot assignment、tracking/acquisition 修补和 independent lifecycle 小步连续叠加。
-- 后续推荐不再把 Face/Body/Hand 统一 assignment 作为默认架构目标；`SolveAssignment` 不作为必须保留项。若 clean branch 中只有 Face 使用该 helper，且直接调用 Hungarian 更清晰，则允许删除 helper。
-- Body global assignment、Hand global slot assignment、Body/Hand independent lifecycle、Body 四态 edge、Reacquire cost band 降级为历史实验或未来重启项。
-- 当前推荐从 `1401fc338107f05b9cf` 稳定骨架收缩：Face 等价 solver 可选保留或删除，优先实现基于 `track_params.json` 车型配置的 2m/5m 分流、5m driver-only body evidence 和 5m driver-only hand evidence。face occlusion 下游已有接口和判断逻辑，track 内部无需新增 face occlusion 业务判断。
-- 组织架构基线同样回到 `1401fc338107f05b9cf` 的 `track.h` private surface：header 只保留长期状态、配置/ID 基础能力和 `updateFaceTracks/selectDriverFace/updateBodyTracks/updateHandTracks` phase-level 方法。
-- 不把 `solve/apply/advance/finalize/project/publish` 全套执行脚本展开为 header-level private helper；只在确有独立契约、复用、测试或失败边界时才提升为 private method。
-- `FrameBodyView`、`HandAssignmentRow`、`AssignmentResult`、`BodyEdgeMode`、`LifecycleContext/Payload/Eligibility` 不作为默认稳定抽象；优先降级到 `.cpp` anonymous namespace、函数局部 struct、局部 lambda、局部 map/vector 或直接复用 `TrackInfo`。
+- public `DmsTrack::Init/Update` 已经形成深接口，不应为 profile、body evidence 或 hand evidence 拆分新增 public API。
+- 当前 header private surface 只保留长期状态、配置/ID 基础能力和 `updateFaceTracks/selectDriverFace/updateBodyTracks/updateHandTracks` phase-level 方法。
+- 不把 `solve/apply/advance/finalize/project/publish` 全套执行脚本展开为 header-level private helper；只有在确有独立契约、复用、测试或失败边界时才提升为 private method。
+- `FrameBodyView`、`HandAssignmentRow`、`AssignmentResult`、`BodyEdgeMode`、`LifecycleContext/Payload/Eligibility` 不属于当前稳定抽象；优先使用 `.cpp` anonymous namespace、函数局部 struct/lambda、局部 map/vector 或既有 `TrackInfo`。
+- face occlusion 下游已有接口和逻辑判断，track 内部当前不新增 face occlusion 业务分支。
 
 ## 0.2 Current Layering
 

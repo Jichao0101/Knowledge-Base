@@ -1,6 +1,6 @@
 ---
 title: Tracking Implementation Current
-summary: Tracking 当前实现文档，记录 head-first 功能代码事实、历史 body-first 实现归档、1401fc 基线对比后的路线收缩、driver face 防后排误绑定实现和 clean refactor 边界。
+summary: Tracking 当前实现文档，记录当前代码仓中 DmsTrack 的入口、状态、Face/Body/Hand phase、profile gate、body-to-hand snapshot 和验证缺口；不枚举历史提交或预期方案。
 status: verified
 doc_role: current
 truth_role: current
@@ -45,211 +45,19 @@ sources:
   - 90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
 scope: 适用于恢复当前 Tracking 在代码中的主要实现结构、接口事实与行为，不覆盖全部调试历史。
 risks:
-  - 本文档基于代码静态读取与 2026-05-23 本地编译证据恢复当前实现；仍不等价于完整代表性样本集验收。
-  - 2026-05-23 head-first 重构未做板端验证或视频回放。
-updated_at: 2026-06-16
+  - 本文档基于当前代码静态读取、既有编译/审查记录和有限板端样本证据；仍不等价于完整代表性样本集验收。
+  - 历史方案、评审结论和每步提交证据保留在 Current Maintenance Records 与 subpower_runs 中，不作为本文主内容。
+updated_at: 2026-06-17
 ---
-
-## 0.0.9 2026-06-16 基线对比后的路线收缩
-
-- 对比 `1401fc338107f05b9cf` 与当前 `feat/ljc/track_0615` 后确认：`include/utils/track.h` 未变化，public `DmsTrack::Init/Update` 未变化，架构漂移集中在 `source/utils/track.cpp`。
-- 当前分支已有代码事实包括 `.cpp` internal `SolveAssignment`、Body global owner-to-detection assignment、Hand global slot assignment、tracking-first/acquisition fallback 和 Body/Hand 4A independent lifecycle 小步。
-- 这些代码事实不再作为默认推荐路线；当前推荐实现主线收缩为：保留 face/head identity，2m face/head-only，5m driver-bound body evidence 和 driver-bound hand evidence，body/hand 只做 bounded evidence cache。face occlusion 下游已有接口和判断逻辑，track 内部不新增对应业务分支。
-- `SolveAssignment` 不作为必须保留项；若 clean branch 中只有 Face 使用该 helper，且直接调用 Hungarian 更清晰，则允许删除。若保留，职责限定为 expanded matrix、dummy edge、forbidden edge、strict `< dummyLoss` 和结果解析；不作为统一 assignment 架构目标。
-- Body global assignment、Hand global slot assignment、Body/Hand full independent lifecycle、Body 四态 edge、Reacquire cost band 和 Hand Reacquire 降级为历史实验或未来重启项；重启前必须具备 replay、loss 分布、冲突样例和 diff 白名单。
-- 2026-06-15/2026-06-16 两篇扩张路线记录已移动到 `90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/`，当前推荐记录为 `DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md`。
-- 组织架构同样收缩回主分支 `track.h` 的 private surface：header 只保留长期状态、配置/ID 基础能力和 phase-level 方法；`solve/apply/advance/finalize/project/publish` 不作为 header-level step helper 树，`FrameBodyView` / `HandAssignmentRow` / `AssignmentResult` / `BodyEdgeMode` / `LifecycleContext` 只在确有审计通过时才提升。phase 内部使用 frame-local computation / persistent state transition / output projection 三段式约束，publish 不推进 hit/miss、retire、reset 或 owner migration。
-
-## 0.0.10 2026-06-17 2m/5m 配置分流单步实现
-
-- 代码范围：
-  - `/home/jichao/dms/include/utils/track.h`
-  - `/home/jichao/dms/source/utils/track.cpp`
-- `TrackParameters` 新增 `enableBodyTracking` 与 `enableHandTracking`，默认 `true`；这是 private 配置状态，不改变 `DmsTrack::Init/Update` public API。
-- `loadConfigFromJson` 已读取 `track_params.json` 中 `DEFAULT.camera_type`，再按车型节点覆盖；`camera_type == "2m"` 时关闭 body/hand，其他值保持开启。
-- `DmsTrack::Update` 保持 face/head update、driver face selection 和 face publish 路径不变；仅在 body/hand enabled 时调用 `updateBodyTracks` 与 `updateHandTracks`。
-- 2m 关闭 body/hand 时会清理 `m_bodyTracks`、`m_retiredBodyTracks` 和 `m_handTracks`，避免旧 body/hand cache 在 face/head-only profile 中继续污染状态或输出。
-- 本轮未新增 Row/View/Payload/Result 类型，未恢复 Body global assignment、Hand global slot assignment、Reacquire 或 independent lifecycle 扩张。
-
-## 0.0.11 2026-06-17 5m Driver-bound Body Evidence 收缩
-
-- 代码范围：
-  - `/home/jichao/dms/source/utils/track.cpp`
-- `updateBodyTracks` 不再把非 driver face owner 加入 body acquisition owner 集合；只有当前 selected `driverFaceId` 可发起 body evidence acquisition。
-- 旧 `m_bodyTracks` 中 owner 不是当前 `driverFaceId` 的 body track 会推进 miss，并通过既有 miss threshold 清理；该路径只作为 bounded cache cleanup，不发布。
-- body publish 阶段新增 `ownerFaceId == driverFaceId` 门槛；`driverFaceId < 0` 时不会 fallback 到其他 face owner 获取或发布 body evidence。
-- 本轮未修改 header、public API、Face 匹配、Hand assignment 主体结构或 2m profile split。
-
-## 0.0.12 2026-06-17 Body-to-Hand Finalized Snapshot 隔离
-
-- 代码范围：
-  - `/home/jichao/dms/include/utils/track.h`
-  - `/home/jichao/dms/source/utils/track.cpp`
-- `updateBodyTracks` private phase 方法改为返回 `std::map<track_id, TrackInfo>`，表示本帧已通过 sanitize/publish 的 driver body evidence snapshot。
-- `updateHandTracks` private phase 方法新增 `const std::map<track_id, TrackInfo>& driverBodyEvidence` 参数；hand 内部 owner 收集、second pass body box、orphan cleanup 和 publish/fallback 均消费该局部 snapshot。
-- `curResult->m_bodyTrackResultMap` 在 `track.cpp` 中只保留每帧 clear 与 body phase publish 角色，不再作为 hand 内部 body truth source。
-- 未新增 `FrameBodyView`、Row/View/Payload/Result 或新的 header-level稳定类型；本轮 private API 变化仅限 phase-level 方法签名。
-- 本轮不改变 public `DmsTrack::Init/Update`、legacy 四类 map ABI、Hand matching/lifecycle 主体行为、2m profile split 或 5m driver-bound body evidence。
-
-## 0.0.13 2026-06-17 updateHandTracks 第二阶段可读性优化方案
-
-- 当前功能代码路径已完成到本地编译与独立 review 级别，但 runtime replay、单元测试和板端验证仍未执行。
-- `updateHandTracks` 当前主要问题是层级混杂：driver owner 策略、候选构造、Hungarian assignment、slot lifecycle、legacy publish 和 retired-owner cleanup 同处一个函数。
-- 第二阶段目标不是增加抽象数量，而是降低阅读时同时持有的上下文数量；抽象只允许隐藏局部机制，不允许把复杂度转移为新的 Row/View/Payload/Result 类型。
-- 当前推荐先执行 Step 1：只整理 hand publish 段，保持输出条件、stage tag、occupied set、fallback 行为不变。
-
-## 0.0.14 2026-06-17 updateHandTracks publish 段可读性整理
-
-- 代码范围：
-  - `/home/jichao/dms/source/utils/track.cpp`
-- `updateHandTracks` publish 段新增函数局部 lambda `publishHandSlot`，统一承载 initialized、occupied owner、hit-count gate 和 `HandBelongsToBody` 四个发布前置条件。
-- 正常 left/right publish 和 fallback left/right publish 均改为调用该 lambda；legacy output map、owner key、stage tag 和 body evidence 来源保持不变。
-- 本轮未修改 `track.h`、public `DmsTrack::Init/Update`、private phase 方法签名、hand matching、miss 推进、cleanup 或 retired-owner 清理。
-- 本轮新增抽象仅为函数局部 lambda，不新增 Row/View/Payload/Result、header-level helper 或跨 phase wrapper。
-
-## 0.0.15 2026-06-17 updateHandTracks unmatched miss 可读性整理
-
-- 代码范围：
-  - `/home/jichao/dms/source/utils/track.cpp`
-- `updateHandTracks` 在 `unmatchedSlots` 构造后新增函数局部 lambda `advanceUnmatchedSlotMiss`，统一执行 owner lookup、left/right slot 选择和 `AdvanceMiss`。
-- second pass Hungarian 未匹配分支和无 hand detection 分支改为调用该 lambda。
-- 本轮不改变 `unmatchedSlots` 构造、`matchedSlots`、`usedDetections`、second pass Hungarian 输入、match acceptance、cleanup/reset/publish 或 profile split。
-- 本轮未修改 `track.h`、public `DmsTrack::Init/Update` 或 private phase 方法签名；未新增 Row/View/Payload/Result、header-level helper 或跨 phase wrapper。
-
-## 0.0.16 2026-06-17 updateHandTracks owner/candidate 准备区可读性整理
-
-- 代码范围：
-  - `/home/jichao/dms/source/utils/track.cpp`
-- `updateHandTracks` 新增函数局部 lambda `collectAllowedHandOwners`，仍只从 `driverBodyEvidence` 中 stable `DRIVER` body track 收集 hand owner。
-- `predictHandSlot` 统一 initialized hand slot 的 `PredictMotion` 与 `predBox` 写入；调用范围仍是所有现有 `m_handTracks` owner，顺序仍为 left 后 right。
-- `collectBodyConstrainedHandCandidates` 统一 body box 约束下的 hand detection 候选收集；仍排除 `usedDetections`，并要求 `HandBelongsToBody(bodyBox, handDetections[i])`。
-- 本轮不改变 matching matrix、`matchedSlots`、`usedDetections`、lifecycle、cleanup/reset/publish 或 profile split。
-- 本轮未修改 `track.h`、public `DmsTrack::Init/Update` 或 private phase 方法签名；未新增 Row/View/Payload/Result、header-level helper 或跨 phase wrapper。
-
-## 0.0.17 2026-06-17 DmsTrack 整体内部架构可读性评审
-
-- 本轮只更新设计判断，不修改业务代码。
-- 重新评估后确认：`DmsTrack::Init/Update` public API 已是深接口，后续不应扩大 public surface。
-- `Update` 继续作为帧级 pipeline：clear outputs -> `updateFaceTracks` -> `selectDriverFace` -> face output -> `updateBodyTracks` -> `updateHandTracks`。
-- `updateFaceTracks`、`selectDriverFace`、`updateBodyTracks`、`updateHandTracks` 继续作为 private header 中的 phase-level 方法；不把 hand 的 collect/predict/publish/miss 等局部机制提升为 private header step helper。
-- 三笔 hand lambda 提交保留为行为等价的历史代码事实，但对应局部路线已被整体架构方案 supersede；后续实现以 Face/Body/Hand 整体 phase 边界和主流程可读性为准。
-
-## 0.0.8 2026-06-16 Head-first 方案优化与历史实现归档（已归档为历史实验路线）
-
-- `座舱多目标跟踪实现.md` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/`，只作为历史 body-first baseline 和参数推导参考，不再位于 Tracking 当前工作区。
-- `head-first跟踪方案.md` 当时吸收了 body/face/hand 生命周期独立原则、Body 四态 edge 和 deep-module clean refactor 约束；该路线现已由 0.0.9 收缩，不再作为当前默认推荐。
-- 2026-06-16 已在 `feat/ljc/track_0615` 小步实现 4A 生命周期闭环：已有 body track owner 会被纳入 tracking-only assignment 候选域，face miss/暂不存在时仍可按 body prediction 延续；body 未匹配时推进 miss，并只在 `body.missThreshold` 后 retire，不因 face absence 立即删除。
-- Hand 4A 同步补齐：published DRIVER body 仍是 hand 对外发布依据；内部 initialized hand slot 可基于已有 DRIVER body track 进入 tracking-only row，internal-only owner 不 bootstrap 未初始化 slot；未进入 row 的 initialized left/right slot 会在全量 sweep 中推进 miss，避免 owner/body 不可发布时 lifecycle 停滞。
-- Hand publish 阶段不再因 output sanitize 失败推进 miss，避免 matched initialized slot 在同帧先 hit 后 miss；hand lifecycle 统一收敛到 assignment/sweep 阶段推进。
-- Body 全局 assignment 的目标 edge 解释扩展为 Track / Reacquire / Bootstrap / Forbidden。当前代码在 loss 未标定前仍关闭 Reacquire；标定后打开时必须保持 ownerFaceId、稳定 hitCount 和输出连续性，只允许重置或强校正 motion state。
-- 本次未修改 `include/utils/track.h` 或 public `Init/Update`；仍沿用 2026-06-15 deep-module 结论：private header 保持 phase-level，solver/row/key/result/snapshot 和 edge classifier 默认留在 `.cpp` 或函数局部。
-- 本次仍未打开 Body Reacquire、loss instrumentation 或 Hand Reacquire；运行 replay、冲突样例 diff 和板端验证未执行。
-
-## 0.0.7 2026-06-15 Clean Branch Body Global Assignment
-
-- 代码范围：`/home/jichao/dms/source/utils/track.cpp`。
-- 未修改 `include/utils/track.h`、public `DmsTrack::Init/Update`、Face 行为或 Hand 行为。
-- 当前 clean branch `feat/ljc/track_0615` 已在既有 Face cpp-internal `SolveAssignment` 基础上，把 `updateBodyTracks` 的逐 owner greedy body matching 改为全局 owner-to-body-detection assignment。
-- Body owner row 仍按 driver face 优先构造，用于确定性 row 顺序和 tie-break 输入；不再用 driver-first 遍历抢占 detection。
-- 每条 Body assignment 边由 body phase evaluator 决定：已有 body track 提供 `computeMatchLoss(predBox, detection)`，head geometry acquisition 提供 `FaceBelongsToBody + FaceAnchorLoss`。
-- 新增 `.cpp` internal 常量 `kBodyAcquireBias = 0.5f` 与 `kDriverBodyAssignmentBonus = -0.25f`；driver acquisition cost 可低于非 driver acquisition cost，但 solver 仍通过 strict `< body.dummyLoss` 接受真实边。
-- 对已初始化 body，evaluator 保留 tracking-first 层级：tracking loss 低于 `body.dummyLoss` 时优先延续旧 body track；否则本帧 miss，不使用 acquisition 重新绑定。acquisition 只用于尚无 body track 的新 owner。
-- 该保守层级依赖 loss 标定：tracking loss、acquisition loss、driver/non-driver bias 与 `dummyLoss` 未经场景标定前，不能声明运行效果闭环；标定完成前不打开 initialized acquisition fallback。
-- Hand 已同步收敛为全局 slot assignment：eligible owner 的 left/right rows 一次性进入 solver；initialized slot 只接受 prediction tracking，tracking 不可靠则 miss；uninitialized slot 只走 acquisition。
-- Body/Hand 输出改为 `PrepareTrackForOutput` 后纯写 output map；sanitize failure 只在 finalize 中对本帧 matched body/slot 推进 miss。
-
-## 0.0.5 2026-06-15 Assignment Helper 删减与非对称分层
-
-- 删除 `AssignmentEdge / AssignmentRejection` 和 rejection 聚合日志；不恢复 `AssignmentPolicyMatrix`。业务 evaluator 直接返回 cost，forbidden edge 使用有限 `kForbiddenAssignmentCost = 1e6f`。
-- `AssignmentResult` 保留，继续统一表达 matches、unmatched left/right 和 match cost。
-- Body 主流程现为 `solve -> apply -> advance/retire -> finalize -> project FrameBodyView -> publish`；sanitize 与 view 构造不再混在同一 helper。
-- Hand 使用单帧 `HandAssignmentRow` 绑定 `HandSlotKey`、slot 和 owner body；solve、apply、unmatched miss 共享同一 row 候选域。
-- Hand finalize 负责 sanitize 和 matched sanitize failure 的 lifecycle 推进；`publishHandTracks` 不读取 `AssignmentResult`，不调用 `PrepareTrackForOutput`、`AdvanceMiss` 或 cleanup。
-- Hand 没有 tracker 内部下游，因此未新增 `FrameHandView`、publish payload 或 eligibility。
-- public `Init/Update`、Hungarian、strict `< dummyLoss`、四类 legacy map ABI、owner/key 和 left-before-right 顺序未变。
-- 当前实现文档不把“组织更细”当成默认收益；只要 private helper 没有独立契约，就应优先回到 phase-level 组织。
-
-## 0.0.6 2026-06-15 Deep Module Re-review
-
-- `feat/ljc/track_0609` 当前实现继续作为实验样本保留，但不再作为推荐 clean refactor 基底。
-- public `Init/Update` 已足够深；private header 的完整 step helper 树被判定为过宽。
-- `1237f6c6` 将稳定基线 driver-first greedy body ownership 改为 global Hungarian，属于本次明确目标的高风险算法参考；其 solver/cost 语义可重做，但 step-level helper 和 header 中间类型不作为推荐结构。
-- `FrameBodyView` 解决 output-as-input 问题的目标可保留，但具体类型应降级为局部 finalized body snapshot；`HandSlotKey`、`HandAssignmentRow`、`AssignmentResult` 建议移出 header。
-- 当前 hand owner 消失后 lifecycle 如何继续推进尚未闭合；实验实现可能保留 initialized slot、retired anchor 并阻止 id 复用。
-- 推荐从 `br_develop_forJ6b` 新开 clean branch：先以 Face 验证通用 solver 等价，再分阶段重做 Body 全局 assignment、Hand 全局 slot assignment、sanitize matched-only miss、finalize-before-publish 和 body-to-hand 内部状态隔离。
-
-## 0.0.4 2026-06-13 State Normalization And Body Output View
-
-- 代码范围仍只涉及 `/home/jichao/dms/include/utils/track.h` 和 `/home/jichao/dms/source/utils/track.cpp`。
-- 新增 private `FrameBodyView`，由 body 阶段在单帧内生成，字段为 owner face id 与 body `TrackInfo` 拷贝；该 view 不作为 member、不跨帧保存，hand 阶段只读消费。
-- `updateBodyTracks` 返回 `std::vector<FrameBodyView>`；2026-06-15 起由 `finalizeBodyTracksForOutput` 完成 body sanitize、matched-only sanitize failure miss 和人员类型投影，再由 `projectBodyTracks` 单独生成该 view。
-- `publishBodyTracks` 不再读取 `m_bodyTracks` 或重新判断 publishable set，只从 `FrameBodyView` 投影写入 `curResult->m_bodyTrackResultMap`。
-- hand 阶段内部 body 输入已改为消费 `updateBodyTracks` 返回的局部 `driverBodyEvidence`，不再读取 `curResult->m_bodyTrackResultMap`。
-- `curResult->m_bodyTrackResultMap` 在 `track.cpp` 中仅保留每帧 clear 与 body output 写入角色。
-- 清理废弃 `m_hasPreviousFrame` declaration/init；静态搜索未发现剩余引用。
-- public API、`hungarian()`、统一 assignment helper、strict `< dummyLoss`、legacy output key、left-before-right hand slot 顺序不变。
-
-## 0.0.3 2026-06-12 Driver Face 防后排误绑定
-
-- 代码范围：
-  - `/home/jichao/dms/include/utils/track.h`
-  - `/home/jichao/dms/source/utils/track.cpp`
-  - `/home/jichao/dms/etc/track_params.json`
-- `TrackParameters` 新增 `driverFaceAnchor`、`driverFaceAnchorWeight`、`driverFaceSmallerPenaltyWeight`、`driverFaceLargerBonusWeight`。
-- `loadConfigFromJson` 读取 `presets.driver_face_anchor`，DEFAULT 提供默认权重，2m 车型可覆盖 anchor 坐标。
-- `selectDriverFace` 中稳定 `BACK_PASSENGER` face 不再进入 driver 候选，即使当前帧 `instantPersonType == DRIVER`。
-- 原 `FaceSizeContinuityLoss` 的对称 driver selection 用法被替换为：
-  - `FaceSmallerThanReferenceLoss`：候选比当前 driver reference 更小时增加 penalty，并超过阈值直接拒绝。
-  - `FaceLargerThanReferenceGain`：候选比 reference 更大时降低 score，支持真实主驾遮挡后恢复。
-- score 由 smaller penalty、anchor loss、larger gain 和 continuity bonus 组成；未改 face match `distanceLoss` 或 driver distance gate。
-
-## 0.0.2 2026-06-11 Sentinel、ID 与阶段语义收敛
-
-- 代码变更仍只涉及 `/home/jichao/dms/include/utils/track.h` 和 `/home/jichao/dms/source/utils/track.cpp`。
-- `DmsTrack::Init()`、`DmsTrack::Update()`、`SolveAssignment()`、`hungarian()` 和四类 legacy map 接口未变化；public header 中既有 `INF` 保留，避免仓外源码兼容风险。
-- sentinel 已按概念拆分：invalid track id、unmatched index、forbidden assignment cost、absent diagnostic loss 不再依赖含混的裸 `-1` 或 max-float 语义。
-- Body 主流程显式为 `collect -> predict -> assign -> apply -> advance/retire -> publish`。
-- Hand 主流程显式为 `collect/allowed -> predict -> build slots -> assign -> apply hits -> advance misses -> cleanup/reset/erase -> publish -> retired-anchor cleanup`。
-- `bodyId / handId` 初始继承 `faceId` 数值与 map key，但 body、hand 各自维护生命周期；face 消失后 body retired state 或 hand state 可保留原始继承 id。hand 发布条件未放宽，仍要求当前已发布的 DRIVER body evidence。
-- 本轮保持 assignment cost、遍历顺序、left-before-right、hit/miss 推进、日志 stage tag、sanitize 和发布语义不变。
-
-## 0.0.1 2026-06-09 Internal Readability Refactor Delta
-
-- 本轮代码变更仅限 `/home/jichao/dms/include/utils/track.h` 和 `/home/jichao/dms/source/utils/track.cpp`。
-- `DmsTrack::Init()`、`DmsTrack::Update()` 和 public-facing tracker 接口未变化。
-- 帧级 `face update -> driver selection -> face publish -> body update -> hand update` 顺序未变化。
-- `Update` 的 face 角色修正/发布、`updateFaceTracks` 的检测/预测/匹配/bootstrap/lifecycle、`updateBodyTracks` 的 owner/body assignment/apply/retire/publish 已拆为 private helper，使主流程只保留阶段编排。
-- Face / Body / Hand 的统一 assignment helper 只负责矩阵扩展、dummy 边和结果解析，Body 不再维持顺序 greedy。
-- Hand 已从 first/second pass 收敛为单次 slot assignment；left/right slot、owner bodyId、prediction、cleanup、empty-owner erase、publish 和 retired-anchor cleanup 仍由 private helper 维护。
-- 独立 review 结论为 `approved`；`git diff --check` 和 QNX 编译通过。未执行 runtime replay、单元测试或板端验证。
-- 后续注释治理补充轮为新增统一 assignment helper 与 Body/Hand 相关 private helper 增加了中文契约注释，明确 owner/bodyId/key、哨兵值、顺序不变量和状态副作用；未做重命名，剥离注释后代码 token 不变。
-
-## 0.0 2026-05-23 Head-first Current Delta
-
-- 当前 `DmsTrack::Update` 顺序已变更为：
-  1. 清空 `m_bodyTrackResultMap / m_faceTrackResultMap / m_leftHandTrackResultMap / m_rightHandTrackResultMap`
-  2. `updateFaceTracks`
-  3. `selectDriverHead`
-  4. publish face/head map
-  5. `updateBodyTracks`
-  6. `updateHandTracks`
-- `trackId` ownership 已收敛到 head/face：`allocateBodyTrackId` 和 `m_nextBodyTrackId` 已删除，新增 `allocateFaceTrackId` 与 `m_nextFaceTrackId`。
-- `m_bodyTracks` 当前以 head trackId 为 key；body/torso 是 head-owned evidence，不再独立创建 identity id。2026-06-13 起，hand 阶段不再从 body legacy output map 读取 body evidence，而是消费 body 阶段生成的单帧 `FrameBodyView`。
-- `updateBodyTracks` 当前由 head 发起 body evidence matching：2026-06-15 clean branch 起，所有有效 owner face 与本帧 body detections 进入一次全局 assignment；已有 evidence 的 body motion tracking cost 与 head geometry acquisition cost 取最小可用值，不再按逐 owner greedy 方式先抢占 detection。
-- `m_bodyTrackResultMap` 仍作为 legacy body map 输出，但 key 使用 head trackId。
-- `m_bodyHandTracks` 的 legacy 变量名仍包含 bodyId；当前语义应理解为 head-owned body evidence id，即 head trackId。
-- driver head 选择由 `selectDriverHead` 完成：small face、front passenger ROI、尺寸突变优先过滤，size continuity 权重大于 position loss。
-- 2026-06-12 起 driver head/face 选择增加 stable BACK_PASSENGER 拒绝、尺寸方向性 scoring 和配置化 preferred anchor；不再把真实主驾恢复时的“脸变大”作为 size continuity 损失。
-- 本地编译 `bash scripts/compile_j6b.sh` 已通过，最终 `[100%] Built target sdk`。
-- 未完成板端验证、视频回放和 callback/fusion 同 key 行为运行确认。
 
 ## 0.1 Core Entry
 
 - 入口类：`UtilsDomain::DmsTrack`
 - 主要入口函数：`Init`、`Update`
-- 每帧更新顺序固定为 `head/face -> driver head selection -> body evidence -> hand evidence`。
-- 配置入口固定从 `/home/jichao/dms/etc/track_params.json` 读取，并先应用 `DEFAULT`，再按车型节点覆盖。
-- 代码已实现 head-first driver selection、head-bound body/torso evidence、基于 `camera_type` 的 2m/5m 第一层 profile 分流，以及 body-to-hand finalized snapshot 隔离；hand owner source 的运行日志验证仍未完成。
+- 每帧 `Update` 当前顺序为：清空四类 legacy track map -> `updateFaceTracks` -> `selectDriverFace` -> 发布 face map -> 按 profile 执行 `updateBodyTracks` -> 按 profile 执行 `updateHandTracks`。
+- `DmsTrack::Init/Update` 是当前 public tracker API；2m/5m profile、driver body evidence 和 hand body input snapshot 都没有新增 public API。
+- 配置入口固定从 `/home/jichao/dms/etc/track_params.json` 读取，先应用 `DEFAULT`，再按车型节点覆盖。
+- 代码已实现 head-first driver selection、driver face-bound body/torso evidence、基于 `camera_type` 的 2m/5m 第一层 profile 分流，以及 body-to-hand finalized snapshot 隔离。
 - head-first 设计细节见 [[head-first跟踪方案]]；本文记录当前实现事实。
 
 ## 0.2 Current State Containers
@@ -272,97 +80,100 @@ updated_at: 2026-06-16
   - `m_bodyTracks` 承载当前 active body 轨迹
   - `m_retiredBodyTracks` 承载旧 body 的清理锚点
   - `m_faceTracks` 承载 face 子轨迹
-  - `m_bodyHandTracks` 承载每个 body 的 left/right hand 槽位
+  - `m_bodyHandTracks` 承载以 head-owned body evidence id 为 key 的 left/right hand 槽位
 
-## 0.3 Motion Models
+## 0.3 Profile Gate
 
-- body：恒速度 KF
-- face：恒速度 KF
-- hand：恒加速度 KF，状态包含位置、尺寸、速度、加速度和尺寸变化速度
-- body / face / hand 仍先做预测用于匹配，但 2026-04-05 起对“快速运动后恢复正常位姿”的更新路径增加了预测残留抑制：
-  - face：命中检测后最终输出框直接使用检测框，不再把 `CorrectMotion` 结果写回输出框
-  - hand：命中检测后最终输出框直接使用检测框；2026-04-07 起 miss 时不再沿 `predBox` 向下游输出
-  - body：命中检测后改为检测主导融合；当预测与检测出现反向/过冲时，直接回到检测框并重建运动状态
-- 2026-04-07 起 body / face / hand 在写入 `AtomicResult::*TrackResultMap` 前统一经过 track 内部 sanitize/clamp；非法框直接丢弃，不再透传给下游
-- 2026-05-08 起，已有 face track 在 first pass 被当前稳定 body 重新关联时，会先通过 face 自身预测连续性门控；driver 相关 face 绑定使用更严格的 `distanceLoss <= 0.45`，非 driver 使用 `0.65`。
+- `TrackParameters` 当前包含 `enableBodyTracking` 与 `enableHandTracking`，默认 `true`。
+- `loadConfigFromJson` 读取 `camera_type`；`camera_type == "2m"` 时关闭 body/hand tracking，其他值保持 body/hand 开启。
+- `Update` 在 body disabled 时清理 `m_bodyTracks` 与 `m_retiredBodyTracks`；在 hand disabled 时清理 `m_handTracks`。
+- face/head update、driver face selection 和 face output 不受 body/hand profile gate 关闭影响。
+
+## 0.4 Motion Models
+
+- body：恒速度 KF。
+- face：恒速度 KF。
+- hand：恒加速度 KF，状态包含位置、尺寸、速度、加速度和尺寸变化速度。
+- body / face / hand 均使用预测作为匹配输入；命中后输出优先使用检测或检测主导修正结果，miss 路径不向下游发布 hand 预测框。
+- body / face / hand 写入 `AtomicResult::*TrackResultMap` 前经过 track 内部 sanitize/clamp；非法框直接丢弃。
 
 配置来自 `/home/jichao/dms/etc/track_params.json`，按 `DEFAULT` 或车型节点加载 body / face / hand 的 threshold 与 kalman 参数。
 
-## 0.4 Spec-to-Code Mapping
+## 0.5 Spec-to-Code Mapping
 
 - 人员类型投票与稳定解析 -> `AccumulatePersonVote` / `ResolveStablePersonType`
 - 配置读取与 `DEFAULT` / 车型覆盖 -> `loadConfigFromJson`
 - head/face id 分配 -> `allocateFaceTrackId`
-- driver head 选择 -> `selectDriverHead`
-- head-owned body evidence 主流程与全局 owner-to-detection assignment -> `updateBodyTracks`
+- driver face/head 选择 -> `selectDriverFace`
+- driver face-bound body evidence -> `updateBodyTracks`
 - face/head 常规匹配、driver small-face filtering、face continuity gate -> `updateFaceTracks`
 - driver face 防后排误绑定 -> `selectDriverFace`、`FaceSmallerThanReferenceLoss`、`FaceLargerThanReferenceGain`、`TrackParameters::driverFaceAnchor*`
-- hand 左右槽位、second pass、miss 不输出策略 -> `updateHandTracks`
+- hand 左右槽位、body-constrained candidate、second pass、miss 不输出策略 -> `updateHandTracks`
 - 统一输出 sanitize/clamp 与非法框过滤 -> `SanitizeDetectBoxToImage` / `PublishSanitizedTrack`
 - 导出兼容层 -> `fuse_algorithm.cpp`、`handpose_model.cpp`、`humanpose_model.cpp`
-- 预测残留抑制 -> body / face / hand 命中更新路径中的 detection-dominant update 与 motion-state 重建点；实现上落在各自命中更新分支，而不是独立的统一导出层
-- 2m 宽 body 下 head 误绑定抑制 -> face match 中的 size continuity、distance gate、driver head small-face/front-passenger reject
-- head-first 主线 -> 已完成第一轮实现；当前证据为静态分析和本地编译。
+- 2m/5m profile gate -> `TrackParameters::enableBodyTracking` / `enableHandTracking`
+- body-to-hand finalized snapshot -> `updateBodyTracks` 返回值与 `updateHandTracks(..., driverBodyEvidence)` 参数
 
-## 0.5 Matching And Lifecycle
+## 0.6 Matching And Lifecycle
 
-### 0.5.1 body
+### 0.6.1 face
 
-- body/torso 不再独立分配 id；`m_bodyTracks` 以 head trackId 为 key。
-- `updateBodyTracks` 只构造当前 selected driver face owner row；非 driver face 不再参与 body acquisition。
-- clean branch 已把 Body 改为全局 owner-to-body-detection assignment；已有 body evidence 的 tracking cost 与 head geometry acquisition cost 同时参与单条边评估，但 evaluator 在未标定前只允许已有 track 走 tracking edge，不允许 acquisition fallback 重新绑定。
-- acquisition 候选必须满足 `FaceBelongsToBody`，并使用 `FaceAnchorLoss` 加 driver/non-driver bias；真实边仍必须 strict `< body.dummyLoss`。
-- 命中的 body detection 写回 `m_bodyTracks[driverFaceId]`，并仅在 owner 仍为当前 selected driver face 时以同一 headId 发布到 `m_bodyTrackResultMap`。
-
-### 0.5.2 face
-
-- face/head 不再依附 body 邻域启动，而是先于 body evidence 更新。
+- face/head 不再依附 body 邻域启动，先于 body evidence 更新。
 - 已有 face 轨迹按预测框与 face detection 做匈牙利匹配。
 - face 匹配损失综合 IoU、距离和 size continuity；driver 相关使用更严格的 `distanceLoss <= 0.45`，其他为 `0.65`，且总分必须小于 face `dummyLoss`。
 - 未匹配 face detection 通过 `allocateFaceTrackId` 创建新的 head/face track。
-- face 命中后更新 CV state、hit/miss 和 person type vote；driver identity 的最终发布由 `selectDriverHead` 覆盖。
+- face 命中后更新 CV state、hit/miss 和 person type vote。
+- `selectDriverFace` 负责最终 driver identity；被选中的 face track 强制投影为 `DRIVER`，旧 driver face 若本帧未被选中会退出 `DRIVER`。
+- driver face selection 拒绝稳定 `BACK_PASSENGER` 候选，并用配置化 preferred anchor、变小惩罚和变大增益抑制后排误绑定。
 
-### 0.5.3 hand
+### 0.6.2 body
 
-- hand 先按 driver head-owned body evidence 局部候选与左右槽位做一次分配。
-- 之后对未匹配槽位做 second pass，但仍必须受当前 owner body evidence 几何约束。
+- body/torso 不再独立分配 id；`m_bodyTracks` 以 selected driver face/head trackId 为 key。
+- `updateBodyTracks` 只构造当前 selected driver face owner；非 driver face 不参与 body acquisition。
+- 已有 driver body track 先按自身 motion prediction 与 body detection 匹配；若 tracking loss 不满足 `body.dummyLoss`，当前代码会回退到基于当前 driver face 几何的 acquisition/reacquisition。
+- acquisition 候选必须满足 `FaceBelongsToBody`，并使用 `FaceAnchorLoss` 在候选 body 中选择。
+- 非当前 driver owner 的旧 body cache 推进 miss，不发布；miss 达阈值或 owner face 不存在时转入 `m_retiredBodyTracks` 并从 active body map 删除。
+- body publish 显式要求 `ownerFaceId == driverFaceId`、body 达到 hit threshold、owner face 达到 face hit threshold；发布 key 使用 driver face/head trackId。
+- `updateBodyTracks` 返回 `std::map<track_id, TrackInfo>`，只包含本帧已经成功 sanitize/publish 的 driver body evidence。
+
+### 0.6.3 hand
+
+- `updateHandTracks` 只消费 `updateBodyTracks` 返回的 `driverBodyEvidence`，不再从 `curResult->m_bodyTrackResultMap` 反读 body 输入。
+- allowed hand owner 只来自 stable `DRIVER` 的 driver body evidence。
+- hand 先按 driver body evidence 约束的候选与左右槽位做一次分配；之后对未匹配槽位做 second pass，但仍必须受当前 owner body evidence 几何约束。
 - hand miss 时只推进内部 miss 生命周期，不再把 `predBox` 推进到对外输出框。
 - hand / face / body 现在统一按命中门限决定是否允许对外输出；hand 不再保留短 miss window 输出。
-- hand 命中检测后，输出框完全使用检测框；miss 路径不再向下游输出预测框。
+- hand 命中检测后，输出框使用检测框；miss 路径不向下游输出预测框。
 - 命中检测且出现明显反向/过冲时，会重建 CA state，降低旧加速度对下一帧预测的延续。
+- 当前实现中 `updateHandTracks` 使用函数局部 lambda 组织 owner 收集、slot 预测、body-constrained candidate 收集、unmatched miss、过期 slot reset 和 publish 条件；这些 lambda 是当前 `.cpp` 局部机制，不是稳定 private API。
 
-## 0.6 Current Implementation Constraints
+## 0.7 Current Implementation Constraints
 
-- face / body / hand 对外仍使用 legacy 四类 map，但同一 occupant 的 key 现在来源于 head trackId。
+- face / body / hand 对外仍使用 legacy 四类 map；同一 driver occupant 的 body/hand key 当前来源于 driver face/head trackId。
 - hand 代码中的 legacy 变量名仍包含 `bodyId`；当前语义应理解为 head-owned body evidence id，不代表 body identity owner。
 - retired body 只作为 handoff 和 orphan child 清理的历史锚点，不直接对外输出。
 - 当前实现保留 head/hand 的内部连续性；hand 对外输出 key 已收敛为当前 driver head-owned body evidence id，但区域级唯一性仍需运行验证。
 - `m_humanTrackResultMap` 只在导出层作为 body 兼容映射，不是 tracking 上游事实源。
 - 当前实现并未把 `tracking_interfaces_evidence` 提升为默认实现输入；其接口事实已经并入本文件和 spec。
-- 2m/5m profile 已通过 `track_params.json` 的车型 `camera_type` 读取；当前 `loadConfigFromJson` 固定读取 `track_params.json`，并以 DEFAULT 后车型覆盖的方式派生 body/hand enable 开关。
+- `curResult->m_bodyTrackResultMap` 只承担每帧 clear 和 body output projection，不承担 hand 内部 body truth source。
+- `track.h` 当前 private surface 保持 phase-level 方法；局部 collect/predict/publish/miss 机制没有提升为 header-level step helper。
 
-## 0.7 Known Gaps
+## 0.8 Known Gaps
 
-- 2026-06-09 内部可读性重构已有编译、patch check 和独立 review 证据，但未用 replay 或单元测试执行多帧运行等价验证。
-- 2026-06-15 重新评审已否定“继续沿当前 helper tree 优化”的路线；此前编译和静态 review 只能证明代码可构建和局部审查通过，不能证明该结构或算法变化应继续保留。
+- 2m/5m profile 分流、5m driver-bound body evidence 和 body-to-hand snapshot 已有本地编译与静态审查证据，但缺少 runtime replay、单元测试和代表性视频验证。
 - 代码里仍存在 hand slot 内部 fallback 输出路径，但输出 key 已要求回到当前 driver head-owned body evidence id。
-- 运行级验证仍待补。
+- `updateHandTracks` 仍是高复杂度函数，局部 lambda 提高了结构性，但没有真正降低所有 phase 的阅读复杂度。
 - 仅靠本文件和 code facts 可以恢复当前实现框架，但不能把运行级区域唯一性当成已闭合结论。
 - head-first 第一轮已实现并本地编译通过；任何后续优化仍必须保持“代码事实”和“运行效果验证”分离。
 - HumanPose 当前由 driver body map 触发并产出 `m_humanPoseResult`；这不是 OccupantTrack，也不是 person/part 状态层。
 
-## 0.8 Historical Mapping
+## 0.9 Historical References
 
-- 03-24 delta 落地了 body/face/hand 主框架。
-- 03-25 delta 收敛了上游事实源、左右手槽位、retired body handoff 清理与输出契约。
-- 03-31 delta 收敛了 hand continuity 优化与短 miss 输出。
-- 04-05 delta 收敛了快速运动恢复阶段的预测残留抑制。
-- 04-07 delta 收敛了 tracking 输出框统一 sanitize/clamp，并把 hand miss 输出语义对齐到 face/body。
-- 05-08 delta 在不重构 tracker 的前提下，为 2m 摄像头宽 body 场景增加 initialized-face continuity gate 和 driver second-pass strict gate，避免后排 head 借异常 body ROI 误绑定到主驾 track。
-- 05-09 decision record 将 body-first 归档为 legacy 主线，并要求下一阶段不再把 raw body detection box 作为 driver/person identity 主锚点。
-- 原 `tracking_interfaces_evidence` 的当前有效接口事实已并入本文件。
+- 历史实现、方案取舍、每步验证和 superseded plan 只在 `Current Maintenance Records/`、`subpower_runs/` 与结构审计中追溯。
+- 本文不再按日期枚举历史提交；若需要追溯 2026-06-17 三笔 hand lambda 提交、整体架构评审或基线路线收缩，读取对应维护记录。
+- 原 `tracking_interfaces_evidence` 的当前有效接口事实已并入本文和 spec；该文件保留为 evidence/reference only。
 
-## 0.9 Current Sync Rule
+## 0.10 Current Sync Rule
 
 - must_update_when:
   - `DmsTrack::Update` 的主顺序变化
@@ -371,14 +182,6 @@ updated_at: 2026-06-16
   - hand miss 输出策略、统一 sanitize/clamp 或 orphan fallback / hand second pass 逻辑变化
   - `track_params.json` 的 DEFAULT 读取或车型覆盖规则变化
   - head-first driver selection、profile 选择、head-bound body/torso、hand owner source 任一实现落地
-- absorbs_history_from:
-  - `座舱多目标跟踪实现.md`
-  - `多目标跟踪实现闭环记录-2026-03-24.md`
-  - `多目标跟踪设计失配修复闭环记录-2026-03-25.md`
-  - `多目标跟踪生命周期与手部关联设计失配修复闭环记录-2026-03-25.md`
-  - `多目标跟踪手部连续性优化闭环记录-2026-03-31.md`
-  - `多目标跟踪快速运动恢复阶段预测更新一致性修复闭环记录-2026-04-05.md`
-  - `tracking_interfaces_evidence.md`
 - evidence_only_docs:
   - `tracking_interfaces_evidence.md`
 - not_a_default_entry_anymore:
