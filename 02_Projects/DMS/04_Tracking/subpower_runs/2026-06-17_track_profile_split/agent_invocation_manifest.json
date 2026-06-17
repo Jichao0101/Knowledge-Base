@@ -1,0 +1,22 @@
+{
+  "invocations": [
+    {
+      "role": "knowledge-planner",
+      "agent_id": "019ed395-927f-7792-afe5-df29096dfa7b",
+      "status": "completed",
+      "evidence": "Returned recommended single step: 2m/5m first-layer split"
+    },
+    {
+      "role": "repo-implementer",
+      "agent_id": "019ed396-a920-7802-9fb6-b770a00f2d3d",
+      "status": "completed",
+      "evidence": "Returned implementation summary matching host diff"
+    },
+    {
+      "role": "repo-reviewer",
+      "agent_id": "019ed399-73ba-7012-a1f5-95dba1eedaa0",
+      "status": "completed",
+      "evidence": "Returned approved decision with no findings"
+    }
+  ]
+}

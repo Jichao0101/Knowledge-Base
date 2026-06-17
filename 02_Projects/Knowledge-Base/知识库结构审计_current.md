@@ -135,6 +135,15 @@ supersedes:
 - Tracking 默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
+## 1.17 2026-06-17 Tracking 2m/5m 配置分流写回
+
+- 因 `DmsTrack` 已基于 `track_params.json` 的 `camera_type` 落地 2m/5m 第一层分流，已局部同步 Tracking 五份 current 文档、DMS 项目总览和本结构审计。
+- 新增项目级维护记录：`02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack 2m5m配置分流单步重构闭环记录-2026-06-17.md`。
+- 本轮未整组重写 current 文档；只更新 profile 分流实现事实、验证证据和残余运行验证缺口。
+- Tracking 默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
+- 新增证据为 subpower planner/implementer/reviewer 结果、`git diff --check` 和 `bash scripts/compile_j6b.sh` 完整构建通过；runtime replay、单元测试和板端验证未执行。
+- 未新增或保留 `single_pass_recoverable: true` 声明。
+
 ## 1.12 2026-06-15 Tracking 统一 Assignment 目标澄清
 
 - 用户明确 Face 全局匹配、Body 全局 Hungarian 和 Hand 全局 slot assignment 均属于本次行为重构目标。

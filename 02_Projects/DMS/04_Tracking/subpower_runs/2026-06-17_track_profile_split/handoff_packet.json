@@ -1,0 +1,14 @@
+{
+  "next_role": "repo-reviewer",
+  "review_focus": [
+    "2m skips body/hand output and clears stale cache",
+    "5m behavior remains unchanged",
+    "No public API or unstable abstraction expansion",
+    "No interaction with pre-existing scripts/compile_j6b.sh dirty change"
+  ],
+  "required_before_closure": [
+    "review_decision.json",
+    "closure_matrix.json",
+    "knowledge writeback artifacts"
+  ]
+}

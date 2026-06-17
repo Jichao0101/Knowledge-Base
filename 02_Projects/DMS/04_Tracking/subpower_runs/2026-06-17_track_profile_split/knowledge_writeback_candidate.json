@@ -1,0 +1,24 @@
+{
+  "candidates": [
+    {
+      "claim": "DmsTrack now derives body/hand enablement from track_params.json camera_type; 2m disables body/hand and 5m keeps the existing path.",
+      "claim_classification": "verified_runtime_fact",
+      "evidence_refs": [
+        "code_change_manifest.json",
+        "evidence_manifest.json",
+        "review_decision.json"
+      ],
+      "destination_class": "project_current_and_maintenance_record"
+    },
+    {
+      "claim": "2m/5m runtime behavior is not yet replay-validated.",
+      "claim_classification": "project_decision",
+      "evidence_refs": [
+        "evidence_manifest.json",
+        "review_decision.json"
+      ],
+      "destination_class": "project_validation_current"
+    }
+  ],
+  "current_knowledge_allowed": true
+}

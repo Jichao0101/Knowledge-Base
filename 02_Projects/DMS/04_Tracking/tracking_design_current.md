@@ -132,6 +132,7 @@ updated_at: 2026-06-16
 
 ## 0.6 Known Gaps
 
+- 2m/5m 第一层 profile 分流已在 2026-06-17 单步实现并通过本地编译和独立 review；设计层仍不把它提升为运行验收闭合，2m stale body/hand 输出和 5m driver-bound evidence 仍需 runtime replay。
 - face 区域级唯一输出运行验证：未闭合
 - left_hand / right_hand 区域级唯一输出运行验证：未闭合
 - 运行时 replay / 视频证据：未闭合

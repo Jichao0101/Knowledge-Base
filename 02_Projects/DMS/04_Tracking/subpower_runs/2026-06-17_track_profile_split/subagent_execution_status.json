@@ -1,0 +1,15 @@
+{
+  "mode": "subagent_first",
+  "degraded": false,
+  "execution_evidence_status": "complete_for_requested_non_board_single_step",
+  "critical_host_participation": [
+    {
+      "scope": "host integrated the same minimal patch and ran validation",
+      "independence_impact": "implementation shared with repo-implementer; review delegated independently"
+    },
+    {
+      "scope": "host performs external knowledge-base writeback",
+      "independence_impact": "allowed by subpower; subpower records plan/receipt only"
+    }
+  ]
+}

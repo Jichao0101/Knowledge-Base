@@ -1,0 +1,16 @@
+{
+  "changed_files": [
+    "/home/jichao/dms/include/utils/track.h",
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "pre_existing_dirty_files_not_modified_by_task": [
+    "/home/jichao/dms/scripts/compile_j6b.sh"
+  ],
+  "summary": [
+    "TrackParameters now stores enableBodyTracking and enableHandTracking, defaulting to true.",
+    "loadConfigFromJson reads camera_type from DEFAULT and then vehicle node; camera_type == 2m disables body/hand.",
+    "Update keeps face/head flow unchanged and skips body/hand phases when disabled, clearing cached body/hand state to avoid stale outputs."
+  ],
+  "public_api_changed": false,
+  "new_row_view_payload_result_types": false
+}

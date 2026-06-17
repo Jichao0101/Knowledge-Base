@@ -1,0 +1,20 @@
+{
+  "active_plan_step": "Implement 2m/5m first-layer Tracking profile split",
+  "allowed_changes": [
+    "Add minimal persistent config state for enabling body/hand tracking",
+    "Read camera_type from track_params.json DEFAULT then vehicle node",
+    "Skip and clear body/hand state when 2m disables body/hand",
+    "Keep 5m behavior unchanged"
+  ],
+  "disallowed_changes": [
+    "Public API changes",
+    "New Row/View/Payload/Result abstractions",
+    "Global Body/Hand assignment rework",
+    "Reacquire or independent lifecycle expansion",
+    "scripts/compile_j6b.sh edits"
+  ],
+  "verification": [
+    "git diff --check -- include/utils/track.h source/utils/track.cpp",
+    "bash scripts/compile_j6b.sh"
+  ]
+}

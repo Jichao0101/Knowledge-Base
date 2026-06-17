@@ -116,7 +116,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - `AtomicResult.m_faceTrackResultMap`：face/head identity 输出。
 - `AtomicResult.m_leftHandTrackResultMap`：left hand evidence legacy 输出。
 - `AtomicResult.m_rightHandTrackResultMap`：right hand evidence legacy 输出。
-- `TrackProfile`：后续仍需显式区分 2m/5m 或业务模式启用链路；当前代码尚未实现该状态。
+- profile gate：当前代码已通过 `TrackParameters::enableBodyTracking / enableHandTracking` 保存由 `camera_type` 派生的 2m/5m 链路开关；这不是新增 public ABI。
 
 ## 0.5 Interface Contracts
 
@@ -173,7 +173,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 
 - 当前配置来源固定为 `/home/jichao/dms/etc/track_params.json`。
 - 配置必须先加载 `DEFAULT`，再按车型节点覆盖。
-- 下一阶段必须通过 `track_params.json` 车型节点引入可日志化的 profile 选择边界，至少区分 2m head/face only 与 5m handoff/handpose 需要 body/hand 的模式。
+- 当前已通过 `track_params.json` 车型节点的 `camera_type` 引入 profile 选择边界：`2m` 关闭 body/hand，其他值默认保持 body/hand 开启。后续若细分 handoff/handpose 业务模式，仍需补充配置字段、日志和验证。
 - 阈值、Kf 参数和区域配置必须通过结构化配置项读取，不能依赖手工散落常量。
 - `track_params.json` 的 `presets.driver_face_anchor` 配置 driver face preferred anchor 与尺寸方向性权重；车型节点可覆盖坐标并继承 DEFAULT 权重。
 - 配置变化若影响阈值、运动模型或区域约束，必须同步更新 current 文档。

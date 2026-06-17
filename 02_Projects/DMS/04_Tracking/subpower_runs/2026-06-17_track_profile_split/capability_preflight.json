@@ -1,0 +1,30 @@
+{
+  "required_capabilities": [
+    {
+      "logical_capability": "surgical_change_guardrails",
+      "invocation_target": "karpathy-guidelines",
+      "target_type": "skill",
+      "trigger_reason": "non-mechanical repository change",
+      "instruction_ready": true
+    },
+    {
+      "logical_capability": "module_design_assessment",
+      "invocation_target": "interface-abstraction-implementation-guard",
+      "target_type": "skill",
+      "trigger_reason": "stateful Tracking behavior and private configuration surface change",
+      "instruction_ready": true
+    },
+    {
+      "logical_capability": "knowledge_writeback_structure",
+      "invocation_target": "knowledge-base-structure-builder",
+      "target_type": "skill",
+      "trigger_reason": "project knowledge-base writeback requested",
+      "instruction_ready": true
+    }
+  ],
+  "degraded": false,
+  "host_discovery_evidence": [
+    "Read selected SKILL.md files before code edits",
+    "Spawned knowledge-planner, repo-implementer, and repo-reviewer subagents"
+  ]
+}

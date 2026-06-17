@@ -60,6 +60,17 @@ updated_at: 2026-06-16
 - 2026-06-15/2026-06-16 两篇扩张路线记录已移动到 `90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/`，当前推荐记录为 `DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md`。
 - 组织架构同样收缩回主分支 `track.h` 的 private surface：header 只保留长期状态、配置/ID 基础能力和 phase-level 方法；`solve/apply/advance/finalize/project/publish` 不作为 header-level step helper 树，`FrameBodyView` / `HandAssignmentRow` / `AssignmentResult` / `BodyEdgeMode` / `LifecycleContext` 只在确有审计通过时才提升。phase 内部使用 frame-local computation / persistent state transition / output projection 三段式约束，publish 不推进 hit/miss、retire、reset 或 owner migration。
 
+## 0.0.10 2026-06-17 2m/5m 配置分流单步实现
+
+- 代码范围：
+  - `/home/jichao/dms/include/utils/track.h`
+  - `/home/jichao/dms/source/utils/track.cpp`
+- `TrackParameters` 新增 `enableBodyTracking` 与 `enableHandTracking`，默认 `true`；这是 private 配置状态，不改变 `DmsTrack::Init/Update` public API。
+- `loadConfigFromJson` 已读取 `track_params.json` 中 `DEFAULT.camera_type`，再按车型节点覆盖；`camera_type == "2m"` 时关闭 body/hand，其他值保持开启。
+- `DmsTrack::Update` 保持 face/head update、driver face selection 和 face publish 路径不变；仅在 body/hand enabled 时调用 `updateBodyTracks` 与 `updateHandTracks`。
+- 2m 关闭 body/hand 时会清理 `m_bodyTracks`、`m_retiredBodyTracks` 和 `m_handTracks`，避免旧 body/hand cache 在 face/head-only profile 中继续污染状态或输出。
+- 本轮未新增 Row/View/Payload/Result 类型，未恢复 Body global assignment、Hand global slot assignment、Reacquire 或 independent lifecycle 扩张。
+
 ## 0.0.8 2026-06-16 Head-first 方案优化与历史实现归档（已归档为历史实验路线）
 
 - `座舱多目标跟踪实现.md` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/`，只作为历史 body-first baseline 和参数推导参考，不再位于 Tracking 当前工作区。
@@ -175,7 +186,7 @@ updated_at: 2026-06-16
 - 主要入口函数：`Init`、`Update`
 - 每帧更新顺序固定为 `head/face -> driver head selection -> body evidence -> hand evidence`。
 - 配置入口固定从 `/home/jichao/dms/etc/track_params.json` 读取，并先应用 `DEFAULT`，再按车型节点覆盖。
-- 代码已实现 head-first driver selection 与 head-bound body/torso evidence；尚未实现 2m/5m 运行时模式选择，也未完成 hand owner source 的运行日志验证。
+- 代码已实现 head-first driver selection、head-bound body/torso evidence 和基于 `camera_type` 的 2m/5m 第一层 profile 分流；hand owner source 的运行日志验证仍未完成。
 - head-first 设计细节见 [[head-first跟踪方案]]；本文记录当前实现事实。
 
 ## 0.2 Current State Containers
@@ -265,7 +276,7 @@ updated_at: 2026-06-16
 - 当前实现保留 head/hand 的内部连续性；hand 对外输出 key 已收敛为当前 driver head-owned body evidence id，但区域级唯一性仍需运行验证。
 - `m_humanTrackResultMap` 只在导出层作为 body 兼容映射，不是 tracking 上游事实源。
 - 当前实现并未把 `tracking_interfaces_evidence` 提升为默认实现输入；其接口事实已经并入本文件和 spec。
-- 2m/5m profile 应通过 `track_params.json` 车型配置读取；仓内存在 `track_params_2m.json`，但当前 `loadConfigFromJson` 固定读取 `track_params.json`，尚未实现显式车型 profile 分流。
+- 2m/5m profile 已通过 `track_params.json` 的车型 `camera_type` 读取；当前 `loadConfigFromJson` 固定读取 `track_params.json`，并以 DEFAULT 后车型覆盖的方式派生 body/hand enable 开关。
 
 ## 0.7 Known Gaps
 

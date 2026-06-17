@@ -1,0 +1,18 @@
+{
+  "task": "按照重构方案重构 DMS Tracking 代码，单步完成后写回知识库",
+  "repo_path": "/home/jichao/dms",
+  "validation_command": "bash scripts/compile_j6b.sh",
+  "code_change_allowed": true,
+  "test_allowed": true,
+  "board_validation_required": false,
+  "knowledge_writeback_allowed": true,
+  "referenced_knowledge": [
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md",
+    "02_Projects/DMS/04_Tracking/head-first跟踪方案.md"
+  ],
+  "requested_scope": [
+    "单步执行",
+    "单步完成后回写知识库"
+  ],
+  "created_at": "2026-06-17T11:21:57+08:00"
+}

@@ -1,0 +1,27 @@
+{
+  "workflow_pattern": "bug_fix",
+  "module": "DMS Tracking",
+  "change_profile": {
+    "repository_change": true,
+    "non_mechanical": true,
+    "public_api_change": false,
+    "private_header_surface_change": "minimal configuration fields only",
+    "stateful_behavior_change": true,
+    "primary_step": "2m/5m 第一层 profile 分流",
+    "excluded_routes": [
+      "Body global assignment",
+      "Hand global slot assignment",
+      "Body/Hand independent lifecycle",
+      "Reacquire",
+      "face occlusion 业务分支"
+    ]
+  },
+  "success_criteria": [
+    "camera_type == 2m 时不运行或发布 body/hand 链路",
+    "5m 默认保持现有 body/hand 行为",
+    "DmsTrack::Init/Update public API 不变",
+    "不新增 Row/View/Payload/Result 类型",
+    "git diff --check 通过",
+    "bash scripts/compile_j6b.sh 通过"
+  ]
+}
