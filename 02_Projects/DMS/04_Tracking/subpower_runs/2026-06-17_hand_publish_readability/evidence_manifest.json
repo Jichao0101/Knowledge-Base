@@ -1,0 +1,25 @@
+{
+  "evidence": [
+    {
+      "type": "static_check",
+      "command": "git -C /home/jichao/dms diff --check -- source/utils/track.cpp",
+      "status": "passed"
+    },
+    {
+      "type": "build",
+      "command": "bash scripts/compile_j6b.sh",
+      "status": "passed",
+      "result": "[100%] Built target sdk"
+    },
+    {
+      "type": "independent_review",
+      "artifact": "review_decision.json",
+      "status": "approved"
+    }
+  ],
+  "not_executed": [
+    "runtime_replay",
+    "unit_tests",
+    "board_validation"
+  ]
+}

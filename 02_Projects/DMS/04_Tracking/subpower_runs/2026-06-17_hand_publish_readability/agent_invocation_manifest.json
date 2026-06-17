@@ -1,0 +1,11 @@
+{
+  "agents": [
+    {
+      "role": "repo-reviewer",
+      "agent_id": "019ed460-abd3-7113-8f8c-db32e920aaa8",
+      "task": "Review uncommitted source/utils/track.cpp diff for updateHandTracks publish-section behavior equivalence",
+      "status": "completed",
+      "result_artifact": "review_decision.json"
+    }
+  ]
+}

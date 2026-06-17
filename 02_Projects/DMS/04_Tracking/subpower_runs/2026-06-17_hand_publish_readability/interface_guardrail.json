@@ -1,0 +1,35 @@
+{
+  "skill": "interface-abstraction-implementation-guard",
+  "design_source": [
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack updateHandTracks第二阶段可读性优化方案-2026-06-17.md"
+  ],
+  "active_plan_step": "Step 1: organize updateHandTracks hand publish section only",
+  "allowed": [
+    "Use a function-local lambda to share duplicate publish predicates and PublishSanitizedTrack call",
+    "Keep changes limited to source/utils/track.cpp updateHandTracks publish section"
+  ],
+  "not_allowed": [
+    "Public API changes",
+    "Private header API or signature changes",
+    "New Row/View/Payload/Result types",
+    "Header-level helper tree",
+    "Changes to matching, miss advance, cleanup, output owner keys, stage tags, or profile split"
+  ],
+  "behavior_api_invariants": [
+    "DmsTrack::Init and DmsTrack::Update signatures unchanged",
+    "track.h unchanged",
+    "Hand publish remains ownerFaceId keyed",
+    "Hand publish still requires initialized slot, hit-count gate, and HandBelongsToBody gate",
+    "No intended behavior change"
+  ],
+  "new_abstraction_decision": {
+    "candidate": "function-local publishHandSlot lambda",
+    "decision": "allowed",
+    "reason": "Local lambda hides repeated publish predicates without creating stable API/type surface or moving state ownership"
+  },
+  "verification": [
+    "git -C /home/jichao/dms diff --check -- source/utils/track.cpp",
+    "bash scripts/compile_j6b.sh",
+    "independent repo-reviewer"
+  ]
+}

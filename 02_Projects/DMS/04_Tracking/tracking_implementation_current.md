@@ -98,6 +98,15 @@ updated_at: 2026-06-16
 - 第二阶段目标不是增加抽象数量，而是降低阅读时同时持有的上下文数量；抽象只允许隐藏局部机制，不允许把复杂度转移为新的 Row/View/Payload/Result 类型。
 - 当前推荐先执行 Step 1：只整理 hand publish 段，保持输出条件、stage tag、occupied set、fallback 行为不变。
 
+## 0.0.14 2026-06-17 updateHandTracks publish 段可读性整理
+
+- 代码范围：
+  - `/home/jichao/dms/source/utils/track.cpp`
+- `updateHandTracks` publish 段新增函数局部 lambda `publishHandSlot`，统一承载 initialized、occupied owner、hit-count gate 和 `HandBelongsToBody` 四个发布前置条件。
+- 正常 left/right publish 和 fallback left/right publish 均改为调用该 lambda；legacy output map、owner key、stage tag 和 body evidence 来源保持不变。
+- 本轮未修改 `track.h`、public `DmsTrack::Init/Update`、private phase 方法签名、hand matching、miss 推进、cleanup 或 retired-owner 清理。
+- 本轮新增抽象仅为函数局部 lambda，不新增 Row/View/Payload/Result、header-level helper 或跨 phase wrapper。
+
 ## 0.0.8 2026-06-16 Head-first 方案优化与历史实现归档（已归档为历史实验路线）
 
 - `座舱多目标跟踪实现.md` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/`，只作为历史 body-first baseline 和参数推导参考，不再位于 Tracking 当前工作区。

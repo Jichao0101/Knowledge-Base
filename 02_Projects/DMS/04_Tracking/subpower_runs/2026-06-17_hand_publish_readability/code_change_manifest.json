@@ -1,0 +1,14 @@
+{
+  "changed_files": [
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "summary": [
+    "Added function-local publishHandSlot lambda inside updateHandTracks.",
+    "Replaced duplicated normal left/right publish blocks with publishHandSlot calls.",
+    "Replaced duplicated fallback left/right publish blocks with publishHandSlot calls."
+  ],
+  "public_api_changed": false,
+  "private_header_api_changed": false,
+  "new_stable_types": false,
+  "behavior_change_intended": false
+}

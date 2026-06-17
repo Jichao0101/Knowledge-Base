@@ -1,0 +1,6 @@
+{
+  "candidate": true,
+  "target_layer": "02_Projects",
+  "reason": "DMS Tracking project-bound implementation record and current validation delta",
+  "promote_to_formal_knowledge": false
+}

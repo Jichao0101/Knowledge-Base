@@ -156,6 +156,29 @@ updated_at: 2026-06-16
   - 每步必须 `git diff --check`、J6B 编译和独立 review。
   - 任何触及 private API、helper 可见性或新增抽象的步骤必须执行 `interface-abstraction-implementation-guard`。
 
+### 0.1.0O 2026-06-17 updateHandTracks publish 段可读性整理
+
+- 代码范围：
+  - `/home/jichao/dms/source/utils/track.cpp`
+- interface guard 结论：
+  - public `DmsTrack::Init/Update` 未变化。
+  - `track.h` private phase 方法签名未变化。
+  - 新增抽象仅为函数局部 lambda `publishHandSlot`，未新增 Row/View/Payload/Result、header-level helper 或跨 phase wrapper。
+- 静态结论：
+  - 正常 left/right publish 的条件、legacy map、owner key 和 stage tag 保持等价。
+  - fallback 仍只处理 allowed owner 且存在 driver body evidence 的同 owner hand state。
+  - reviewer 确认 fallback 中由 lambda 统一插入 occupied set 不改变行为；`m_handTracks` 按 owner 唯一存储，fallback loop 每个 owner 只访问一次。
+  - 未修改 hand matching、miss 推进、cleanup、retired-owner 清理或 profile split。
+- 验证：
+  - `git -C /home/jichao/dms diff --check -- source/utils/track.cpp`: pass
+  - `bash scripts/compile_j6b.sh`: pass，最终 `[100%] Built target sdk`
+  - 独立 repo-reviewer: `approved`
+- 证据限制：
+  - `runtime_replay: not_executed`
+  - `unit_tests: not_added`
+  - `board_validation: not_required`
+  - 本轮只闭合 Step 1 publish 段；updateHandTracks 中候选构造、assignment、slot lifecycle 和 retired-owner cleanup 的阅读复杂度仍待后续小步处理。
+
 ### 0.1.0I 2026-06-16 Owner/body/hand 4A 生命周期闭环实现（历史实验代码事实）
 
 - 代码范围：
