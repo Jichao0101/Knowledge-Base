@@ -80,6 +80,17 @@ updated_at: 2026-06-16
 - body publish 阶段新增 `ownerFaceId == driverFaceId` 门槛；`driverFaceId < 0` 时不会 fallback 到其他 face owner 获取或发布 body evidence。
 - 本轮未修改 header、public API、Face 匹配、Hand assignment 主体结构或 2m profile split。
 
+## 0.0.12 2026-06-17 Body-to-Hand Finalized Snapshot 隔离
+
+- 代码范围：
+  - `/home/jichao/dms/include/utils/track.h`
+  - `/home/jichao/dms/source/utils/track.cpp`
+- `updateBodyTracks` private phase 方法改为返回 `std::map<track_id, TrackInfo>`，表示本帧已通过 sanitize/publish 的 driver body evidence snapshot。
+- `updateHandTracks` private phase 方法新增 `const std::map<track_id, TrackInfo>& driverBodyEvidence` 参数；hand 内部 owner 收集、second pass body box、orphan cleanup 和 publish/fallback 均消费该局部 snapshot。
+- `curResult->m_bodyTrackResultMap` 在 `track.cpp` 中只保留每帧 clear 与 body phase publish 角色，不再作为 hand 内部 body truth source。
+- 未新增 `FrameBodyView`、Row/View/Payload/Result 或新的 header-level稳定类型；本轮 private API 变化仅限 phase-level 方法签名。
+- 本轮不改变 public `DmsTrack::Init/Update`、legacy 四类 map ABI、Hand matching/lifecycle 主体行为、2m profile split 或 5m driver-bound body evidence。
+
 ## 0.0.8 2026-06-16 Head-first 方案优化与历史实现归档（已归档为历史实验路线）
 
 - `座舱多目标跟踪实现.md` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/`，只作为历史 body-first baseline 和参数推导参考，不再位于 Tracking 当前工作区。
@@ -130,7 +141,7 @@ updated_at: 2026-06-16
 - 新增 private `FrameBodyView`，由 body 阶段在单帧内生成，字段为 owner face id 与 body `TrackInfo` 拷贝；该 view 不作为 member、不跨帧保存，hand 阶段只读消费。
 - `updateBodyTracks` 返回 `std::vector<FrameBodyView>`；2026-06-15 起由 `finalizeBodyTracksForOutput` 完成 body sanitize、matched-only sanitize failure miss 和人员类型投影，再由 `projectBodyTracks` 单独生成该 view。
 - `publishBodyTracks` 不再读取 `m_bodyTracks` 或重新判断 publishable set，只从 `FrameBodyView` 投影写入 `curResult->m_bodyTrackResultMap`。
-- hand 阶段的 `collectAllowedHandOwners`、`buildHandAssignmentRows`、`cleanupRetiredOwnerHandSlots`、`finalizeHandTracksForOutput` 和 `publishHandTracks` 均消费 `FrameBodyView`，不再读取 `curResult->m_bodyTrackResultMap`。
+- hand 阶段内部 body 输入已改为消费 `updateBodyTracks` 返回的局部 `driverBodyEvidence`，不再读取 `curResult->m_bodyTrackResultMap`。
 - `curResult->m_bodyTrackResultMap` 在 `track.cpp` 中仅保留每帧 clear 与 body output 写入角色。
 - 清理废弃 `m_hasPreviousFrame` declaration/init；静态搜索未发现剩余引用。
 - public API、`hungarian()`、统一 assignment helper、strict `< dummyLoss`、legacy output key、left-before-right hand slot 顺序不变。
@@ -195,7 +206,7 @@ updated_at: 2026-06-16
 - 主要入口函数：`Init`、`Update`
 - 每帧更新顺序固定为 `head/face -> driver head selection -> body evidence -> hand evidence`。
 - 配置入口固定从 `/home/jichao/dms/etc/track_params.json` 读取，并先应用 `DEFAULT`，再按车型节点覆盖。
-- 代码已实现 head-first driver selection、head-bound body/torso evidence 和基于 `camera_type` 的 2m/5m 第一层 profile 分流；hand owner source 的运行日志验证仍未完成。
+- 代码已实现 head-first driver selection、head-bound body/torso evidence、基于 `camera_type` 的 2m/5m 第一层 profile 分流，以及 body-to-hand finalized snapshot 隔离；hand owner source 的运行日志验证仍未完成。
 - head-first 设计细节见 [[head-first跟踪方案]]；本文记录当前实现事实。
 
 ## 0.2 Current State Containers

@@ -1,0 +1,19 @@
+{
+  "active_plan_step": "body-to-hand finalized snapshot isolation",
+  "allowed_changes": [
+    "Make updateBodyTracks return a std::map<track_id, TrackInfo> local driver body evidence snapshot",
+    "Pass the snapshot into updateHandTracks",
+    "Replace hand internal reads of curResult->m_bodyTrackResultMap with driverBodyEvidence"
+  ],
+  "disallowed_changes": [
+    "Public API changes",
+    "New stable snapshot/view/result types",
+    "Hand matching/lifecycle behavior changes",
+    "Body matching behavior changes"
+  ],
+  "verification": [
+    "rg curResult->m_bodyTrackResultMap source/utils/track.cpp",
+    "git diff --check -- include/utils/track.h source/utils/track.cpp",
+    "bash scripts/compile_j6b.sh"
+  ]
+}

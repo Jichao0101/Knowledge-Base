@@ -1,0 +1,24 @@
+{
+  "candidates": [
+    {
+      "claim": "Hand internal body input now comes from updateBodyTracks returned local finalized driver body evidence snapshot, not from the legacy body output map.",
+      "claim_classification": "verified_runtime_fact",
+      "evidence_refs": [
+        "code_change_manifest.json",
+        "evidence_manifest.json",
+        "review_decision.json"
+      ],
+      "destination_class": "project_current_and_maintenance_record"
+    },
+    {
+      "claim": "The private phase signature change is allowed by interface guard and does not introduce stable Row/View/Payload/Result types.",
+      "claim_classification": "project_decision",
+      "evidence_refs": [
+        "interface_guardrail.json",
+        "review_decision.json"
+      ],
+      "destination_class": "project_current_and_maintenance_record"
+    }
+  ],
+  "current_knowledge_allowed": true
+}

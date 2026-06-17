@@ -1,0 +1,15 @@
+{
+  "changed_files": [
+    "/home/jichao/dms/include/utils/track.h",
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "summary": [
+    "updateBodyTracks now returns a local std::map<track_id, TrackInfo> of sanitized driver body evidence used by hand.",
+    "updateHandTracks now takes driverBodyEvidence as a const reference.",
+    "All hand internal body lookups now use driverBodyEvidence instead of curResult->m_bodyTrackResultMap."
+  ],
+  "public_api_changed": false,
+  "private_phase_signature_changed": true,
+  "new_stable_types": false,
+  "hand_behavior_expanded": false
+}

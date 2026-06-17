@@ -1,0 +1,14 @@
+{
+  "task": "继续下一步：实现 body-to-hand finalized snapshot 隔离",
+  "repo_path": "/home/jichao/dms",
+  "validation_command": "bash scripts/compile_j6b.sh",
+  "code_change_allowed": true,
+  "test_allowed": true,
+  "board_validation_required": false,
+  "knowledge_writeback_allowed": true,
+  "previous_steps": [
+    "2m/5m camera_type profile split",
+    "5m driver-bound body evidence"
+  ],
+  "created_at": "2026-06-17T14:01:00+08:00"
+}

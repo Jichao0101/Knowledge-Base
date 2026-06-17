@@ -1,0 +1,15 @@
+{
+  "repo": {
+    "path": "/home/jichao/dms",
+    "branch_from_build_log": "feat/ljc/track_0617",
+    "commit_from_build_log": "60b9a48e-dirty",
+    "dirty_files_observed": [
+      "include/utils/track.h",
+      "source/utils/track.cpp"
+    ]
+  },
+  "knowledge_base": {
+    "path": "/mnt/d/Knowledge-Base",
+    "writeback_scope": "02_Projects/DMS/04_Tracking"
+  }
+}

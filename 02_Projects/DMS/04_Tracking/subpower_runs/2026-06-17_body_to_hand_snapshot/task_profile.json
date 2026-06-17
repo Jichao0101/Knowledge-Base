@@ -1,0 +1,28 @@
+{
+  "workflow_pattern": "bug_fix",
+  "module": "DMS Tracking",
+  "change_profile": {
+    "repository_change": true,
+    "non_mechanical": true,
+    "public_api_change": false,
+    "private_header_surface_change": true,
+    "stateful_behavior_change": false,
+    "cross_phase_contract_change": true,
+    "primary_step": "body-to-hand finalized snapshot 隔离",
+    "excluded_routes": [
+      "new Row/View/Payload/Result types",
+      "Hand matching or lifecycle behavior rewrite",
+      "Body matching behavior rewrite",
+      "public API changes"
+    ]
+  },
+  "success_criteria": [
+    "updateBodyTracks returns a local finalized driver body evidence map",
+    "updateHandTracks consumes driverBodyEvidence and no longer reads curResult->m_bodyTrackResultMap as body input",
+    "legacy body output map remains output-only",
+    "No new stable type or wrapper is introduced",
+    "git diff --check passes",
+    "bash scripts/compile_j6b.sh passes",
+    "independent review approves"
+  ]
+}

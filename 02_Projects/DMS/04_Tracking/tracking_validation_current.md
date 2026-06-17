@@ -113,6 +113,32 @@ updated_at: 2026-06-16
   - `board_validation: not_required`
   - 非 driver body/hand cache 会按 miss threshold 延迟清理，期间不发布；驻留时长仍需后续日志或 replay 确认。
 
+### 0.1.0M 2026-06-17 Body-to-Hand Finalized Snapshot 隔离
+
+- 代码范围：
+  - `/home/jichao/dms/include/utils/track.h`
+  - `/home/jichao/dms/source/utils/track.cpp`
+- interface guard 结论：
+  - public `DmsTrack::Init/Update` 未变化。
+  - private phase-level 方法签名变化在本步允许范围内。
+  - 未新增 Row/View/Payload/Result/View 类型，未新增稳定 wrapper。
+  - `std::map<track_id, TrackInfo>` 作为局部 phase result 使用，不提升为 header-level 稳定类型。
+- 静态结论：
+  - `updateBodyTracks` 仍写 legacy body output map，并只在 `PublishSanitizedTrack` 成功后把同一 finalized/sanitized `TrackInfo` 放入返回 snapshot。
+  - `updateHandTracks` 已改为消费 `driverBodyEvidence`，不再从 `curResult->m_bodyTrackResultMap` 读取 body 输入。
+  - `curResult->m_bodyTrackResultMap` 在 `track.cpp` 中仅剩每帧 clear 与 body phase publish。
+  - 本轮不改变 Hand matching/lifecycle 主体行为，不改变 2m profile split 或 5m driver-bound body evidence。
+- 验证：
+  - `rg -n "curResult->m_bodyTrackResultMap" /home/jichao/dms/source/utils/track.cpp`: pass，仅剩 clear 与 body publish。
+  - `git -C /home/jichao/dms diff --check -- include/utils/track.h source/utils/track.cpp`: pass
+  - `bash scripts/compile_j6b.sh`: pass，最终 `[100%] Built target sdk`
+  - 独立 repo-reviewer + API/抽象审计: `approved`
+- 证据限制：
+  - `runtime_replay: not_executed`
+  - `unit_tests: not_added`
+  - `board_validation: not_required`
+  - hand 现在只消费 body phase 发布成功后的 driver snapshot；若未来需要 hand 使用未发布、未达到输出阈值或 sanitize 前的内部 body 状态，需要重新评审契约。
+
 ### 0.1.0I 2026-06-16 Owner/body/hand 4A 生命周期闭环实现（历史实验代码事实）
 
 - 代码范围：
@@ -425,7 +451,7 @@ updated_at: 2026-06-16
 - 若后续进入 head-first 运行验收，必须补：
   1. `track_params.json` 车型 profile 下 body/hand disabled 且不发布 stale body/hand 的回放验证；
   2. 5m profile 下只发布 selected driver face-bound body/torso 的 owner 稳定性验证；
-  3. hand owner source、left/right slot、orphan takeover 在手部大幅运动和多人干扰下的序列统计；
+  3. hand owner source、left/right slot、orphan takeover 在 finalized body snapshot 边界下的手部大幅运动和多人干扰序列统计；
   4. driver identity source 日志，区分 `head_first`、`body_fallback` 与 reject reason。
 - 若后续使用 HumanPose-assisted hand association，需要单独验证 wrist 已有证据链，以及 elbow/shoulder/arm direction 对 hand owner、left/right、miss recovery 的增益。
 - 若后续继续沿用本轮 sanitize/clamp 方案，建议补一次日志降噪，避免 `track sanitize clamp` 在板端形成噪声洪泛

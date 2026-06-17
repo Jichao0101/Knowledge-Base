@@ -1,0 +1,36 @@
+{
+  "skill": "interface-abstraction-implementation-guard",
+  "design_source": [
+    "tracking_spec_current.md: hand 阶段不得读取 curResult->m_bodyTrackResultMap 作为内部输入，应消费 body 阶段产生的局部 finalized body snapshot",
+    "knowledge-planner recommendation from agent 019ed428-6cac-72e2-8edd-9105a31513ae"
+  ],
+  "active_plan_step": "body-to-hand finalized snapshot isolation",
+  "allowed": [
+    "Change private phase-level method signatures",
+    "Return/pass std::map<track_id, TrackInfo> as a local snapshot",
+    "Keep legacy body map as output container"
+  ],
+  "not_allowed": [
+    "Public API changes",
+    "New Row/View/Payload/Result/View stable types",
+    "Header-level step helper tree",
+    "Hand matching/lifecycle behavior expansion"
+  ],
+  "behavior_api_invariants": [
+    "DmsTrack::Init and DmsTrack::Update signatures unchanged",
+    "Legacy body/face/left_hand/right_hand maps unchanged",
+    "Hand owner remains driver body evidence only",
+    "2m profile split and driver-bound body behavior unchanged"
+  ],
+  "new_abstraction_decision": {
+    "candidate": "dedicated FrameBodyView or snapshot type",
+    "decision": "rejected",
+    "reason": "std::map<track_id, TrackInfo> is sufficient as a local phase result and avoids new stable type surface"
+  },
+  "verification": [
+    "rg curResult->m_bodyTrackResultMap source/utils/track.cpp",
+    "git diff --check -- include/utils/track.h source/utils/track.cpp",
+    "bash scripts/compile_j6b.sh",
+    "independent repo-reviewer with API/abstraction audit"
+  ]
+}

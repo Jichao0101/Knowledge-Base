@@ -153,6 +153,16 @@ supersedes:
 - 新增证据为 subpower planner/reviewer 结果、`git diff --check` 和 `bash scripts/compile_j6b.sh` 完整构建通过；runtime replay、单元测试和板端验证未执行。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
+## 1.19 2026-06-17 Tracking body-to-hand finalized snapshot 写回
+
+- 因 `DmsTrack` 已将 hand 内部 body 输入从 legacy body output map 隔离为 body phase 返回的局部 finalized driver body evidence snapshot，已局部同步 Tracking 五份 current 文档、DMS 项目总览和本结构审计。
+- 新增项目级维护记录：`02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack BodyToHand Finalized Snapshot隔离闭环记录-2026-06-17.md`。
+- 本轮触及 private phase-level 方法签名，已按 `interface-abstraction-implementation-guard` 执行守门和 diff 审计；未新增 Row/View/Payload/Result 类型，未改变 public API。
+- 本轮未整组重写 current 文档；只更新 body-to-hand 输入边界、验证证据和残余运行验证缺口。
+- Tracking 默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
+- 新增证据为 subpower planner/reviewer 结果、interface guard 工件、`git diff --check` 和 `bash scripts/compile_j6b.sh` 完整构建通过；runtime replay、单元测试和板端验证未执行。
+- 未新增或保留 `single_pass_recoverable: true` 声明。
+
 ## 1.12 2026-06-15 Tracking 统一 Assignment 目标澄清
 
 - 用户明确 Face 全局匹配、Body 全局 Hungarian 和 Hand 全局 slot assignment 均属于本次行为重构目标。

@@ -1,0 +1,16 @@
+{
+  "invocations": [
+    {
+      "role": "knowledge-planner",
+      "agent_id": "019ed428-6cac-72e2-8edd-9105a31513ae",
+      "status": "completed",
+      "evidence": "Recommended body-to-hand finalized snapshot isolation as next single step"
+    },
+    {
+      "role": "repo-reviewer",
+      "agent_id": "019ed42c-ad8d-71a3-b990-b08e2ab59e28",
+      "status": "completed",
+      "evidence": "Returned approved decision with API/abstraction audit and no findings"
+    }
+  ]
+}

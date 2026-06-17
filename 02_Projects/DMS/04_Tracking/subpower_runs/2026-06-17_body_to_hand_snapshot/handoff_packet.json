@@ -1,0 +1,15 @@
+{
+  "next_role": "repo-reviewer",
+  "review_focus": [
+    "Public API unchanged",
+    "Private signature change remains phase-level and minimal",
+    "No new Row/View/Payload/Result type",
+    "Hand no longer reads curResult->m_bodyTrackResultMap as body input",
+    "Hand matching/lifecycle behavior unchanged"
+  ],
+  "required_before_closure": [
+    "review_decision.json",
+    "closure_matrix.json",
+    "knowledge writeback artifacts"
+  ]
+}

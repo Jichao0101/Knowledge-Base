@@ -93,7 +93,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - 当前代码中 `face/head` 先于 body evidence 初始化和匹配，并通过 `allocateFaceTrackId` 持有 identity；legacy key 投影应继承该 headId。
 - `face` 初始化后允许与 `body` 短时解耦，不得在 `body` 暂失时被无条件同步清理。
 - `hand` 必须按每个 head-owned body evidence 的 `left/right` 两个槽位建模，不得退回统一 hand truth source。
-- hand owner 必须受 driver head-bound body/torso 或业务搜索区域约束；raw body box 不得单独扩大 hand owner。hand 阶段不得读取 `curResult->m_bodyTrackResultMap` 作为内部输入，应消费 body 阶段产生的局部 finalized body snapshot。
+- hand owner 必须受 driver head-bound body/torso 或业务搜索区域约束；raw body box 不得单独扩大 hand owner。hand 阶段不得读取 `curResult->m_bodyTrackResultMap` 作为内部输入；当前代码通过 `updateBodyTracks` 返回的局部 `driverBodyEvidence` snapshot 消费 body 阶段 finalized 结果。
 - `hand` 初始化后允许按槽位独立存活。
 - hand 内部状态可在 face 短时消失后以原始继承 id 保留 bounded cache；对外发布仍必须存在当前已发布且稳定为 DRIVER 的 body evidence 或等价 owner 证据。owner 已确认退休、新 owner 接管或 id 复用前，必须执行 cleanup，不能永久保留 orphan slot。该 cache 不等同于完整 independent lifecycle，也不允许 hand 跨 owner 迁移。
 - 当前代码中 `hand` miss 只推进内部生命周期，不再向下游发布预测框；若后续重新引入短时预测输出，必须先更新 validation 风险并验证 handoff/handpose 消费影响。
@@ -146,6 +146,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - Body/Hand 的 tracking loss、acquisition loss、driver/non-driver bias 与 `dummyLoss` 若要重新进入 global assignment 或 Reacquire，必须按场景标定；若 tracking loss 对错误检测仍低于门槛，会错误延续旧 track。未标定前，已有 body track 和 initialized hand slot 不得用 acquisition fallback 重新绑定；若未来重新打开该 fallback，必须先证明 acquisition gate/bias 和 face consistency gate 不会把 owner 误绑定到几何更合理但身份错误的检测。
 - assignment 结果只能是 `.cpp` 或函数局部短期契约，不得进入稳定 header、cleanup、finalize、projection 或 publish；最小结果只保留 `rightByLeft/-1` 与确有消费方的 `unmatchedRight`。
 - Body 的 sanitize/lifecycle finalize 必须先于 legacy publish 和 hand 消费；具体 finalized snapshot 表示不得强制为 header-level `FrameBodyView`。Hand 没有 tracker 内部下游，不得为形式统一新增 `FrameHandView`、publish payload 或 eligibility。
+- 当前 finalized body snapshot 使用 `std::map<track_id, TrackInfo>` 作为 private phase-level 局部结果，不新增 `FrameBodyView` 或稳定 header 类型。
 - Hand assignment 的 unmatched 解释只针对本帧候选 rows；lifecycle 必须另行 sweep 所有 initialized slots，确保未进入候选 rows 的 owner/slot 也按明确策略推进或清理。
 - bounded cache 只允许短期保留 box、motion state、hit/miss，用于 face 恢复后的平滑；不得发布为有效 body/hand，不得 acquisition/bootstrap，不得 owner migration，不得反向影响 driver identity。
 - owner 不再可发布、body 消失或 face 短时消失时，initialized hand slot 的 bounded cache 必须有明确 miss/reset/cleanup 规则；不得因不再进入 assignment row 而永久停止 miss/cleanup。`feat/ljc/track_0615` 4A 的 internal owner tracking-only row 只作为历史实验事实，不再作为推荐默认规范。assignment rows 只定义本帧候选匹配，不能替代全量 initialized slot cache sweep。
