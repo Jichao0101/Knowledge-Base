@@ -1,0 +1,20 @@
+{
+  "verification": [
+    {
+      "command": "git -C /home/jichao/dms diff --check -- source/utils/track.cpp",
+      "status": "passed"
+    },
+    {
+      "command": "bash scripts/compile_j6b.sh",
+      "cwd": "/home/jichao/dms",
+      "status": "passed",
+      "final_output": "[100%] Built target sdk"
+    }
+  ],
+  "not_run": [
+    "runtime replay",
+    "unit tests",
+    "board validation",
+    "independent subagent repo review"
+  ]
+}

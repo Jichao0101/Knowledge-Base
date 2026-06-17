@@ -1,0 +1,16 @@
+{
+  "requested_mode": "subagent_first",
+  "actual_mode": "host_only_fallback",
+  "degraded": true,
+  "fallback_reason": "Subagent reviewer spawn attempt failed because the runtime reported the agent thread limit was reached.",
+  "degradation_reason": "No independent repo-reviewer artifact could be produced for this code step in the current session.",
+  "completed_under_subpower_contracts_with_host_only_fallback": true,
+  "completed_as_subagent_first_execution": false,
+  "critical_host_participation": [
+    "implementation",
+    "diff_audit",
+    "build_verification",
+    "knowledge_writeback"
+  ],
+  "execution_evidence_status": "local_verification_available_review_degraded"
+}

@@ -1,0 +1,11 @@
+{
+  "invocations": [
+    {
+      "role": "repo-reviewer",
+      "status": "failed_to_spawn",
+      "evidence": "Runtime reported agent thread limit reached.",
+      "complete_subagent_execution_evidence": false
+    }
+  ],
+  "host_only_fallback": true
+}

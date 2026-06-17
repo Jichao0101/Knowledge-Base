@@ -1,0 +1,10 @@
+{
+  "code_change_done": true,
+  "local_diff_check_passed": true,
+  "local_build_passed": true,
+  "independent_review_done": false,
+  "board_validation_required": false,
+  "knowledge_writeback_done": true,
+  "closure_status": "closed_with_review_degradation",
+  "remaining_gap": "Independent repo-reviewer static review was unavailable in this session."
+}

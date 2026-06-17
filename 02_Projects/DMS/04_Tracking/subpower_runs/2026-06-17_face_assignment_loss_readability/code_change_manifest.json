@@ -1,0 +1,14 @@
+{
+  "changed_files": [
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "summary": [
+    "Added BuildFaceAssignmentLoss in the anonymous namespace.",
+    "Replaced inline face assignment loss matrix construction in DmsTrack::updateFaceTracks with a helper call.",
+    "Used find plus continue for face track lookup to avoid introducing an exception failure model."
+  ],
+  "public_api_changed": false,
+  "private_header_api_changed": false,
+  "new_stable_types": false,
+  "behavior_change_intended": false
+}

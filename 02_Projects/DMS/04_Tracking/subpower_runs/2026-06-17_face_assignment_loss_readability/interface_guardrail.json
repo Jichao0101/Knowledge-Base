@@ -1,0 +1,30 @@
+{
+  "skill": "interface-abstraction-implementation-guard",
+  "design_source": [
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack整体内部架构可读性优化评审与方案-2026-06-17.md"
+  ],
+  "active_plan_step": "Stage 2: Face phase local organization, assignment loss matrix construction only",
+  "allowed": [
+    "Add a .cpp anonymous namespace helper for stable Face assignment loss construction",
+    "Keep updateFaceTracks as the phase-level private method",
+    "Keep changes limited to source/utils/track.cpp"
+  ],
+  "not_allowed": [
+    "Public API changes",
+    "Private header API or signature changes",
+    "New Row/View/Payload/Result/Context types",
+    "Changes to Hungarian solve/apply, bootstrap, miss lifecycle, driver selection, profile split, or legacy output map ABI"
+  ],
+  "behavior_api_invariants": [
+    "DmsTrack::Init and DmsTrack::Update signatures unchanged",
+    "track.h unchanged",
+    "Face assignment matrix dimensions remain detectionCount + trackCount",
+    "Driver small-face skip, distance gates, dummy loss edges, and bottom-right zero block semantics preserved",
+    "No intended behavior change"
+  ],
+  "new_abstraction_decision": {
+    "candidate": "BuildFaceAssignmentLoss .cpp anonymous namespace helper",
+    "decision": "allowed",
+    "reason": "The helper hides stable local matrix-construction mechanics without adding header surface, new state ownership, or a field-moving wrapper type."
+  }
+}

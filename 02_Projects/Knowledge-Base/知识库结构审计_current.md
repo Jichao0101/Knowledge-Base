@@ -108,7 +108,7 @@ supersedes:
 - `recoverability_status` 仍为 `partial`；未新增或保留 `single_pass_recoverable: true`。
 - 本轮未修改 DMS 业务代码，未执行 runtime replay、单元测试或板端验证。
 
-## 1.15 2026-06-16 Tracking 4A 生命周期闭环代码写回
+## 1.12 2026-06-16 Tracking 4A 生命周期闭环代码写回
 
 - 因 `feat/ljc/track_0615` 已在 `source/utils/track.cpp` 补齐 Owner/body/hand 4A 生命周期候选域和 hand initialized slot sweep，已局部同步 Tracking overview/spec/implementation/validation、DMS 项目总览和目标维护记录。
 - 本轮未整组重写 current 文档；`tracking_design_current.md` 未修改，因为 public API、身份主线和分阶段设计目标未变化。
@@ -117,7 +117,7 @@ supersedes:
 - Runtime replay、单元测试和板端验证未执行；Body Reacquire、loss instrumentation 与 Hand Reacquire 评估仍待后续阶段。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
-## 1.16 2026-06-16 Tracking 基线对比与路线收缩写回
+## 1.13 2026-06-16 Tracking 基线对比与路线收缩写回
 
 - 因重新对比 `1401fc338107f05b9cf` 与 `feat/ljc/track_0615` 后，Tracking 当前推荐路线发生变化，已局部同步：
   - `02_Projects/DMS/04_Tracking/head-first跟踪方案.md`
@@ -135,7 +135,7 @@ supersedes:
 - Tracking 默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
-## 1.17 2026-06-17 Tracking 2m/5m 配置分流写回
+## 1.14 2026-06-17 Tracking 2m/5m 配置分流写回
 
 - 因 `DmsTrack` 已基于 `track_params.json` 的 `camera_type` 落地 2m/5m 第一层分流，已局部同步 Tracking 五份 current 文档、DMS 项目总览和本结构审计。
 - 新增项目级维护记录：`02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack 2m5m配置分流单步重构闭环记录-2026-06-17.md`。
@@ -144,7 +144,7 @@ supersedes:
 - 新增证据为 subpower planner/implementer/reviewer 结果、`git diff --check` 和 `bash scripts/compile_j6b.sh` 完整构建通过；runtime replay、单元测试和板端验证未执行。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
-## 1.18 2026-06-17 Tracking 5m driver-bound body evidence 写回
+## 1.15 2026-06-17 Tracking 5m driver-bound body evidence 写回
 
 - 因 `DmsTrack` 已将 body evidence 收缩为只服务 selected driver face，已局部同步 Tracking 五份 current 文档、DMS 项目总览和本结构审计。
 - 新增项目级维护记录：`02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack 5m DriverBound Body Evidence收缩闭环记录-2026-06-17.md`。
@@ -153,7 +153,7 @@ supersedes:
 - 新增证据为 subpower planner/reviewer 结果、`git diff --check` 和 `bash scripts/compile_j6b.sh` 完整构建通过；runtime replay、单元测试和板端验证未执行。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
-## 1.19 2026-06-17 Tracking body-to-hand finalized snapshot 写回
+## 1.16 2026-06-17 Tracking body-to-hand finalized snapshot 写回
 
 - 因 `DmsTrack` 已将 hand 内部 body 输入从 legacy body output map 隔离为 body phase 返回的局部 finalized driver body evidence snapshot，已局部同步 Tracking 五份 current 文档、DMS 项目总览和本结构审计。
 - 新增项目级维护记录：`02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack BodyToHand Finalized Snapshot隔离闭环记录-2026-06-17.md`。
@@ -163,7 +163,7 @@ supersedes:
 - 新增证据为 subpower planner/reviewer 结果、interface guard 工件、`git diff --check` 和 `bash scripts/compile_j6b.sh` 完整构建通过；runtime replay、单元测试和板端验证未执行。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
-## 1.20 2026-06-17 Tracking updateHandTracks 第二阶段可读性优化方案写回
+## 1.17 2026-06-17 Tracking updateHandTracks 第二阶段可读性优化方案写回
 
 - 新增项目级方案记录：`02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack updateHandTracks第二阶段可读性优化方案-2026-06-17.md`。
 - 已局部同步 DMS 项目总览、Tracking implementation current 和 validation current。
@@ -171,7 +171,7 @@ supersedes:
 - 本方案只规划行为不变的可读性优化，不声明运行效果闭合，不新增 `single_pass_recoverable: true`。
 - 后续每个实现小步仍需单独记录验证、review 和写回。
 
-## 1.21 2026-06-17 Tracking updateHandTracks publish 段可读性整理写回
+## 1.18 2026-06-17 Tracking updateHandTracks publish 段可读性整理写回
 
 - 因 `DmsTrack` 已完成 updateHandTracks 第二阶段 Step 1 publish 段整理，已局部同步 Tracking implementation current、validation current、DMS 项目总览和本结构审计。
 - 新增项目级维护记录：`02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack updateHandTracks publish段可读性整理闭环记录-2026-06-17.md`。
@@ -180,7 +180,7 @@ supersedes:
 - 新增证据为 subpower reviewer 结果、interface guard 工件、`git diff --check` 和 `bash scripts/compile_j6b.sh` 完整构建通过；runtime replay、单元测试和板端验证未执行。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
-## 1.22 2026-06-17 Tracking updateHandTracks unmatched miss 可读性整理写回
+## 1.19 2026-06-17 Tracking updateHandTracks unmatched miss 可读性整理写回
 
 - 因 `DmsTrack` 已完成 updateHandTracks 第二阶段 Step 2 unmatched miss 段整理，已局部同步 Tracking implementation current、validation current、DMS 项目总览和本结构审计。
 - 新增项目级维护记录：`02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack updateHandTracks unmatched miss可读性整理闭环记录-2026-06-17.md`。
@@ -189,7 +189,7 @@ supersedes:
 - 新增证据为 subpower reviewer 结果、interface guard 工件、`git diff --check` 和 `bash scripts/compile_j6b.sh` 完整构建通过；runtime replay、单元测试和板端验证未执行。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
-## 1.23 2026-06-17 Tracking updateHandTracks owner/candidate 准备区可读性整理写回
+## 1.20 2026-06-17 Tracking updateHandTracks owner/candidate 准备区可读性整理写回
 
 - 因 `DmsTrack` 已完成 updateHandTracks 第二阶段 Step 3 owner/candidate 准备区整理，已局部同步 Tracking implementation current、validation current、DMS 项目总览和本结构审计。
 - 新增项目级维护记录：`02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack updateHandTracks owner候选可读性整理闭环记录-2026-06-17.md`。
@@ -198,7 +198,7 @@ supersedes:
 - 新增证据为 subpower reviewer 结果、interface guard 工件、`git diff --check` 和 `bash scripts/compile_j6b.sh` 完整构建通过；runtime replay、单元测试和板端验证未执行。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
-## 1.24 2026-06-17 Tracking DmsTrack 整体内部架构可读性评审写回
+## 1.21 2026-06-17 Tracking DmsTrack 整体内部架构可读性评审写回
 
 - 因用户指出 handtrack 只是例子，优化范围应覆盖 Face/Body/Hand 整体架构，本轮新增项目级设计评审记录：`02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack整体内部架构可读性优化评审与方案-2026-06-17.md`。
 - 已将 `DmsTrack updateHandTracks第二阶段可读性优化方案-2026-06-17.md` 标记为 `superseded`。
@@ -208,7 +208,7 @@ supersedes:
 - Tracking 默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
-## 1.25 2026-06-17 Tracking current 文档组去历史化治理
+## 1.22 2026-06-17 Tracking current 文档组去历史化治理
 
 - 因用户指出 current 文档组被写成预期方案和历史提交枚举，本轮按 current lifecycle 的 `hardening_refactor` 模式清理 Tracking current 表达。
 - 已将 `tracking_overview_current.md` 的 Current Truth 从长段历史变化压缩为当前 Tracking 代码事实、profile gate、driver-bound evidence 和验证边界摘要。
@@ -220,14 +220,22 @@ supersedes:
 - 本轮未改变 Tracking 默认入口、默认恢复顺序、default recovery bundle 或 `recoverability_status: partial`。
 - 未新增或保留 `single_pass_recoverable: true` 声明。
 
-## 1.12 2026-06-15 Tracking 统一 Assignment 目标澄清
+## 1.23 2026-06-17 Tracking Face phase assignment loss 可读性整理写回
+
+- 因 `DmsTrack` 整体内部架构可读性优化方案进入 Face phase 局部组织，本轮新增项目级维护记录：`02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack FacePhase assignment loss可读性整理闭环记录-2026-06-17.md`。
+- 本步代码只将 `updateFaceTracks` 内 face assignment loss 矩阵构造移动到 `.cpp` anonymous namespace helper `BuildFaceAssignmentLoss`，未修改 public/private header API，未新增 Row/View/Payload/Result/Context 类型。
+- 本轮不更新 Tracking current 文档组和 DMS 项目总览：当前行为事实、默认入口、默认恢复顺序、default recovery bundle 和 `recoverability_status: partial` 均未变化；若把 helper 名称写入 current 正文，会重新把 current 文档变成实现小步枚举。
+- 新增证据为 interface guard 记录、`git diff --check` 和 `bash scripts/compile_j6b.sh` 完整构建通过；subpower 本轮为 host-only fallback，独立 subagent reviewer 因 agent thread limit 未执行。
+- 未执行 runtime replay、单元测试或板端验证；未新增或保留 `single_pass_recoverable: true` 声明。
+
+## 1.24 2026-06-15 Tracking 统一 Assignment 目标澄清
 
 - 用户明确 Face 全局匹配、Body 全局 Hungarian 和 Hand 全局 slot assignment 均属于本次行为重构目标。
 - 已局部同步 Tracking review、overview、design、spec、implementation、validation 与 DMS 项目总览；未整组重写 current 文档。
 - 推荐分支路线仍为从 `br_develop_forJ6b` 新开 clean branch；`feat/ljc/track_0609` 仅作为 solver/cost/row 算法参考和结构反例。
 - `recoverability_status` 仍为 `partial`；未新增 `single_pass_recoverable: true`，未修改 DMS 业务代码。
 
-## 1.13 2026-06-15 Tracking clean branch Body 全局 assignment 写回
+## 1.25 2026-06-15 Tracking clean branch Body 全局 assignment 写回
 
 - 因 `feat/ljc/track_0615` 已完成 clean refactor 阶段 2 Body 全局 owner-to-detection assignment，已局部同步 Tracking review、overview、design、spec、implementation、validation 与 DMS 项目总览。
 - 本轮未整组重写 current 文档；只更新 Body matching 当前事实、验证证据和后续风险。
@@ -235,7 +243,7 @@ supersedes:
 - 未新增或保留 `single_pass_recoverable: true`。
 - 本轮代码验证为 QNX `Utils` 与 `sdk` 构建通过；runtime replay、单元测试和板端验证未执行。当前保守实现关闭已有 body / initialized hand 的 acquisition fallback；tracking loss、acquisition loss、driver/non-driver bias 与 `dummyLoss` 的标定仍待后续冲突样例与 diff 白名单验证。
 
-## 1.14 2026-06-16 Tracking 方案优化与历史实现归档
+## 1.26 2026-06-16 Tracking 方案优化与历史实现归档
 
 - `02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/座舱多目标跟踪实现.md`，角色收敛为历史 body-first baseline。
 - 已局部同步 `head-first跟踪方案.md`、Tracking 五份 current 文档、DMS 项目总览和 `DmsTrack深模块重新评审与CleanRefactor规划-2026-06-15.md`。

@@ -1,0 +1,17 @@
+{
+  "review_decision": "degraded_host_audit_only",
+  "findings": [],
+  "scope": [
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "review_summary": [
+    "Actual diff is limited to moving Face assignment loss matrix construction into BuildFaceAssignmentLoss.",
+    "No public or private header API changed.",
+    "No Row/View/Payload/Result/Context type was added.",
+    "Hungarian solve/apply, bootstrap, miss cleanup, driver selection, profile split, and output maps were not edited."
+  ],
+  "residual_risks": [
+    "No independent repo-reviewer result was available because the subagent thread limit was reached.",
+    "Runtime replay and unit tests were not executed."
+  ]
+}
