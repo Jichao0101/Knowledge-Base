@@ -1,0 +1,28 @@
+{
+  "steps": [
+    {
+      "name": "guardrail",
+      "owner": "host",
+      "status": "completed",
+      "artifact": "interface_guardrail.json"
+    },
+    {
+      "name": "implementation",
+      "owner": "host",
+      "status": "completed",
+      "artifact": "code_change_manifest.json"
+    },
+    {
+      "name": "review",
+      "owner": "repo-reviewer subagent",
+      "status": "completed",
+      "artifact": "review_decision.json"
+    },
+    {
+      "name": "writeback",
+      "owner": "host",
+      "status": "completed",
+      "artifact": "writeback_receipt.json"
+    }
+  ]
+}

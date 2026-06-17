@@ -201,6 +201,29 @@ updated_at: 2026-06-16
   - `board_validation: not_required`
   - 本轮只闭合 Step 2 unmatched miss 段；driver owner candidate collection 和 retired-owner cleanup 的阅读复杂度仍待后续小步处理。
 
+### 0.1.0Q 2026-06-17 updateHandTracks owner/candidate 准备区可读性整理
+
+- 代码范围：
+  - `/home/jichao/dms/source/utils/track.cpp`
+- interface guard 结论：
+  - public `DmsTrack::Init/Update` 未变化。
+  - `track.h` private phase 方法签名未变化。
+  - 新增抽象仅为函数局部 lambda `collectAllowedHandOwners`、`predictHandSlot` 与 `collectBodyConstrainedHandCandidates`，未新增 Row/View/Payload/Result、header-level helper 或跨 phase wrapper。
+- 静态结论：
+  - `collectAllowedHandOwners` 仍只从 `driverBodyEvidence` 中 stable `DRIVER` body track 派生 owner。
+  - `predictHandSlot` 保留 initialized guard，并仍对每个现有 `m_handTracks` owner 按 left 后 right 调用。
+  - `collectBodyConstrainedHandCandidates` 仍清空 vector、按原 `handDetections` 顺序遍历、排除 `usedDetections`，并用相同输入调用 `HandBelongsToBody`。
+  - 未修改 matching matrix、`matchedSlots` / `usedDetections` 语义、lifecycle、cleanup/reset/publish 或 profile split。
+- 验证：
+  - `git -C /home/jichao/dms diff --check -- source/utils/track.cpp`: pass
+  - `bash scripts/compile_j6b.sh`: pass，最终 `[100%] Built target sdk`
+  - 独立 repo-reviewer: `approved`
+- 证据限制：
+  - `runtime_replay: not_executed`
+  - `unit_tests: not_added`
+  - `board_validation: not_required`
+  - 本轮只闭合 Step 3 owner/candidate 准备区；retired-owner cleanup 是否继续整理仍为可选后续小步。
+
 ### 0.1.0I 2026-06-16 Owner/body/hand 4A 生命周期闭环实现（历史实验代码事实）
 
 - 代码范围：

@@ -116,6 +116,16 @@ updated_at: 2026-06-16
 - 本轮不改变 `unmatchedSlots` 构造、`matchedSlots`、`usedDetections`、second pass Hungarian 输入、match acceptance、cleanup/reset/publish 或 profile split。
 - 本轮未修改 `track.h`、public `DmsTrack::Init/Update` 或 private phase 方法签名；未新增 Row/View/Payload/Result、header-level helper 或跨 phase wrapper。
 
+## 0.0.16 2026-06-17 updateHandTracks owner/candidate 准备区可读性整理
+
+- 代码范围：
+  - `/home/jichao/dms/source/utils/track.cpp`
+- `updateHandTracks` 新增函数局部 lambda `collectAllowedHandOwners`，仍只从 `driverBodyEvidence` 中 stable `DRIVER` body track 收集 hand owner。
+- `predictHandSlot` 统一 initialized hand slot 的 `PredictMotion` 与 `predBox` 写入；调用范围仍是所有现有 `m_handTracks` owner，顺序仍为 left 后 right。
+- `collectBodyConstrainedHandCandidates` 统一 body box 约束下的 hand detection 候选收集；仍排除 `usedDetections`，并要求 `HandBelongsToBody(bodyBox, handDetections[i])`。
+- 本轮不改变 matching matrix、`matchedSlots`、`usedDetections`、lifecycle、cleanup/reset/publish 或 profile split。
+- 本轮未修改 `track.h`、public `DmsTrack::Init/Update` 或 private phase 方法签名；未新增 Row/View/Payload/Result、header-level helper 或跨 phase wrapper。
+
 ## 0.0.8 2026-06-16 Head-first 方案优化与历史实现归档（已归档为历史实验路线）
 
 - `座舱多目标跟踪实现.md` 已移动到 `90_Archive/02_Projects/DMS/04_Tracking/`，只作为历史 body-first baseline 和参数推导参考，不再位于 Tracking 当前工作区。

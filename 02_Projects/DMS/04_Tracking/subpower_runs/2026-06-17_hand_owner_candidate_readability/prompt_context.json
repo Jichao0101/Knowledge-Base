@@ -1,0 +1,11 @@
+{
+  "task": "DmsTrack updateHandTracks second-stage readability optimization Step 3",
+  "user_instruction": "继续；涉及接口或抽象的修改应该使用 interface-abstraction-implementation-guard",
+  "repo": "/home/jichao/dms",
+  "knowledge_base": "/mnt/d/Knowledge-Base",
+  "scope": [
+    "/home/jichao/dms/source/utils/track.cpp",
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack updateHandTracks第二阶段可读性优化方案-2026-06-17.md"
+  ],
+  "board_validation": "not_required"
+}

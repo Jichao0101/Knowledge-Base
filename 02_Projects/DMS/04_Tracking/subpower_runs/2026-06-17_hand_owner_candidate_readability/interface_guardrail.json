@@ -1,0 +1,36 @@
+{
+  "skill": "interface-abstraction-implementation-guard",
+  "design_source": [
+    "02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack updateHandTracks第二阶段可读性优化方案-2026-06-17.md"
+  ],
+  "active_plan_step": "Step 3: organize driver owner candidate collection only",
+  "allowed": [
+    "Use function-local lambdas to express allowed owner collection, slot prediction, and body-constrained candidate collection",
+    "Keep changes limited to source/utils/track.cpp updateHandTracks owner/candidate preparation section"
+  ],
+  "not_allowed": [
+    "Public API changes",
+    "Private header API or signature changes",
+    "New Row/View/Payload/Result types",
+    "Header-level helper tree",
+    "Changes to allowed owner domain, prediction order, candidate filtering, matching matrix, matchedSlots, usedDetections, lifecycle, cleanup/reset/publish, stage tags, or profile split"
+  ],
+  "behavior_api_invariants": [
+    "DmsTrack::Init and DmsTrack::Update signatures unchanged",
+    "track.h unchanged",
+    "allowedHandOwners still only comes from driverBodyEvidence with stable DRIVER",
+    "Prediction still visits all initialized existing left/right hand slots",
+    "Body-constrained candidates still exclude used detections and require HandBelongsToBody",
+    "No intended behavior change"
+  ],
+  "new_abstraction_decision": {
+    "candidate": "function-local collectAllowedHandOwners, predictHandSlot, collectBodyConstrainedHandCandidates lambdas",
+    "decision": "allowed",
+    "reason": "Local lambdas clarify preparation phases without creating stable API/type surface or moving state ownership"
+  },
+  "verification": [
+    "git -C /home/jichao/dms diff --check -- source/utils/track.cpp",
+    "bash scripts/compile_j6b.sh",
+    "independent repo-reviewer"
+  ]
+}

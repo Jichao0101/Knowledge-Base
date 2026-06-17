@@ -1,0 +1,14 @@
+{
+  "changed_files": [
+    "/home/jichao/dms/source/utils/track.cpp"
+  ],
+  "summary": [
+    "Added function-local collectAllowedHandOwners lambda inside updateHandTracks.",
+    "Added function-local predictHandSlot lambda for initialized slot prediction.",
+    "Renamed and kept body-constrained candidate collection as collectBodyConstrainedHandCandidates."
+  ],
+  "public_api_changed": false,
+  "private_header_api_changed": false,
+  "new_stable_types": false,
+  "behavior_change_intended": false
+}
