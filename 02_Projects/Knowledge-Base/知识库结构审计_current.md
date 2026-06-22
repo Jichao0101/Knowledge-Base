@@ -63,6 +63,8 @@ supersedes:
 - Postprocess、State Machine 是否 current 化尚未决策。
 - Knowledge-Base 防静默覆盖治理方案已完成阶段 0 至 3B 首版实现：skill-owned Schema rules、只读 lint、Traceability Index、pre-write gate 和 hash check 已通过单元与真实知识库只读集成验证；中文检索基准、current 去历史化和事件驱动维护尚未执行。
 - 本审计文件仍混有较多 Tracking 历史维护流水，等待治理方案阶段 4 去历史化；在迁移前不将这些流水作为新的 current 表达范式。
+- Knowledge-Base 维护治理已拆分为 `knowledge-base-structure-builder` 与 `knowledge-base-retriever` 两个子项目；Retriever、Query Planning 基准和 `retrieval_package` 尚未实现。
+- 现有 Traceability CLI 的目录枚举、索引、匹配和原文读取尚未全链路接受 authorized paths，后续实现前必须先消除越权扫描风险。
 
 ## 1.7 2026-06-09 Tracking current 增量维护记录
 
@@ -302,3 +304,13 @@ supersedes:
 - Tracking 默认入口、默认恢复顺序和 default recovery bundle 未变化。
 - `recoverability_status` 仍为 `partial`；未新增或保留 `single_pass_recoverable: true`。
 - 本轮未修改 DMS 业务代码，未执行 runtime replay、单元测试或板端验证。
+
+## 1.33 2026-06-22 Knowledge-Base 双 Skill 子项目调整
+
+- 新增 [[02_Projects/Knowledge-Base/knowledge-base-structure-builder/项目总览]]，负责 authoring、indexing-prep、生命周期、retrieval header、lint 和风险分级写入门禁。
+- 新增 [[02_Projects/Knowledge-Base/knowledge-base-retriever/项目总览]]，负责只读 Query Planning、多轮历史检索、原文读取和 `retrieval_package`。
+- 两个 skill 共享概念和交换格式，但不共享实现权威：Builder 不拥有相关性排序，Retriever 不执行事实写入和 gate decision。
+- 父级 `知识库防静默覆盖治理实施方案.md` 已删除，避免形成第三个 active 方案权威；有效设计已分别进入两个子项目总览。
+- `AGENTS.md` 是目标仓库本地政策，不作为 skill 资产，不与 skill 版本绑定。
+- 阶段 0 至 3B 实现记录继续保存拆分前实现与验证事实，并已改为引用两个子项目入口。
+- 本轮没有创建五份 current 文档组；两个子项目均先以单一项目总览作为入口，后续形成长期独立设计、实现和验证事实后再评估 current 化。
