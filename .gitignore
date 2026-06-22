@@ -42,6 +42,8 @@ __pycache__/
 # vector databases / semantic index
 .smtcmp_vector_db.tar.gz
 .smtcmp_vector_db/
+.kb_cache/
+reports/kb/
 # Obsidian plugin data that may contain secrets
 .obsidian/plugins/smart-composer/
 /plugins/

@@ -8,6 +8,7 @@
 - 文件写入分层
 - 外部信息入库约束
 - 正式知识提升条件
+- 知识写入前门禁与自动化写入边界
 
 本文件不负责：
 - 主代理角色约束
@@ -16,6 +17,7 @@
 - rework 轮次控制
 - plugin 启动与路由规则
 - 代码执行链调度
+- lint、索引、gate 的工具实现、规则表和报告格式
 
 这些运行治理要求不由本文件规定。
 
@@ -36,6 +38,12 @@
 
 5. **项目内容优先留在项目区**
    与当前项目强绑定、尚未抽象为通用知识的内容，应优先写入项目区。
+
+6. **写入门禁发生在修改前**
+   知识库事实文件的创建、修改、移动、删除或替代，必须在首次文件变更前完成 preflight；写后 lint 不得替代写前门禁。
+
+7. **派生产物不是事实源**
+   索引、缓存、lint 报告和 preflight 报告均为可重建派生物，不得替代 Markdown 原文、current 入口或正式证据记录。
 
 ---
 
@@ -113,6 +121,20 @@
 - 不得把已删除或失效的同步规范作为 active dependency。
 - 未完成独立 recoverability verification 时，不得新增或保留 `single_pass_recoverable: true`。
 - 涉及 current 入口、事实源、状态或 recoverability 变化时，必须同步更新对应 `overview_current`、项目总览和结构审计记录。
+
+### 0.5.2 知识写入门禁硬约束
+
+以下约束适用于知识库事实文件的创建、修改、移动、删除和结论替代；可重建 cache/report 的生成不因此获得事实源地位。
+
+1. 写入前必须基于已授权范围执行 preflight，并明确目标路径和本次 change intent。
+2. 门禁结果为 `blocked` 时不得写入；结果为 `manual_review` 时，必须获得用户或授权 reviewer 的显式确认；结果为 `allow` 时，只允许执行本次目标、意图和输入快照对应的变更。
+3. verified、guarded、critical 或内容扫描命中 active constraints 的文档不得被自动化直接改写；自动化只能生成 proposal、patch draft、候选摘要或验证计划。
+4. 对 append-only 内容，不得改写或删除既有历史事实；更正只能追加说明或建立新的替代记录。
+5. 替代旧结论时，必须显式记录双向 supersession、替代原因和验证证据，不得静默覆盖。
+6. Traceability Index 只用于召回候选。命中 strong 记录或 guarded/critical 来源时，必须读取对应 Markdown 原文后才能继续，索引摘要不得作为事实依据。
+7. 授权不足、目标或命中原文不可读、规则/索引缺失或过期、输入 hash 变化、supersession 冲突未解决时，高风险写入必须 fail-closed。
+8. 自动化不得自动提升正式知识、修改受保护文档、关闭 supersession 冲突、删除历史记录、提高 evidence level 或声明 `single_pass_recoverable: true`。
+9. `.kb_cache/`、`reports/kb/` 及同类索引/报告目录默认不进入事实读取顺序；若报告需要成为验证依据，必须由正式项目记录显式引用其路径与 hash。
 
 ---
 

@@ -11,7 +11,7 @@ supersedes:
 
 ## 1.1 当前决策
 
-知识库入口采用“内容简介 + 入口分流”。结构状态不放在读者主入口中心，而集中记录在本审计文件中。知识库自身维护已作为独立项目纳入项目区，默认入口为 [[02_Projects/Knowledge-Base/知识库维护治理项目总览]]。
+知识库入口采用“内容简介 + 入口分流”。结构状态不放在读者主入口中心，而集中记录在本审计文件中。知识库自身维护已作为独立项目纳入项目区，默认入口为 [[02_Projects/Knowledge-Base/知识库维护治理项目总览]]。仓库 `AGENTS.md` 当前同时承担知识写入前门禁与自动化禁区的硬政策权威，工作流、机器规则和工具实现仍归 knowledge-base skill 所有。
 
 ## 1.2 分区结构状态
 
@@ -61,7 +61,7 @@ supersedes:
 - Model Training current 组已创建，但尚未完成独立 recoverability verification。
 - FaceID、EyeStatus、SDK Integration 的 recoverability verification 尚未完成。
 - Postprocess、State Machine 是否 current 化尚未决策。
-- Knowledge-Base 防静默覆盖治理方案已固化，但 Schema v2、lint、Traceability Index、pre-write gate 和中文检索基准均尚未实现。
+- Knowledge-Base 防静默覆盖治理方案已完成阶段 0 至 3B 首版实现：skill-owned Schema rules、只读 lint、Traceability Index、pre-write gate 和 hash check 已通过单元与真实知识库只读集成验证；中文检索基准、current 去历史化和事件驱动维护尚未执行。
 - 本审计文件仍混有较多 Tracking 历史维护流水，等待治理方案阶段 4 去历史化；在迁移前不将这些流水作为新的 current 表达范式。
 
 ## 1.7 2026-06-09 Tracking current 增量维护记录
