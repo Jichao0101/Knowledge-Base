@@ -2,7 +2,7 @@
 type: structure_audit
 status: active
 scope: 记录知识库结构化、current 标准化、总览内容化的当前迁移状态；不作为具体主题事实源。
-updated_at: 2026-06-17
+updated_at: 2026-06-22
 supersedes:
   - 02_Projects/Knowledge-Base/知识库结构审计-2026-06-05.md
 ---
@@ -11,16 +11,16 @@ supersedes:
 
 ## 1.1 当前决策
 
-知识库入口采用“内容简介 + 入口分流”。结构状态不放在读者主入口中心，而集中记录在本审计文件中。
+知识库入口采用“内容简介 + 入口分流”。结构状态不放在读者主入口中心，而集中记录在本审计文件中。知识库自身维护已作为独立项目纳入项目区，默认入口为 [[02_Projects/Knowledge-Base/知识库维护治理项目总览]]。
 
 ## 1.2 分区结构状态
 
 | 分区 | 当前状态 |
 |---|---|
 | `01_Knowledge` | 已新增正式知识总览和主要一级主题总览 |
-| `02_Projects` | 已新增项目总览、DMS 总览、DMS 模块索引和 Model Training current 组 |
+| `02_Projects` | 已新增项目总览、DMS 总览、DMS 模块索引、Model Training current 组和 Knowledge-Base 维护治理项目入口 |
 | `03_Inbox` | 已新增候选内容索引 |
-| `04_Sources` | 已新增来源索引 |
+| `04_Sources` | 已新增来源索引和知识库工程来源证据卡 |
 | `90_Archive` | 暂不处理为当前入口 |
 
 ## 1.3 DMS current 标准化状态
@@ -61,6 +61,8 @@ supersedes:
 - Model Training current 组已创建，但尚未完成独立 recoverability verification。
 - FaceID、EyeStatus、SDK Integration 的 recoverability verification 尚未完成。
 - Postprocess、State Machine 是否 current 化尚未决策。
+- Knowledge-Base 防静默覆盖治理方案已固化，但 Schema v2、lint、Traceability Index、pre-write gate 和中文检索基准均尚未实现。
+- 本审计文件仍混有较多 Tracking 历史维护流水，等待治理方案阶段 4 去历史化；在迁移前不将这些流水作为新的 current 表达范式。
 
 ## 1.7 2026-06-09 Tracking current 增量维护记录
 

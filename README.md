@@ -2,7 +2,7 @@
 type: vault_entry
 status: active
 scope: 知识库顶层导航；只负责入口分流，不作为具体主题真相源。
-updated_at: 2026-06-05
+updated_at: 2026-06-22
 ---
 
 # 1 知识库总入口
@@ -40,6 +40,7 @@ updated_at: 2026-06-05
 | subpower | [[02_Projects/subpower/subpower_architecture_blueprint_current]] | subagent-first 三侧协作流程、架构蓝图和实现记录 |
 | codex capability registry | [[02_Projects/codex-capability-registry/Codex plugin skill 集中注册与迁移方案]] | Codex plugin/skill 集中注册、能力摘要、portable source、安装策略和版本锁定 |
 | investment-advisor | [[02_Projects/investment-advisor/investment-advisor项目总览]] | 个人美股投资研究 Agent 系统 MVP，含 mock 数据层、SEC 证据层、反馈调节和 thesis memory |
+| Knowledge-Base | [[02_Projects/Knowledge-Base/知识库维护治理项目总览]] | 知识库结构维护、写前追溯门禁、生命周期元数据和防静默覆盖治理 |
 
 ## 1.4 入口说明
 
