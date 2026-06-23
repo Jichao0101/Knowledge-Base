@@ -12,6 +12,7 @@ source_task: 评估并将 J6 工具链候选文档提升到知识库
 evidence:
   - 来源文档：03_Inbox/BPU_trace_抓取教程.md
 updated_at: 2026-03-30
+summary: "BPU trace 抓取教程 相关的历史知识笔记，归入 模型 主题，用于学习、查阅和工程参考。"
 ---
 
 摘要：介绍 BPU trace 抓取方式、Perfetto 配置、运行命令与环境变量设置。

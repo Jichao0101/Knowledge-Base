@@ -12,6 +12,7 @@ risks:
   - 若把历史三侧同步规范当作 active dependency，会重新引入已删除的运行治理真相源。
   - 若证据不足时伪造完整 current 或标记 single_pass_recoverable: true，会制造虚假的恢复闭环。
 updated_at: 2026-04-29
+summary: "Current文档组生命周期维护与可恢复性规则 相关的历史知识笔记，归入 Agent Workflow 主题，用于学习、查阅和工程参考。"
 ---
 
 ## 0.1 摘要

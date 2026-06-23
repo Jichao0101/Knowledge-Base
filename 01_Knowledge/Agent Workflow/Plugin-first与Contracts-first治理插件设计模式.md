@@ -22,6 +22,7 @@ evidence:
   - 将 role、gate、review、writeback、routing 固定为少量 contract 家族，可在扩展 P1 时保持边界稳定
   - host-specific 的项目目录、知识分区和历史文档不应进入 plugin 自身 contracts
 updated_at: 2026-04-17
+summary: "Plugin-first与Contracts-first治理插件设计模式 相关的历史知识笔记，归入 Agent Workflow 主题，用于学习、查阅和工程参考。"
 ---
 
 ## 0.1 摘要

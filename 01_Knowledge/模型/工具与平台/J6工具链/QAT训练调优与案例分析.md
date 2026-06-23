@@ -12,6 +12,7 @@ source_task: 评估并将 J6 工具链候选文档提升到知识库
 evidence:
   - 来源文档：03_Inbox/TCJ6011-QAT训练调优&案例分析_对外.md
 updated_at: 2026-03-30
+summary: "QAT训练调优与案例分析 相关的历史知识笔记，归入 模型 主题，用于学习、查阅和工程参考。"
 ---
 
 摘要：覆盖 J6E/M 与 J6H/P 的 QAT 调优流程、校准与训练策略、逐层 qconfig 分析及案例经验。

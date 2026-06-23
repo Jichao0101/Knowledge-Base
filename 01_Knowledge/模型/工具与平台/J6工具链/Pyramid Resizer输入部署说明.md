@@ -12,6 +12,7 @@ source_task: 评估并将 J6 工具链候选文档提升到知识库
 evidence:
   - 来源文档：03_Inbox/J6EM_OE_Pyramid_Resizer输入部署说明-v2.3_对外.md
 updated_at: 2026-03-30
+summary: "Pyramid Resizer输入部署说明 相关的历史知识笔记，归入 模型 主题，用于学习、查阅和工程参考。"
 ---
 
 摘要：说明 J6 Pyramid/Resizer 输入部署模型的输入格式、PTQ/QAT 编译、板端性能评测与部署要点。

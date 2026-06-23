@@ -21,6 +21,7 @@ evidence:
   - 飞书文档导入类 Skill 应优先消费已登录 lark-cli，而不是自管认证
   - 脚本类 Skill 需覆盖语法层、合同层、端到端层三层验证
 updated_at: 2026-03-30
+summary: "Codex Skill开发与脚本化边界规范 相关的历史知识笔记，归入 Agent Workflow 主题，用于学习、查阅和工程参考。"
 ---
 
 ## 0.1 摘要

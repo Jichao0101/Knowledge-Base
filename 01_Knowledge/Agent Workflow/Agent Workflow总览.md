@@ -4,6 +4,11 @@ status: active
 domain: Agent Workflow
 scope: Agent Workflow 正式知识入口；用于主题分流，不替代具体条目。
 updated_at: 2026-06-05
+summary: "Agent Workflow 主题的正式知识入口，负责汇总主题范围、条目导航和后续维护方向。"
+risks:
+  - "由历史笔记补齐最小 metadata；本轮未重新核验全部事实、版本和适用边界。"
+sources:
+  - "原始历史笔记正文"
 ---
 
 # 1 Agent Workflow 总览

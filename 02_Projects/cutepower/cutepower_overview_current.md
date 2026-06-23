@@ -17,7 +17,8 @@ current_files_must_update:
   - 02_Projects/cutepower/cutepower_implementation_current.md
   - 02_Projects/cutepower/cutepower_validation_current.md
 history_files_to_mark: []
-single_pass_recoverable: true
+single_pass_recoverable: false
+single_pass_recoverable_reason: 尚未在本知识库中记录独立 recoverability verification；不得保留 true 声明。
 sync_required_when:
   - cutepower active truth source 变化
   - 默认入口与显式入口边界变化

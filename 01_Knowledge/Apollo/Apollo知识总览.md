@@ -4,6 +4,11 @@ status: active
 domain: Apollo
 scope: Apollo 正式知识入口；用于 Apollo、CyberRT、Bazel 和日志机制分流。
 updated_at: 2026-06-05
+summary: "Apollo 主题的正式知识入口，负责汇总主题范围、条目导航和后续维护方向。"
+risks:
+  - "由历史笔记补齐最小 metadata；本轮未重新核验全部事实、版本和适用边界。"
+sources:
+  - "原始历史笔记正文"
 ---
 
 # Apollo 知识总览

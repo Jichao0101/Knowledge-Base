@@ -21,6 +21,7 @@ evidence:
   - 本地已验证知识表明，高风险协作系统需要 runtime gate、review 独立性、contracts-first truth source 和窄边界 skill
   - 候选评估已将过时风险改写为现代 SDK/MCP/guardrail/eval 可兼容的内部设计模式
 updated_at: 2026-06-03
+summary: "生产级Agent的可控设计模式 相关的历史知识笔记，归入 Agent Workflow 主题，用于学习、查阅和工程参考。"
 ---
 
 ## 0.1 摘要

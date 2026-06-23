@@ -19,6 +19,7 @@ evidence:
   - Agent 主文档已补充 Skill-first、MCP、Tool、Knowledge-Base、Eval、Tracing 和 Guardrail 边界
   - OpenClaw 案例已按 Model / Harness / Platform-Framework 重新映射
 updated_at: 2026-05-19
+summary: "Agent术语导航 相关的历史知识笔记，归入 多模态大模型 主题，用于学习、查阅和工程参考。"
 ---
 
 # 1 Agent 术语导航

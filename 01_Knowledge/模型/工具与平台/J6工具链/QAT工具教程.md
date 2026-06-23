@@ -12,6 +12,7 @@ source_task: 评估并将 J6 工具链候选文档提升到知识库
 evidence:
   - 来源文档：03_Inbox/J6_QAT工具教程_对外.md
 updated_at: 2026-03-30
+summary: "QAT工具教程 相关的历史知识笔记，归入 模型 主题，用于学习、查阅和工程参考。"
 ---
 
 摘要：介绍 J6 QAT 工具从浮点模型改造、prepare、qconfig 到校准、QAT、调优和一致性验证的整体使用方法。

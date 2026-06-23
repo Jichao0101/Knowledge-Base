@@ -12,6 +12,7 @@ source_task: 评估并将 J6 工具链候选文档提升到知识库
 evidence:
   - 来源文档：03_Inbox/PTQ_深度使用指南_对外.md
 updated_at: 2026-03-30
+summary: "PTQ 深度使用指南 相关的历史知识笔记，归入 模型 主题，用于学习、查阅和工程参考。"
 ---
 
 摘要：面向 J6 PTQ 链路的实战指南，覆盖 fast-perf、config.yaml 配置、校准部署、性能与精度平衡以及常见问题处理。

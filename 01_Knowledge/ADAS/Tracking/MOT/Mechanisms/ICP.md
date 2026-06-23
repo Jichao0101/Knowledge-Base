@@ -1,3 +1,13 @@
+---
+status: active
+summary: "ICP 相关的历史知识笔记，归入 ADAS 主题，用于学习、查阅和工程参考。"
+scope: "适用于 ADAS 多目标跟踪、状态估计、数据关联和融合算法的学习、查阅与工程参考。"
+risks:
+  - "由历史笔记补齐最小 metadata；本轮未重新核验全部事实、版本和适用边界。"
+sources:
+  - "原始历史笔记正文"
+---
+
 # 1 KDTree
 # 2 DBSCAN
 # 3 代码实现

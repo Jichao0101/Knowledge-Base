@@ -1,3 +1,13 @@
+---
+status: active
+summary: "Arm Neon 相关的历史知识笔记，归入 芯片架构与底软 主题，用于学习、查阅和工程参考。"
+scope: "适用于 Arm 架构、向量化、实时 profile 和底层平台理解参考。"
+risks:
+  - "由历史笔记补齐最小 metadata；本轮未重新核验全部事实、版本和适用边界。"
+sources:
+  - "原始历史笔记正文"
+---
+
 # 1 简介
 
 **NEON** 是 ARMv7/ARMv8-A 上的 **SIMD（Single Instruction, Multiple Data）向量扩展**，主要用于：
