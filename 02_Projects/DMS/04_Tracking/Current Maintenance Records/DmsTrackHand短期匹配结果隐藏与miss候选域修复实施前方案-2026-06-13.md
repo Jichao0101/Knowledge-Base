@@ -12,6 +12,14 @@ source_code:
 
 # 1 DmsTrack 匹配、状态、finalize、projection、publish 职责边界修正实施前方案
 
+## Retrieval Summary
+
+- topic: DmsTrack short-term matching、state apply、finalize、projection、publish 职责边界修正。
+- anchors: `AssignmentResult`, `HandSlotKey`, `FrameBodyView`, `publishAllowedHandSlots`, `cleanupRetiredBodyAnchors`。
+- decision: solver 只产出短期匹配结果，cleanup、finalize、projection、publish 不再消费或传播 `AssignmentResult`。
+- constraint: hand miss 候选域必须来自本帧 assignment rows，不能从 matched slot 反推或扫描全量 `m_handTracks`。
+- boundary: 该记录是实施前方案及后续实施结果，不声明板端 runtime replay 等价。
+
 ## 1.1 背景
 
 当前 `AssignmentPolicyMatrix` 已取消，solver 通过 edge evaluator 直接构造 Hungarian 输入矩阵。这一方向保留。

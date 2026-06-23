@@ -37,6 +37,14 @@ updated_at: 2026-05-23
 
 > 文档状态：本文件是项目级 architecture decision record，同时归档 body-first 历史主线的失配原因。当前态入口仍是 `tracking_overview_current`，本文件不进入默认恢复顺序。
 
+## Retrieval Summary
+
+- topic: DMS Tracking 主线从 body-first 收敛为 head-first。
+- anchors: `head-first`, `body-first`, `driver identity`, `2m profile`, `OccupantTrack`。
+- decision: driver identity 优先由 head/face track 与 profile 约束决定，body 降级为 5m driver-bound evidence。
+- constraint: 第一阶段保持 legacy 四类 map ABI，不采用完整 `Occupant/PersonTrack + PartTrack`。
+- boundary: 2026-05-23 后已有第一轮代码和编译证据，但本记录不代表 2m/5m runtime replay 已验收。
+
 ## 0.1 Decision
 
 当前 DMS Tracking 第一阶段推荐主线为 `head-first 渐进方案`：

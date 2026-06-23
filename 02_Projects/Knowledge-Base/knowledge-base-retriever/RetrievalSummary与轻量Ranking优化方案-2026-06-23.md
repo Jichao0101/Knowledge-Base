@@ -3,7 +3,7 @@ type: design_record
 status: active
 project: Knowledge-Base
 module: knowledge-base-retriever
-summary: 基于 DMS Tracking A/B 评测修订下一步优化方向：移除 Builder Fix Registry 实现，优先增强原始历史记录的 Retrieval summary，并为 retriever 增加轻量 ranking。
+summary: 基于 DMS Tracking A/B 评测修订下一步优化方向：移除 Builder Fix Registry 实现，优先增强原始历史记录的 Retrieval summary，并为 retriever 增加可解释 priority-tier ranking。
 sources:
   - 02_Projects/Knowledge-Base/knowledge-base-retriever/DMS-Tracking检索与FixRegistry联动评测-2026-06-23.md
   - 02_Projects/Knowledge-Base/knowledge-base-retriever/项目总览.md
@@ -11,11 +11,11 @@ sources:
 scope: Retriever v0.1 下一轮检索质量优化；Builder retrieval summary lint 与 patch proposal；不改变 DMS Tracking 事实。
 risks:
   - Retrieval summary 只能作为召回锚点，不得替代正文事实、验证证据或 supersession 记录。
-  - 自动化不得直接改写 verified、guarded、critical 或 current 文档；只能生成候选 patch proposal。
+  - proposal 阶段不得触发完整 trace-index/preflight/hash-check；实际 apply 到 Markdown 前才执行最小校验，current、guarded、critical、结论替代等高风险变更需升级完整 preflight。
 updated_at: 2026-06-23
 ---
 
-# 1 Retrieval Summary 与轻量 Ranking 优化方案
+# 1 Retrieval Summary 与可解释 Ranking 优化方案
 
 ## 1.1 结论
 
@@ -31,7 +31,7 @@ updated_at: 2026-06-23
 因此优化顺序改为：
 
 1. 先增强原始 fix / decision / validation 记录自身的可检索性。
-2. 再调整 retriever 的轻量 ranking，使原始历史记录优先于 current/overview 的来源列表命中。
+2. 再调整 retriever 的可解释 ranking，使原始历史记录优先于 current/overview 的来源列表命中。
 3. 移除 Builder Fix Registry 实现，不把 registry 消费作为下一步默认实现目标。
 
 ## 1.2 Retrieval Summary 规范
@@ -66,17 +66,18 @@ updated_at: 2026-06-23
 Builder 移除 Fix Registry 实现，新增三类 authoring 支持：
 
 1. lint 检查 fix / decision / validation 记录是否存在 `Retrieval Summary` 或 `Retrieval Anchors` section。
-2. 对缺少 summary 的历史记录生成 patch proposal，不自动改写原文。
+2. 对缺少 summary 的历史记录生成 patch proposal，不自动改写原文，proposal 阶段不跑 trace-index/preflight/hash-check。
 3. lint 检查 summary 质量：
    - section 不应过长；
    - 关键词数量应有上限；
    - summary 中的 code/path/symbol 锚点必须能在正文或 frontmatter 中找到支撑；
-   - current / verified / guarded / critical 文档只能 proposal，不自动写入。
+   - 实际 apply 时，Retrieval Summary append 先跑 `minimal-apply-check`；current、guarded、critical、结论替代、supersession 等高风险目标升级完整 preflight。
 
 Builder 输出的 proposal 应至少包含：
 
 - target path
 - gate reason
+- recommended apply check
 - proposed section
 - supporting source lines or text snippets
 - unsupported anchors requiring manual review
@@ -85,45 +86,47 @@ Builder 输出的 proposal 应至少包含：
 
 Retriever 不读取 Fix Registry JSON 作为下一步默认实现。
 
-下一轮只做轻量 ranking，不引入复杂搜索引擎：
+下一轮只做可解释 priority-tier ranking，不引入复杂搜索引擎，也不使用隐式复杂评分：
 
-1. 文档类型权重：
-   - original fix / decision / validation / incident 记录优先；
-   - current 文档保留高可信入口价值，但当命中只发生在 frontmatter `sources` 列表时降权；
-   - overview / project entry / hardening inventory 等聚合入口不应压过原始 fix。
-2. 命中位置权重：
-   - `Retrieval Summary`、标题和正文问题段优先；
-   - frontmatter `sources` / `evidence_refs` 列表命中降权；
-   - 单个宽泛词命中如 `driver face`、`sanitize` 不应压过精确症状或标题命中。
-3. 查询批次权重：
-   - `exact_history_titles` 和 symptom batch 高于 broad code anchors；
-   - structure/current batch 主要用于发现入口，不直接压过 fix 原文。
-4. 输出可解释性：
-   - `candidate_documents` 应包含 `rank_score`、`rank_reason` 或等价字段，方便后续评测定位排序原因。
+1. 显式优先级：
+   - `P1 original_record_retrieval_summary`：原始 fix / decision / validation / incident / maintenance 记录命中 Retrieval Summary。
+   - `P2 original_record_body_or_title`：原始记录命中正文或标题。
+   - `P3 current_or_overview_body`：current / overview 命中正文。
+   - `P4 ordinary_body_or_title`：其他文档命中正文或标题。
+   - `P5 metadata_source_or_aggregate_only`：只命中 frontmatter、sources/evidence_refs 列表，或 current/overview 聚合来源而无正文命中。
+2. 同级 tie-break：
+   - exact/title batch 优先；
+   - symptom batch 优先；
+   - 多 query term、多 query batch 优先；
+   - 再按 hit_count 和 path 做确定性排序。
+3. 输出可解释性：
+   - `candidate_documents` 应包含 `rank_priority`、`rank_tier`、`rank_rules`、`rank_tie_breakers`。
+   - 不输出或依赖 `rank_score`，避免把检索排序理解成不可解释的综合相关性分数。
 
 ## 1.5 实施切片
 
-### Step 1：写回方案
+### 1.5.1 Step 1：写回方案
 
 - 新增本方案记录。
 - 同步 retriever/builder 子项目总览。
 - 不修改 DMS Tracking current 文档。
 
-### Step 2：Retriever 轻量 ranking
+### 1.5.2 Step 2：Retriever 可解释 priority-tier ranking
 
 - 在 `kb_retrieve.py` 中替换单纯 `hit_count` 排序。
-- 保持 `retrieval_package` schema 兼容，只给 `candidate_documents` 增加可选排名字段。
+- 保持 `retrieval_package` schema 兼容，只给 `candidate_documents` 增加可选排名解释字段。
 - 不读取 registry JSON。
 - 不改变 query plan schema。
 
-### Step 3：Builder Retrieval Summary lint/proposal
+### 1.5.3 Step 3：Builder Retrieval Summary lint/proposal
 
 - 在 `kb.py lint` 中增加 retrieval summary 相关 finding。
 - 新增 proposal 命令或等价子命令，生成 patch proposal 到 reports，而不是直接改 Markdown。
-- 对 guarded/current/verified/critical 文档只输出 proposal。
-- 默认 timestamped reports 每类最多保留最新 3 条，包括 lint、preflight 和 retrieval-summary-proposals。
+- proposal 阶段不跑 trace-index、preflight 或 hash-check；只有实际 apply 到 Markdown 时才执行最小校验。
+- 对 current、guarded、critical、结论替代和 supersession 等高风险变更升级完整 preflight。
+- 默认 timestamped reports 每类最多保留最新 3 条，包括 lint、preflight、minimal-apply-check 和 retrieval-summary-proposals。
 
-### Step 4：回归评测
+### 1.5.4 Step 4：回归评测
 
 - 复跑 DMS Tracking 三个场景。
 - 重点比较原始 fix 文档 rank，而不是只看 Recall@10。
@@ -141,6 +144,7 @@ Retriever 不读取 Fix Registry JSON 作为下一步默认实现。
 
 - Retriever 在 DMS Tracking 三个基准中不降低 Recall@10。
 - 原始 fix 文档 rank 不被 current/overview 的 `sources` 列表系统性压低。
+- 排序输出必须能用 `rank_priority` / `rank_rules` 解释，不使用隐式复杂 `rank_score`。
 - Builder 能找出缺少 Retrieval Summary 的 fix/decision/validation 记录。
-- Builder 对缺少 summary 的记录只生成 patch proposal，不直接改写 guarded/current/verified 文档。
+- Builder 对缺少 summary 的记录只生成 patch proposal；approved Retrieval Summary append 走 `minimal-apply-check`，不默认触发完整 preflight。
 - Summary lint 能识别明显关键词堆砌和无正文支撑的锚点。
