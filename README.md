@@ -41,6 +41,7 @@ updated_at: 2026-06-22
 | codex capability registry | [[02_Projects/codex-capability-registry/Codex plugin skill 集中注册与迁移方案]] | Codex plugin/skill 集中注册、能力摘要、portable source、安装策略和版本锁定 |
 | investment-advisor | [[02_Projects/investment-advisor/investment-advisor项目总览]] | 个人美股投资研究 Agent 系统 MVP，含 mock 数据层、SEC 证据层、反馈调节和 thesis memory |
 | Knowledge-Base | [[02_Projects/Knowledge-Base/知识库维护治理项目总览]] | 知识库结构维护、写前追溯门禁、生命周期元数据和防静默覆盖治理 |
+| CVAT | [[02_Projects/cvat/CVAT云端部署项目总览_current]] | CVAT 云端标注平台部署、Docker Compose 架构、NAS 数据层、训练平台模型任务输出和人工复核流程 |
 
 ## 1.4 入口说明
 
