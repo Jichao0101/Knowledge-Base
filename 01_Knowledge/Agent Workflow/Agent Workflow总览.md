@@ -23,6 +23,7 @@ sources:
 | 运行治理         | [[01_Knowledge/Agent Workflow/运行时门禁与独立审查边界模式]]                       | route、review、writeback 等边界的运行期门禁模式                       |
 | 插件治理         | [[01_Knowledge/Agent Workflow/Plugin-first与Contracts-first治理插件设计模式]] | plugin-first 与 contracts-first 的治理插件设计                   |
 | Skill 开发     | [[01_Knowledge/Agent Workflow/Codex Skill开发与脚本化边界规范]]                | skill 与脚本边界、可复用能力开发                                      |
+| Skill 优化     | [[01_Knowledge/Agent Workflow/SkillOpt式Agent Skill离线优化模式]]             | SkillOpt 式 rollout、反思、受限编辑、验证门控和 best_skill 发布模式       |
 | 生产级 Agent    | [[01_Knowledge/Agent Workflow/生产级Agent的可控设计模式]]                      | 控制流、状态、工具接口、人类审批和可恢复设计                                   |
 | Human layer  | [[01_Knowledge/Agent Workflow/Human layer 的合理性与边界]]                  | 人类确认层的适用范围与边界                                            |
 | Eval / Judge | [[01_Knowledge/Agent Workflow/LLM-as-a-Judge评估器校准与GEPA优化方法]]         | LLM judge 的二阶评估、rubric 校准、GEPA 优化和未验证边界                  |
@@ -38,3 +39,4 @@ sources:
 - 后续需要核验本主题新增条目的互相引用，避免重复定义运行治理。
 - 若从候选区继续提升 HumanLayer 相关内容，应同步更新本索引和候选索引。
 - LLM-as-a-Judge 与 GEPA 条目当前为 external inspired pattern；若后续有本地 case 验证，可再评估是否升级为 verified pattern。
+- SkillOpt 条目当前为 external inspired pattern；后续若在本地 skill 优化项目中验证 rollout/scoring/gate 闭环，可再评估是否升级为 verified pattern。
