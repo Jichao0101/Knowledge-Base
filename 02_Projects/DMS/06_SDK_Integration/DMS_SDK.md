@@ -98,16 +98,16 @@ available（空壳可写） -> producer GetImage 填充 -> filled（可读） ->
 
 # 3 睁闭眼模型
 
-[[睁闭眼模型训练方案]]
+[[02_Projects/DMS/03_Model_Training/睁闭眼模型训练方案]]
 
 # 4 后处理
 
-[[疲劳驾驶监测后处理]]
+[[02_Projects/DMS/05_Postprocess/疲劳驾驶监测后处理]]
 
-[[座舱乘员多目标跟踪方案]]
+[[02_Projects/DMS/04_Tracking/tracking_overview_current|多目标跟踪当前入口]]
 # 5 交叉编译
 
-[[QNX与Linux交叉编译]]
+[[01_Knowledge/操作系统/QNX与Linux交叉编译]]
 
 ## 5.1 protobuf编译
 

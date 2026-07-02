@@ -10,16 +10,16 @@ sources:
 updated_at: 2026-06-05
 ---
 
-# Model Training Spec Current
+# 1 Model Training Spec Current
 
-## 1 数据与 Split 契约
+## 1.1 数据与 Split 契约
 
 - split 主键：`group_id = f(person_id)`。
 - `val/test` 候选门槛：`total_samples >= N_min`。
 - 冻结 benchmark 后，历史 `val/test` group 不得因增量数据回流训练集。
 - 数据、split、输入、训练和评测版本必须绑定。
 
-## 2 Stage 契约
+## 1.2 Stage 契约
 
 | Stage | 目标 | 关键要求 |
 |---|---|---|
@@ -29,7 +29,7 @@ updated_at: 2026-06-05
 | D | 导出 ROI 数据集 | 输出目录必须与 `stage_d_roi_manifest.json` 表示同一份当前视图；清理失效 ROI |
 | Train | 训练与评测 | 使用绑定版本的 ROI manifest 和输入协议 |
 
-## 3 输入契约
+## 1.3 输入契约
 
 - 当前正式输入：`SquareCrop(k=1.0) + OOB Const Padding`。
 - padding 常量：OOB constant padding。
@@ -37,7 +37,7 @@ updated_at: 2026-06-05
 - ROI 导出必须记录 shortcut 观测字段。
 - 训练、量化、部署预处理协议必须版本化并写死。
 
-## 4 实验 Gate
+## 1.4 实验 Gate
 
 T1 进入 T2/T3 的条件：
 
@@ -55,7 +55,7 @@ T3 结束条件：
 - `k=1.0` 保持当前正式输入主线。
 - `k=1.4 / 1.8 / 2.2` 不替代默认部署输入。
 
-## 5 验证契约
+## 1.5 验证契约
 
 最低验证应覆盖：
 

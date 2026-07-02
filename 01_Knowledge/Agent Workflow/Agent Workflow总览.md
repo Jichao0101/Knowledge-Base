@@ -3,7 +3,7 @@ type: knowledge_topic_index
 status: active
 domain: Agent Workflow
 scope: Agent Workflow 正式知识入口；用于主题分流，不替代具体条目。
-updated_at: 2026-06-05
+updated_at: 2026-06-30
 summary: "Agent Workflow 主题的正式知识入口，负责汇总主题范围、条目导航和后续维护方向。"
 risks:
   - "由历史笔记补齐最小 metadata；本轮未重新核验全部事实、版本和适用边界。"
@@ -26,6 +26,7 @@ sources:
 | Skill 开发 | [[01_Knowledge/Agent Workflow/Codex Skill开发与脚本化边界规范]] | skill 与脚本边界、可复用能力开发 |
 | 生产级 Agent | [[01_Knowledge/Agent Workflow/生产级Agent的可控设计模式]] | 控制流、状态、工具接口、人类审批和可恢复设计 |
 | Human layer | [[01_Knowledge/Agent Workflow/Human layer 的合理性与边界]] | 人类确认层的适用范围与边界 |
+| Eval / Judge | [[01_Knowledge/Agent Workflow/LLM-as-a-Judge评估器校准与GEPA优化方法]] | LLM judge 的二阶评估、rubric 校准、GEPA 优化和未验证边界 |
 
 ## 1.2 使用边界
 
@@ -37,3 +38,4 @@ sources:
 
 - 后续需要核验本主题新增条目的互相引用，避免重复定义运行治理。
 - 若从候选区继续提升 HumanLayer 相关内容，应同步更新本索引和候选索引。
+- LLM-as-a-Judge 与 GEPA 条目当前为 external inspired pattern；若后续有本地 case 验证，可再评估是否升级为 verified pattern。

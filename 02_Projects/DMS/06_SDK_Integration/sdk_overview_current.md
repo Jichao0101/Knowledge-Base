@@ -8,7 +8,7 @@ single_pass_recoverable: false
 source_repo: /home/jichao/dms
 source_branch: feat/ljc/fatigue_params_0601
 source_commit: dabc4ec2ec7e61b7172d89b48fe08b898bdcf096
-updated_at: 2026-06-02
+updated_at: 2026-07-02
 ---
 
 # 1 DMS SDK 集成概览
@@ -32,6 +32,7 @@ updated_at: 2026-06-02
 - SDK 的两条使用路径。
 - 动态库集成接口的生命周期。
 - 初始化、配置、Pipeline、Fuse 和输出链路。
+- SDK 回灌入口、数据集格式和 start_stage 扩展边界。
 - HBM/BPU 与 VP/DSP 硬件加速落点。
 - 静态源码调查能够确认的事实、风险和待验证项。
 
@@ -62,6 +63,7 @@ updated_at: 2026-06-02
 | 动态库接口 | `/home/jichao/dms/main/dms_process_interface.hpp` | 对外接口声明 |
 | 动态库实现 | `/home/jichao/dms/main/dms_process_interface.cpp` | 初始化、入队、线程、状态和销毁 |
 | 回灌入口 | `/home/jichao/dms/main/main.cpp` | 可执行程序入口 |
+| 回灌方案记录 | [[02_Projects/DMS/06_SDK_Integration/DMS回灌方案]] | 统一记录模型阶段回灌已实现链路，以及 postprocess 阶段回灌预留边界 |
 | Pipeline | `/home/jichao/dms/source/pipeline/dms_pipeline.cpp` | 模型初始化与逐帧调度 |
 | Fuse | `/home/jichao/dms/source/fuse_algos/fuse_algorithm.cpp` | 融合算法初始化、消费和输出 |
 | 补充来源 | `DMS_SDK.md` | 目录背景、buffer manager 和 protobuf 说明 |
@@ -69,7 +71,7 @@ updated_at: 2026-06-02
 ## 1.5 当前状态
 
 - 本轮从源码静态证据创建 current 文档组。
+- 2026-07-02 新增 [[02_Projects/DMS/06_SDK_Integration/DMS回灌方案]]，记录 `start_stage=model` 已实现路径和 `start_stage=postprocess` 未支持边界。
 - 未执行编译、测试、可执行程序或板端验证。
 - 本轮只能声明 `created_but_not_fully_verified`。
 - 在完成整组文档复核和运行态验证前，不得设置 `single_pass_recoverable: true`。
-

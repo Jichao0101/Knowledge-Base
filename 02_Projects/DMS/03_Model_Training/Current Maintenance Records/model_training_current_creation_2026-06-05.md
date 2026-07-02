@@ -14,7 +14,6 @@ updated_at: 2026-06-05
 - [[02_Projects/DMS/03_Model_Training/睁闭眼模型训练方案]]
 - [[02_Projects/DMS/03_Model_Training/睁闭眼分类模型对照实验设计]]
 - [[02_Projects/DMS/03_Model_Training/睁闭眼增量更新策略实现同步记录]]
-- [[02_Projects/DMS/03_Model_Training/T1训练测试联动脚本调整记录]]
 
 ## 1.2 Action Taken
 

@@ -3,7 +3,7 @@ type: project_entry
 status: active
 project: DMS
 scope: DMS 项目区模块入口索引；只负责导航和内容简介，不替代各模块 current 文档。
-updated_at: 2026-06-17
+updated_at: 2026-07-02
 ---
 
 # 1 DMS 项目总览
@@ -15,7 +15,7 @@ updated_at: 2026-06-17
 | 模块 | 默认入口 | 内容简介 | 读取提示 |
 |---|---|---|---|
 | Tracking | [[02_Projects/DMS/04_Tracking/tracking_overview_current]] | 多目标跟踪、head-first 身份主线、body/face/hand 关联和验证边界 | 按 current 恢复顺序读取 |
-| SDK Integration | [[02_Projects/DMS/06_SDK_Integration/sdk_overview_current]] | SDK 两条使用路径、动态库接口、回灌入口、Pipeline/Fuse 和硬件加速落点 | 按 current 恢复顺序读取 |
+| SDK Integration | [[02_Projects/DMS/06_SDK_Integration/sdk_overview_current]] | SDK 两条使用路径、动态库接口、回灌入口、DMS 回灌方案、Pipeline/Fuse 和硬件加速落点 | 按 current 恢复顺序读取 |
 | EyeStatus | [[02_Projects/DMS/08_EyeStatus/eyestatus_overview_current]] | 睁闭眼模型部署态、眼部 crop、VP resize、推理输出和验证证据 | 按 current 恢复顺序读取 |
 | FaceID | [[02_Projects/DMS/09_FaceID/overview_current]] | A 核 FaceID 录入、登录、解绑、删除、check、恢复出厂设置和本地特征库 | 按 current 恢复顺序读取 |
 | Model Training | [[02_Projects/DMS/03_Model_Training/model_training_overview_current]] | 睁闭眼数据构建、输入生成、训练配置、对照实验和增量更新链路 | 按 current 恢复顺序读取 |
@@ -43,3 +43,4 @@ DMS current 覆盖情况、模块索引状态和待修复项记录在 [[02_Proje
 - 当前 Tracking 代码事实：`DmsTrack::Init/Update` public API 保持不变；`Update` 以 face/head identity 为主线，按 profile gate 执行 driver-bound body evidence 和 hand evidence；2m profile 关闭并清理 body/hand tracking cache；hand 内部 body 输入来自 body phase 返回的 finalized driver body evidence snapshot。
 - 当前验证边界：profile split、driver-bound body evidence、body-to-hand snapshot 和三笔 hand lambda 可读性整理已有本地编译与独立 review 记录；runtime replay、单元测试、代表性视频集和区域级唯一性验证仍未闭合。
 - 历史方案、superseded lambda 路线、整体架构评审和每步验证命令详见 `02_Projects/DMS/04_Tracking/Current Maintenance Records/` 与 `02_Projects/DMS/04_Tracking/subpower_runs/`。
+- SDK Integration 当前补充记录：[[02_Projects/DMS/06_SDK_Integration/DMS回灌方案]] 记录 `start_stage=model` 已实现的模型阶段回灌路径，以及 README 中 `start_stage=postprocess` 预留但暂不支持的边界；该记录仅为源码静态整理，未完成 x86 或板端运行验证。

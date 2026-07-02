@@ -2,7 +2,7 @@
 type: structure_audit
 status: active
 scope: 记录知识库结构化、current 标准化、总览内容化的当前迁移状态；不作为具体主题事实源。
-updated_at: 2026-06-22
+updated_at: 2026-07-02
 supersedes:
   - 02_Projects/Knowledge-Base/知识库结构审计-2026-06-05.md
 ---
@@ -315,3 +315,11 @@ supersedes:
 - `AGENTS.md` 是目标仓库本地政策，不作为 skill 资产，不与 skill 版本绑定。
 - 阶段 0 至 3B 实现记录继续保存拆分前实现与验证事实，并已改为引用两个子项目入口。
 - 本轮没有创建五份 current 文档组；两个子项目均先以单一项目总览作为入口，后续形成长期独立设计、实现和验证事实后再评估 current 化。
+
+## 1.34 2026-07-02 SDK Integration DMS 回灌方案记录写回
+
+- 新增项目级方案记录：[[02_Projects/DMS/06_SDK_Integration/DMS回灌方案]]。
+- 已局部同步 SDK Integration overview current 和 DMS 项目总览，使回灌方案可从模块入口召回。
+- 本记录将回灌方案命名为 DMS 回灌方案，而非原始图像回灌方案，以保留 README 中 `start_stage=model` 与 `start_stage=postprocess` 的同一配置语义。
+- 当前事实边界：`start_stage=model` 的模型阶段回灌路径已有源码静态证据；`start_stage=postprocess` 为 README 预留但目前不支持，未看到 atomic 结果注入 Fuse/后处理的运行时链路。
+- 本轮未执行编译、x86 回灌或板端回灌验证；未新增或保留 `single_pass_recoverable: true` 声明。
