@@ -5,8 +5,8 @@ project: Knowledge-Base
 module: knowledge-base-retriever
 summary: 记录 knowledge-base-retriever v0.1 在 DMS Tracking 历史问题上的无索引基线、Builder Fix Registry 构建结果和 registry 消费集成缺口。
 sources:
-  - 02_Projects/Knowledge-Base/knowledge-base-retriever/项目总览.md
-  - 02_Projects/Knowledge-Base/knowledge-base-structure-builder/项目总览.md
+  - 02_Projects/codex-capability-registry/knowledge-base-retriever/项目总览.md
+  - 02_Projects/codex-capability-registry/knowledge-base-structure-builder/项目总览.md
   - 02_Projects/DMS/04_Tracking/tracking_overview_current.md
   - 02_Projects/DMS/04_Tracking/tracking_validation_current.md
   - reports/kb/retrieval-eval/2026-06-23-dms-tracking/metrics_summary.json
@@ -122,7 +122,7 @@ Round B 授权：
 
 ## 1.8 原始下一轮优化建议（已被取代）
 
-后续修订：本节最初建议实现 registry JSON reader。经用户复盘，该方向已由 [[02_Projects/Knowledge-Base/knowledge-base-retriever/RetrievalSummary与轻量Ranking优化方案-2026-06-23]] 取代；当前决策是移除 Builder Fix Registry 实现，先增强原始记录 Retrieval Summary，再做 retriever 轻量 ranking。
+后续修订：本节最初建议实现 registry JSON reader。经用户复盘，该方向已由 [[02_Projects/codex-capability-registry/knowledge-base-retriever/RetrievalSummary与轻量Ranking优化方案-2026-06-23]] 取代；当前决策是移除 Builder Fix Registry 实现，先增强原始记录 Retrieval Summary，再做 retriever 轻量 ranking。
 
 以下为本评测记录最初给出的优先级，仅保留为决策演变证据：
 

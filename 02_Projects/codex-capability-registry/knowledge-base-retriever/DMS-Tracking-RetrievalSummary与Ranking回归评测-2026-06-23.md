@@ -5,8 +5,8 @@ project: Knowledge-Base
 module: knowledge-base-retriever
 summary: 复跑 DMS Tracking 三个既有检索基准，并新增三条 Tracking 记录作为防过拟合样本，验证 Retrieval Summary 与可解释 priority-tier ranking 的效果。
 sources:
-  - 02_Projects/Knowledge-Base/knowledge-base-retriever/DMS-Tracking检索与FixRegistry联动评测-2026-06-23.md
-  - 02_Projects/Knowledge-Base/knowledge-base-retriever/RetrievalSummary与轻量Ranking优化方案-2026-06-23.md
+  - 02_Projects/codex-capability-registry/knowledge-base-retriever/DMS-Tracking检索与FixRegistry联动评测-2026-06-23.md
+  - 02_Projects/codex-capability-registry/knowledge-base-retriever/RetrievalSummary与轻量Ranking优化方案-2026-06-23.md
   - reports/kb/retrieval-eval/2026-06-23-dms-tracking-summary-ranking/metrics_summary.json
   - reports/kb/retrieval-summary-proposals/retrieval-summary-proposals-20260623T170916414913.json
 scope: DMS Tracking 授权路径内的 retriever 回归评测；不评价 DMS Tracking 业务修复本身。
@@ -32,7 +32,7 @@ updated_at: 2026-06-23
 
 - 知识库根目录：`/mnt/d/Knowledge-Base`
 - 检索授权范围：`02_Projects/DMS/04_Tracking`
-- 写回记录路径：`02_Projects/Knowledge-Base/knowledge-base-retriever`
+- 写回记录路径：`02_Projects/codex-capability-registry/knowledge-base-retriever`
 - 派生评测包：`reports/kb/retrieval-eval/2026-06-23-dms-tracking-summary-ranking/`
 - metrics summary hash：`6e46fd6b4beb78603fe05ea5ce94f03254765a3a04b1b9b04eaf10cd2f9935f0`
 - Builder Retrieval Summary proposal report：`reports/kb/retrieval-summary-proposals/retrieval-summary-proposals-20260623T170916414913.json`

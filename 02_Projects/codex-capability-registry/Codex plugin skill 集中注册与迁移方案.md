@@ -79,6 +79,7 @@ Registry 仓库：
     deep-module-design-review/
     interface-abstraction-implementation-guard/
     karpathy-guidelines/
+    knowledge-base-retriever/
     knowledge-base-structure-builder/
     lark-doc-to-obsidian/
     module-comment-and-naming-governance/
@@ -97,9 +98,15 @@ Registry 仓库：
 - `deep-module-design-review`
 - `interface-abstraction-implementation-guard`
 - `karpathy-guidelines`
+- `knowledge-base-retriever`
 - `knowledge-base-structure-builder`
 - `lark-doc-to-obsidian`
 - `module-comment-and-naming-governance`
+
+Skill 项目文档入口：
+
+- [[02_Projects/codex-capability-registry/knowledge-base-retriever/项目总览]]
+- [[02_Projects/codex-capability-registry/knowledge-base-structure-builder/项目总览]]
 
 第三方 skill：
 

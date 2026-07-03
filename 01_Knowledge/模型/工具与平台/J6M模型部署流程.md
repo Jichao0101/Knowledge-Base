@@ -5,7 +5,7 @@ unit_type: workflow_pattern
 domain: 模型
 topic: J6M模型部署流程
 sources:
-  - 03_Inbox/TCJ6002-J6算法工具链使用流程介绍_对外.md
+  - 03_Inbox/J6工具链/TCJ6002-J6算法工具链使用流程介绍_对外.md
 scope: 适用于 J6M 平台从模型检查、量化编译到板端性能与精度验证的部署流程梳理。
 risks: 不覆盖 UCP 全量接口细节，也不替代 PTQ/QAT 专题文档；不同 OE 版本的命令、目录和算子约束可能变化。
 source_task: 合并 J6 工具链候选内容到既有部署流程知识

@@ -10,7 +10,7 @@ scope: 适用于 J6 工具链下基于 PTQ 的模型转换、校准、部署与�
 risks: 仍保留少量富文本标签与 sheet placeholder；具体命令参数需结合工具链版本核对。
 source_task: 评估并将 J6 工具链候选文档提升到知识库
 evidence:
-  - 来源文档：03_Inbox/PTQ_深度使用指南_对外.md
+  - 来源文档：03_Inbox/J6工具链/PTQ_深度使用指南_对外.md
 updated_at: 2026-03-30
 summary: "PTQ 深度使用指南 相关的历史知识笔记，归入 模型 主题，用于学习、查阅和工程参考。"
 ---

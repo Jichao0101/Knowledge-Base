@@ -5,9 +5,9 @@ project: Knowledge-Base
 module: knowledge-base-retriever
 summary: 基于 DMS Tracking A/B 评测修订下一步优化方向：移除 Builder Fix Registry 实现，优先增强原始历史记录的 Retrieval summary，并为 retriever 增加可解释 priority-tier ranking。
 sources:
-  - 02_Projects/Knowledge-Base/knowledge-base-retriever/DMS-Tracking检索与FixRegistry联动评测-2026-06-23.md
-  - 02_Projects/Knowledge-Base/knowledge-base-retriever/项目总览.md
-  - 02_Projects/Knowledge-Base/knowledge-base-structure-builder/项目总览.md
+  - 02_Projects/codex-capability-registry/knowledge-base-retriever/DMS-Tracking检索与FixRegistry联动评测-2026-06-23.md
+  - 02_Projects/codex-capability-registry/knowledge-base-retriever/项目总览.md
+  - 02_Projects/codex-capability-registry/knowledge-base-structure-builder/项目总览.md
 scope: Retriever v0.1 下一轮检索质量优化；Builder retrieval summary lint 与 patch proposal；不改变 DMS Tracking 事实。
 risks:
   - Retrieval summary 只能作为召回锚点，不得替代正文事实、验证证据或 supersession 记录。

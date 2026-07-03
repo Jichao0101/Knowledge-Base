@@ -5,7 +5,7 @@ unit_type: design_pattern
 domain: 模型
 topic: 地平线UCP
 sources:
-  - 03_Inbox/统一计算平台UCP全功能介绍_（外部）.md
+  - 03_Inbox/J6工具链/统一计算平台UCP全功能介绍_（外部）.md
 scope: 适用于理解 J6/Open Explorer 中 UCP 的能力边界、典型调用模式和常见调度场景。
 risks: 该条目是能力总览与使用要点，不覆盖完整 API 细节；具体接口参数、返回值和版本兼容性仍应以对应 OE 文档为准。
 source_task: 重构 UCP 候选文档并整理为正式知识

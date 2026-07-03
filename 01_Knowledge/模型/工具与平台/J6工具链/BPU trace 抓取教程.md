@@ -10,7 +10,7 @@ scope: 适用于 J6/UCP 场景下进行 BPU trace 抓取与分析。
 risks: 仍有 file/view 富标签未降级；部分命令依赖 BSP 版本和运行权限。
 source_task: 评估并将 J6 工具链候选文档提升到知识库
 evidence:
-  - 来源文档：03_Inbox/BPU_trace_抓取教程.md
+  - 来源文档：03_Inbox/J6工具链/BPU_trace_抓取教程.md
 updated_at: 2026-03-30
 summary: "BPU trace 抓取教程 相关的历史知识笔记，归入 模型 主题，用于学习、查阅和工程参考。"
 ---
