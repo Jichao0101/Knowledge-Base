@@ -3,7 +3,7 @@ type: project_record
 status: draft
 project: DMS
 module: SDK Integration
-summary: 记录 DMS SDK 回灌方案的统一结构，当前已实现从模型阶段开始回灌；后处理阶段回灌方案收敛为 log-only 数据来源、vector 消费契约和现有代码最小改造骨干。
+summary: 记录 DMS SDK 回灌方案的统一结构，当前已实现从模型阶段开始回灌；后处理阶段回灌方案已收敛为 J6M_PIC 回灌模式下读取 AlgorithmResultReplay 日志，直接消费 atomicResult 和 algorithmResult，不再逆向适配 DmsProcessOutputData。
 sources:
   - /home/jichao/dms/README.md
   - /home/jichao/dms/python_zmq/fillback_preprocess.py
@@ -26,19 +26,21 @@ sources:
   - /home/jichao/dms/include/fuse_algos/serialize_result.h
   - /home/jichao/dms/main/dms_data_types.hpp
   - /home/jichao/dms/python_zmq/sdk_output.proto
-scope: DMS SDK 离线/板端回灌入口、数据集格式、模型阶段回灌调用链，以及后处理阶段回灌的 vector 消费契约、log-only 数据来源约束和代码骨干。
+scope: DMS SDK 离线/板端回灌入口、数据集格式、模型阶段回灌调用链，以及后处理阶段回灌的 AlgorithmResult replay 消费契约、log-only 数据来源约束和代码骨干。
 risks:
-  - 2026-07-02 已完成 postprocess 回灌代码骨干并通过 J6B 编译；但未执行板端 runtime 回灌。
-  - `LoadPostprocessFillbackData(log_path)` 的具体日志解析格式仍未由当前源码事实确认；当前实现保留 log-only helper 入口并 fail-fast，不能把 postprocess 回灌写成端到端已可运行。
-  - 现有 `FuseAlgorithm::Run(std::shared_ptr<AtomicResult>)` 同时承担后处理、可视化、protobuf/ZMQ/UDP 输出，并会在空图像时返回失败；postprocess 回灌需要新增窄入口，不能直接复用该函数作为最终方案。
-updated_at: 2026-07-02
+  - 2026-07-06 已将 postprocess 回灌接到 AlgorithmResultReplayLoader，并约束 AlgorithmResultReplay 只在 `QNX_8_0_0_VERSION && J6M_PIC_VERSION` 下参与编译/链接；但未执行板端 runtime 回灌。
+  - replay 文件中既有 face recognition / face id 解析属于历史代码；本次 SDK 适配层不新增、不比较、不专门屏蔽 face recognition / face id。
+  - postprocess 回灌没有原始图像，应绕过模型推理与可视化图像依赖；后处理若因 face recognition / face id 输入为空失败，应沿现有算法失败路径返回。
+updated_at: 2026-07-06
 ---
 
 # 1 DMS 回灌方案
 
 ## 1.1 当前结论
 
-DMS 回灌方案分为两个入口：`start_stage=model` 使用 dump/manifest 图片数据集接入 SDK camera callback 层；`start_stage=postprocess` 按优化方案只接受 log 日志经 helper 还原出的 `std::vector<FuseAlgosDomain::DmsProcessOutputData>`。当前代码链路已支持模型阶段回灌：SDK 读取离线图片，构造 `ImageData`，再进入原有 `DmsProcessEngine`、`DmsPipeline` 和 Fuse 链路。
+DMS 回灌方案分为两个入口：`start_stage=model` 使用 dump/manifest 图片数据集接入 SDK camera callback 层；`start_stage=postprocess` 只接受 `fillback.json` 指定的日志来源，并在 J6M_PIC 回灌模式下通过 `AlgorithmResultReplayLoader` 读取 `AlgorithmResult` 序列。postprocess 回灌直接使用日志中的 `atomicResult` 作为后处理输入、`algorithmResult` 作为选择性对比来源，不再强行适配成既有 `DmsProcessOutputData`。
+
+2026-07-06 修订结论 supersede 本文 1.5-1.12 中 2026-07-02 的旧骨干：旧方案里的 `DmsProcessOutputData` vector、`log_path`、expected/actual 全量记录和 `DmsProcessOutputData -> AtomicResult` 逆向 adapter 均不再作为当前推荐方案。
 
 README 中同时保留 `start_stage=postprocess` 的配置语义，但标注“目前不支持”。因此本文档把方案命名为“DMS 回灌方案”，不限定为原始图像回灌；后续从后处理开始回灌应作为同一方案下的扩展，而不是另起一个只面向图片输入的方案。
 
@@ -51,7 +53,7 @@ README 中同时保留 `start_stage=postprocess` 的配置语义，但标注“�
 | `images/<timestamp>.*` | 回灌图像，供 SDK camera callback 读取 |
 | `manifest.csv` | 模型阶段回灌帧索引，运行时使用 timestamp、frame_id 和 image_path 定位图像 |
 
-`manifest.csv` 是模型阶段运行时索引入口。SDK 加载时要求表头固定，并要求 timestamp 严格递增；否则 `loadManifest()` 返回失败。postprocess 阶段不以 dump、manifest 或 atomic JSON 作为主输入，统一走 log 日志到 `std::vector<FuseAlgosDomain::DmsProcessOutputData>` 的 helper 契约。
+`manifest.csv` 是模型阶段运行时索引入口。SDK 加载时要求表头固定，并要求 timestamp 严格递增；否则 `loadManifest()` 返回失败。postprocess 阶段不以 dump、manifest、图片目录或 atomic JSON 作为主输入，统一走 `etc/fillback.json` 中的日志配置，由 `AlgorithmResultReplayLoader` 返回 `std::vector<std::shared_ptr<FuseAlgosDomain::AlgorithmResult>>`。
 
 ## 1.3 模型阶段回灌链路
 
@@ -80,7 +82,7 @@ README 中同时保留 `start_stage=postprocess` 的配置语义，但标注“�
 | `source_type` | `bin`、`image_seq`、`video` 等预处理来源类型 | 只能为 `log` |
 | `start_stage` | `model` | `postprocess` |
 | `dumps_folder` | dump 目录根路径 | 不作为 postprocess 主输入 |
-| `log_path` | 不使用 | 指向法规允许的数据来源日志 |
+| `log_fillback_path` | 不使用 | 指向法规允许的数据来源日志目录 |
 | `camera_intrinsic_path` | 回灌时使用的相机内参 JSON | 通常不作为 postprocess 主输入，除非后处理显式依赖 |
 
 代码对 `car_type` 做合法性检查，避免静默继承默认车型。回灌开启时还会从 `camera_intrinsic_path` 初始化相机内参，避免离线图像与车型/内参不一致时无提示跑偏。
@@ -401,3 +403,55 @@ PostprocessDiff ComparePostprocessOutput(
 - 真实 `log.txt -> std::vector<FuseAlgosDomain::DmsProcessOutputData>` 解析验证。
 
 因此本文档状态保持 `draft`。
+
+## 1.13 2026-07-06 实现回写
+
+本轮基于已合入的 `AlgorithmResultReplay` 读取能力继续收敛 postprocess 回灌接口，分支为 `feat/ljc/fillback_0702`。本节为当前 postprocess 回灌事实源，替代 2026-07-02 骨干中关于 `DmsProcessOutputData` vector、`log_path`、expected/actual 全量记录和逆向 adapter 的旧结论。
+
+实际改造点：
+
+| 文件 | 实现内容 |
+|---|---|
+| `main/postprocess_fillback.cpp/.h` | `LoadPostprocessFillbackData()` 改为读取 `etc/fillback.json` 并返回 `vector<shared_ptr<AlgorithmResult>>`；只在 `QNX_8_0_0_VERSION && J6M_PIC_VERSION` 下接入 `AlgorithmResultReplayLoader`；比较函数改为 `AlgorithmResult` 对 `DmsProcessOutputData` 的 selected-field 对比 |
+| `main/DmsProcessEngine.cpp/.h` | `RunPostprocessFillback()` 改为消费 `vector<shared_ptr<AlgorithmResult>>`，校验每帧和 `m_atomicRes`，直接调用 Fuse 后处理窄入口 |
+| `main/patac_vision_sdk.cpp` | postprocess 回灌读取 `VISION_ROOT_PATH + "/etc/fillback.json"`；配置校验改为 `source_type=log` 且 `log_fillback_path` 非空 |
+| `source/CMakeLists.txt` | `algorithm_result_replay` 子目录仅在 `QNX_8_0_0_VERSION && J6M_PIC_VERSION` 下加入构建 |
+| `main/CMakeLists.txt` | `AlgorithmResultReplay` 仅在 `QNX_8_0_0_VERSION && J6M_PIC_VERSION` 的 `sdk` 链接分支中链接 |
+
+本轮明确不做：
+
+- 不强行适配回 `DmsProcessOutputData` 作为 replay 输入。
+- 不合成黑图，也不依赖原始图像。
+- 不记录 expected/actual 全量结果。
+- 不新增 face recognition / face id 回灌解析或比较。
+- 不在 Fuse 层按算法类型特殊屏蔽 face recognition / face id。
+
+运行边界：
+
+- `AlgorithmResultReplay` 是 J6M_PIC 回灌模式专用静态库，不能泄漏到相机分支。
+- replay 文件中既有解析逻辑属于该模块历史实现；SDK 适配层只保证本次修改和上一笔本地提交不新增 face recognition / face id 回灌语义。
+- 后处理失败应由算法链自身返回，SDK 回灌 runner 不吞错、不跳帧。
+- postprocess 回灌没有原始图像，应绕过模型推理、visualizer、protobuf/ZMQ/UDP 发送和生产 callback 发布。
+
+当前 selected-field 对比范围：
+
+| `AlgorithmResult` 字段 | `DmsProcessOutputData` 字段 |
+|---|---|
+| `fatigueFuseRes.isEyeClosed` | `fatigueFuseRes.isEyeClosed` |
+| `fatigueFuseRes.isYawn` | `fatigueFuseRes.isYawn` |
+| `smokingFuseRes.isSmoking` | `smokingFuseRes.isSmoking` |
+| `phoneCallFuseRes.isPhoneCall` | `phoneCallFuseRes.isPhoneCall` |
+| `distractionFuseRes.gazeField` | `distractionFuseRes.gazeField` |
+| `cameraShelterFuseRes.isCameraOcclusion` | `cameraOcclusion` |
+
+比较逻辑不直接比较 `header.timestamp_us`、`rollingCount`、图像字段、face recognition 或 face id。
+
+2026-07-06 已完成的验证：
+
+- `bash scripts/compile_j6b.sh`：通过，`build/main/sdk` 链接成功。
+- `cmake -S /home/jichao/dms -B /tmp/dms-nopic-config-check2`：通过，非 PIC 配置阶段未强制构建/链接 `AlgorithmResultReplay`。
+
+仍未执行以下验证：
+
+- `J6M_PIC_VERSION` 板端 runtime 回灌。
+- 真实 postprocess log runtime 回灌验证。

@@ -9,13 +9,13 @@ single_pass_recoverable: false
 updated_at: 2026-06-02
 ---
 
-# DMS SDK current 文档组创建记录
+# 1 DMS SDK current 文档组创建记录
 
-## 1. 目标
+## 1.1 目标
 
 根据 `/home/jichao/dms` 代码仓静态证据，为 SDK 集成主题建立可恢复的 current 文档组，补充 SDK 双调用路径、初始化、配置、Pipeline/Fuse、硬件加速和风险边界。
 
-## 2. 授权边界
+## 1.2 授权边界
 
 - 允许读取代码仓：`/home/jichao/dms/**`
 - 允许读取知识库 lifecycle 规则：`01_Knowledge/Agent Workflow/Current文档组生命周期维护与可恢复性规则.md`
@@ -23,15 +23,15 @@ updated_at: 2026-06-02
 - 禁止修改代码。
 - 禁止运行测试、编译、可执行程序和板端验证。
 
-## 3. Source Inventory
+## 1.3 Source Inventory
 
-### 3.1 项目区来源
+### 1.3.1 项目区来源
 
 - `DMS_SDK.md`
 
 处理结论：保留为 `retained_source`。该文档包含目录背景、buffer manager 和 protobuf 说明，但不承担默认恢复入口职责。
 
-### 3.2 代码仓静态证据
+### 1.3.2 代码仓静态证据
 
 - `/home/jichao/dms/CMakeLists.txt`
 - `/home/jichao/dms/main/CMakeLists.txt`
@@ -59,7 +59,7 @@ pre_existing_dirty_file:
 
 本轮没有修改代码仓，也没有读取已有未提交修改的内容。
 
-## 4. Lifecycle Classification
+## 1.4 Lifecycle Classification
 
 ```yaml
 lifecycle_classification: creation
@@ -72,7 +72,7 @@ detail: creation_with_source_extraction
 - 原先不存在 `overview_current`、`design_current`、`spec_current`、`implementation_current`、`validation_current`。
 - 没有 `structural_unrecoverable` 证据，不升级为 rewrite。
 
-## 5. 创建文件
+## 1.5 创建文件
 
 - `sdk_overview_current.md`
 - `sdk_design_current.md`
@@ -80,7 +80,7 @@ detail: creation_with_source_extraction
 - `sdk_implementation_current.md`
 - `sdk_validation_current.md`
 
-## 6. Evidence Assessment
+## 1.6 Evidence Assessment
 
 静态源码证据足以支撑：
 
@@ -99,7 +99,7 @@ detail: creation_with_source_extraction
 - 资源泄漏的运行态影响。
 - BPU 与 DSP 在目标平台上的实际运行结果。
 
-## 7. Recoverability Verification
+## 1.7 Recoverability Verification
 
 当前结论：
 
@@ -115,7 +115,7 @@ single_pass_recoverable: false
 - 本轮按任务边界未执行运行态验证。
 - 当前不得声明 `recoverable`，也不得设置 `single_pass_recoverable: true`。
 
-## 8. Writeback Decision
+## 1.8 Writeback Decision
 
 ```yaml
 candidate_created: true
