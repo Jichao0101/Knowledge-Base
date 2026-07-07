@@ -40,6 +40,7 @@ updated_at: 2026-06-22
 | subpower | [[02_Projects/subpower/subpower_architecture_blueprint_current]] | subagent-first 三侧协作流程、架构蓝图和实现记录 |
 | codex capability registry | [[02_Projects/codex-capability-registry/Codex plugin skill 集中注册与迁移方案]] | Codex plugin/skill 集中注册、能力摘要、portable source、安装策略和版本锁定 |
 | investment-advisor | [[02_Projects/investment-advisor/investment-advisor项目总览]] | 个人美股投资研究 Agent 系统 MVP，含 mock 数据层、SEC 证据层、反馈调节和 thesis memory |
+| agent-trajectory | [[02_Projects/agent-trajectory/agent_trajectory_overview_current]] | 工业 agent 任务轨迹库、Agent Execution Event Sourcing、状态重建、Failure Taxonomy 和轨迹蒸馏实现指导 |
 | Knowledge-Base | [[02_Projects/Knowledge-Base/知识库维护治理项目总览]] | 知识库结构维护、写前追溯门禁、生命周期元数据和防静默覆盖治理 |
 | CVAT | [[02_Projects/cvat/CVAT云端部署项目总览_current]] | CVAT 云端标注平台部署、Docker Compose 架构、NAS 数据层、训练平台模型任务输出和人工复核流程 |
 

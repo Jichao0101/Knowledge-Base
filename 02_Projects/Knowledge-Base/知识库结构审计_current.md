@@ -18,7 +18,7 @@ supersedes:
 | 分区 | 当前状态 |
 |---|---|
 | `01_Knowledge` | 已新增正式知识总览和主要一级主题总览 |
-| `02_Projects` | 已新增项目总览、DMS 总览、DMS 模块索引、Model Training current 组、Knowledge-Base 维护治理项目入口和 CVAT 云端部署 current 文档组 |
+| `02_Projects` | 已新增项目总览、DMS 总览、DMS 模块索引、Model Training current 组、Knowledge-Base 维护治理项目入口、CVAT 云端部署 current 文档组和 agent-trajectory 项目 current 入口 |
 | `03_Inbox` | 已新增候选内容索引 |
 | `04_Sources` | 已新增来源索引和知识库工程来源证据卡 |
 | `90_Archive` | 暂不处理为当前入口 |
@@ -66,6 +66,7 @@ supersedes:
 - Knowledge-Base 维护治理相关的 `knowledge-base-structure-builder` 与 `knowledge-base-retriever` 文档已归位到 codex-capability 项目；Knowledge-Base 项目只保留知识库侧结构审计、治理边界和历史实现记录。
 - 现有 Traceability CLI 的目录枚举、索引、匹配和原文读取尚未全链路接受 authorized paths，后续实现前必须先消除越权扫描风险。
 - CVAT 云端部署 current 文档组已创建，状态为 `created_but_not_fully_verified`；当前方案已从 turbo/API 回写主路径调整为 NAS 持续挂载、训练平台模型结果落盘、CVAT 读取并人工复核；尚未完成真实云桌面 Docker/Compose、NAS share、模型结果导入、导出和备份恢复验证。
+- agent-trajectory 项目 current 入口已创建，状态为 `created_but_not_fully_verified`；用于指导工业 agent 任务轨迹库、Agent Execution Event Sourcing、State Reconstruction、Failure Taxonomy 和轨迹蒸馏系统后续实现；尚未完成真实 trajectory 采集、100 条人工重建 review、Counterfactual Stability rubric、Failure Taxonomy 样本校准和 holdout 验证，未声明 `single_pass_recoverable: true`。
 
 ## 1.7 2026-06-09 Tracking current 增量维护记录
 
@@ -323,7 +324,7 @@ supersedes:
 - Knowledge-Base 项目总览已改为记录知识库侧治理边界和相关 skill 项目入口；codex-capability 入口已补充两个 skill 项目文档入口。
 - 本轮只做结构归位和引用路径同步，不提升正式知识，不改写历史结论，不新增 `single_pass_recoverable: true`。
 
-## 1.34 2026-07-02 SDK Integration DMS 回灌方案记录写回
+## 1.35 2026-07-02 SDK Integration DMS 回灌方案记录写回
 
 - 新增项目级方案记录：[[02_Projects/DMS/06_SDK_Integration/DMS回灌方案]]。
 - 已局部同步 SDK Integration overview current 和 DMS 项目总览，使回灌方案可从模块入口召回。
