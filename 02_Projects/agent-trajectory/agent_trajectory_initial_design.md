@@ -3,14 +3,18 @@ type: project_record
 status: draft
 project: agent-trajectory
 module: trajectory-system-design
-summary: "在开发初期没有 Agent Runtime 控制权时，用 Skill 层实现 Agent Execution Event Sourcing、Snapshot、状态重建、Failure Taxonomy、Skill Mining 和 Benchmark Generation 的阶段性方案。"
+summary: "在开发初期没有 Agent Runtime 控制权时，以 hook feasibility spike 为前置验证，用 hook adapter + collector service 采集 raw events，并通过分层 snapshot、异步 Semantic Distillation、decision point、state graph、Failure Knowledge Base 和 Benchmark Repository 构建阶段性 trajectory 系统。"
 sources:
   - "2026-07-07 当前对话：工业 agent 任务轨迹库、Trace Capture、State Reconstruction、Skill Mining 与 Benchmark Generation 方案讨论"
+  - "2026-07-08 当前对话：hook 触发 raw trajectory、采集阶段禁用 LLM、异步 semantic distillation 与 evidence chain 方案优化"
+  - "2026-07-08 当前对话：collector service、trajectory version、event ordering、decision point、分层 snapshot、state graph 与五类资产模型方案优化"
 scope: "agent-trajectory 项目的初始架构设计；覆盖工业 agent 任务轨迹库、轻量 observability、轨迹蒸馏、状态重建、skill mining 和 benchmark generation。"
 risks:
   - "当前方案尚未经过真实 trajectory 采集、人工 reconstruction review 或 holdout benchmark 验证。"
-  - "Skill 层只能采集外部可观察事件，不能声称等价于 Agent Runtime hidden state。"
-updated_at: 2026-07-07
+  - "非 Runtime 级观测只能采集外部可观察事件，不能声称等价于 Agent Runtime hidden state。"
+  - "Semantic Distillation 可能产生后验叙事，必须通过 evidence chain 约束，不能替代 raw event stream。"
+  - "Codex hook 是否能提供足够的 tool input/output、session、ordering 和 correlation 信息尚未验证，collector service 落地前必须先做 hook feasibility spike。"
+updated_at: 2026-07-08
 ---
 
 # 1 Agent 执行事件溯源与轨迹蒸馏系统初始设计
@@ -23,7 +27,7 @@ updated_at: 2026-07-07
 
 工业 agent 的早期建设需要高质量任务轨迹库。理想方案是通过 Wrapper Agent 或 Agent Runtime 统一采集任务执行过程，但开发初期往往没有 Runtime 控制权，也无法稳定截获内部 planner、tool call、memory、state transition 和 evaluation 信号。
 
-因此，阶段性方案是把 Trace Capture 的定位从普通日志采集提升为 **Agent Execution Event Sourcing Layer**：用 Skill 层记录 agent 执行过程中的关键事件、快照、因果关系和不确定性，再通过后续 State Reconstruction、Failure Taxonomy、Skill Mining 和 Benchmark Generation，把轨迹转化为可复盘、可重建、可评估和可蒸馏的资产。
+因此，阶段性方案是把 Trace Capture 的定位从普通日志采集提升为 **Agent Execution Event Sourcing Layer**：先验证 Codex hook 是否足以支撑动作轨迹采集，再用 hook adapter 把可观察事件轻量投递给独立 collector service。collector service 负责无 LLM raw collection、event ordering、分层 snapshot 引用和 artifact 指针落盘；异步 Semantic Distillation 再使用 LLM 生成因果关系、不确定性、失败标签、decision point 和状态提示，并通过后续 State Graph Reconstruction、Failure Knowledge Base、Skill Mining 和 Benchmark Repository，把轨迹转化为可复盘、可重建、可评估和可蒸馏的资产。
 
 该方案不追求完整复刻 agent 内部状态，而是优先构建能服务于人工 review、任务恢复、策略分析和 benchmark 生成的高质量 trajectory。
 
@@ -50,121 +54,181 @@ updated_at: 2026-07-07
 Agent
   |
   v
-Agent Execution Event Sourcing Layer
+Agent / shell / tool hooks
   |
-  +-- Snapshot Skill
+  v
+Hook Adapter
   |
-  +-- Trace Collector Skill
+  v
+Trajectory Collector Service
+  |
+  +-- Ordering Buffer
+  |
+  +-- Snapshot Manager
   |
   +-- Artifact Indexer
   |
   v
-Raw Trajectory Store
+Raw Event Store
+  |
+  +--> Snapshot Store
+  |
+  +--> Artifact Store
   |
   v
-State Extractor
+Async Distillation Queue
   |
   v
-State Reconstruction Skill
+LLM Semantic Distiller
   |
   v
-Failure Taxonomy
+Distilled Experience Store
   |
   v
-FSM / Policy Graph
+Decision Point Review
   |
   v
-Skill Mining + Benchmark Generation
+State Graph Reconstruction
+  |
+  v
+Failure Knowledge Base
+  |
+  v
+Skill Mining + Benchmark Repository
 ```
 
 关键调整：
 
-- Snapshot Skill 应前置，作为事件溯源层的基础设施，而不是只在后处理阶段补充。
-- Trace Capture 定位为 Agent Execution Event Sourcing Layer，强调事件序列、因果链和状态演化。
-- Failure Taxonomy 是一级资产，和 FSM / Policy Graph、Skill Mining 并列维护。
-- Skill Mining 前应先做 Pattern Mining，避免把单次偶然路径固化为 skill。
+- Collector 不应设计成 skill。Skill 是 agent 主动调用的能力；collector 是观察者，必须低延迟、被动、不可遗忘，并避免污染 agent 决策空间。
+- Hook adapter 只做轻量 enqueue，不承担排序、快照、蒸馏或复杂 I/O；collector service 才负责 raw event 事实采集、ordering、snapshot 引用和 artifact index。
+- Collector service 不依赖具体 agent 自觉调用；如果 Codex hook payload、时序或权限无法支撑采集，则需要降级为 wrapper CLI、shell history + artifact scanner 或人工 task boundary marker。
+- Raw collection 同步路径禁止调用 LLM，只记录结构化原始事实、snapshot id、artifact 指针和 ordering metadata。
+- Raw Event Store 必须 append-only，不被蒸馏结果覆盖；后续 schema 或 distiller 算法升级时，通过 trajectory version 和 distillation run version 比较新旧蒸馏结果差异。
+- LLM 只用于异步 Semantic Distillation，输入为 raw event stream、snapshot 和 artifact index，输出为带 evidence chain 的 distilled experience。
+- 采集阶段不生成完整 causal_link；raw events 只保留 `event_id`、`parent_event_id`、`observations` 和 `artifacts`，Distilled Causal Link 由 distiller 生成。
+- Human review 只审核关键 decision point，尤其关注为什么选择 A 而不是 B。
+- State Reconstruction 初期输出 state graph，不直接抽象 FSM；等真实轨迹稳定后再从 state graph 中提炼 FSM 或 policy graph。
+- 数据流收敛为五类资产：Raw Event Store、Snapshot Store、Distilled Experience Store、Failure Knowledge Base、Benchmark Repository。
 
-## 1.5 Trajectory Schema 建议
+## 1.5 Schema 建议
 
-### 1.5.1 顶层结构
+### 1.5.1 Raw trajectory schema
 
 ```yaml
 trajectory_id:
+trajectory_schema_version:
+collector_version:
+collector_instance_id:
+source:
+  agent_surface:
+  hook_profile:
+  workspace:
+ordering:
+  ordering_strategy:
+  monotonic_sequence:
+  wall_clock:
+  ingest_clock:
+  parent_event_index:
 task:
   user_request:
+  constraints:
+  success_criteria:
+events:
+  - event_id:
+    parent_event_id:
+    sequence_no:
+    timestamp:
+    ingest_timestamp:
+    actor:
+    event_type:
+    tool_name:
+    observation:
+    input_ref:
+    output_ref:
+    artifact_refs:
+    snapshot_refs:
+    ordering_barrier:
+    raw_error:
+outcome:
+  status:
+  artifact_refs:
+  unresolved_items:
+```
+
+Raw trajectory 只保存事实层，不保存完整因果叙事。`trajectory_schema_version` 和 `collector_version` 必须保留，用于未来比较“同一批 raw events 经过新 distiller 算法重新蒸馏后”的差异。
+
+### 1.5.2 Event ordering guarantee
+
+多个 hook、tool result、artifact scanner 和 snapshot writer 可能异步到达，因此 collector service 必须显式记录 ordering guarantee：
+
+- 每个 collector instance 生成单调递增 `sequence_no`。
+- 每个 event 同时记录 wall-clock timestamp 和 ingest timestamp。
+- `parent_event_id` 表达已知因果或嵌套关系，不能表达未知关系。
+- 对 tool pre/post 这类成对事件，必须保留 correlation key；若 hook payload 无法提供稳定 correlation key，则该能力记为 Phase 0 blocker。
+- 对并发事件，只能声明 partial order；不能为了线性日志强行捏造因果顺序。
+- distiller 只能基于 raw ordering metadata 生成候选因果链，不能把 ingestion 顺序直接当成因果链。
+
+### 1.5.3 Distilled experience schema
+
+```yaml
+distillation_run_id:
+distiller_version:
+source_trajectory_id:
+source_trajectory_schema_version:
+source_event_range:
+distilled_task:
   interpreted_intent:
   constraints:
   success_criteria:
-context:
-  workspace:
-  environment:
-  permissions:
-  relevant_files:
-  prior_artifacts:
-events:
-  - event_id:
-    timestamp:
-    actor:
-    event_type:
-    state_before:
-    observation:
-    action:
-    output:
-    evidence:
+distilled_claims:
+  - claim_id:
+    claim_type:
+    text:
+    confidence:
+    evidence_chain:
+      raw_events:
+      snapshots:
+      artifacts:
+    reviewer_status:
+distilled_causal_links:
+  - link_id:
+    from_event_id:
+    to_event_id:
+    rationale:
+    confidence:
+    evidence_chain:
+    reviewer_status:
+decision_points:
+  - decision_id:
+    event_id:
+    decision_question:
+    chosen_option:
+    alternatives_considered:
+    rejection_reasons:
+    evidence_chain:
     uncertainty:
-    causal_link:
-    state_after:
-    failure_tags:
-outcome:
-  status:
-  artifacts:
-  verification:
-  unresolved_items:
-review:
-  reviewer:
-  state_fidelity:
-  decision_recoverability:
-  continuation_usefulness:
-  counterfactual_stability:
-  notes:
+    expected_outcome:
+    actual_outcome:
+    reviewer_status:
 ```
 
-### 1.5.2 事件类型
+`distilled_claims`、`distilled_causal_links` 和 `decision_points` 只存在于语义蒸馏层，不写回 raw event stream。每个 claim 或 decision point 都必须能追溯到 raw event、snapshot 或 artifact，否则只能标记为低置信度假设，不能作为 state reconstruction 的事实依据。
+
+### 1.5.4 事件类型
 
 早期事件类型应保持少而稳定：
 
 | event_type | 含义 |
 |---|---|
 | observe | 读取文件、搜索、查看环境、理解输入 |
-| reason | 显式推理、计划、权衡、假设形成 |
-| decide | 做出路径选择或排除某个路径 |
 | act | 修改文件、运行命令、调用工具、生成 artifact |
 | verify | 测试、lint、review、截图、人工检查 |
 | fail | 命令失败、假设失败、验证不通过、路径回退 |
 | handoff | 交接给 reviewer、subagent、人工或后续阶段 |
 
-### 1.5.3 causal_link
+Raw event 不再强制包含 `reason` 或 `decide`。这些语义应由 distiller 从 raw event、snapshot 和 artifact 中提取为 decision point，避免采集阶段把后验解释写入事实层。
 
-`causal_link` 用于记录为什么当前 event 会导致下一个 event，避免轨迹退化为时间顺序日志。
-
-建议字段：
-
-```yaml
-causal_link:
-  caused_next_event: true
-  rationale: "上一事件暴露了缺失的状态快照，因此下一步先补充 workspace snapshot。"
-  dependency:
-    - "event_id:evt_003"
-    - "artifact:git_diff_before_patch"
-  alternative_considered:
-    - "直接进入 state reconstruction"
-  why_alternative_rejected:
-    - "缺少快照会导致 reconstruction 无法验证真实状态"
-```
-
-记录重点不是写长篇解释，而是保留“当前动作为什么合理地引出下一步”的最小因果证据。
-
-### 1.5.4 uncertainty
+### 1.5.5 uncertainty
 
 `uncertainty` 用于保留 agent 当时的不确定性，避免后验叙事把假设写成事实。
 
@@ -176,59 +240,103 @@ uncertainty:
   unknowns:
     - "是否存在已有重复候选"
   assumptions:
-    - "当前内容尚未经过人工审核，因此应进入 03_Inbox"
+    - "当前 decision point 尚未经过人工审核，因此只能作为 distilled hypothesis"
   evidence_gap:
     - "没有外部 benchmark 或本地运行数据验证"
   mitigation:
-    - "先写为 pending_review candidate，并保留 promotion blockers"
+    - "标记 reviewer_status: unreviewed，并保留 evidence gap"
 ```
 
-## 1.6 Snapshot Skill 前置设计
+## 1.6 Snapshot 前置设计
 
-Snapshot Skill 应在 Trace Collector 之前或同步执行，用于保证 trajectory 可重建。
+Snapshot 用于保证 trajectory 可重建，但不应每个 event 都做全量 snapshot。采集链路应通过 hook 获得 snapshot id、artifact id 和命令/工具输出摘要，不在同步路径中调用 LLM。
 
-最小 snapshot 内容：
+Snapshot 分三层：
+
+| 层级 | 触发 | 内容 | 用途 |
+|---|---|---|---|
+| session baseline snapshot | trajectory 开始、resume 或环境变化 | workspace、repo、branch、commit、权限、环境、关键配置 | 给整条轨迹提供基础状态 |
+| incremental snapshot | 文件修改、命令执行、artifact 生成后 | 文件 hash、diff、artifact refs、命令摘要、错误摘要 | 控制成本，支撑局部重建 |
+| decision checkpoint snapshot | 关键 decision point 前后 | 与决策相关的上下文、候选路径、证据、状态差异 | 支撑人工 review 和 skill mining |
+
+最小 snapshot 字段：
 
 - workspace 路径、repo、branch、commit、dirty state。
 - 权限边界和可访问路径。
-- 任务相关文件列表和 hash。
+- snapshot layer 和 parent snapshot id。
+- 任务相关文件列表、hash 或 diff 引用。
 - 关键 artifact 指针，例如 diff、patch、报告、测试输出。
 - 关键命令及输出摘要。
 - 失败命令、错误信息和回退路径。
 
-Snapshot 不需要完整复制所有上下文，但必须能支撑后续 reviewer 判断 state 是否真实。
+Snapshot 不需要完整复制所有上下文，但必须能支撑后续 reviewer 判断 state 是否真实。全量 snapshot 只应出现在 baseline 或人工指定 checkpoint，不应成为每个事件的默认成本。
 
 ## 1.7 Phase 规划
 
-### 1.7.1 Phase 1：Execution Event Sourcing MVP
+### 1.7.1 Phase 0：Codex Hook Feasibility Spike
+
+目标：先验证 Codex hook 是否能支撑 trajectory collector service，而不是假设 hook 一定足够。
+
+验收问题：
+
+- Hook 是否能覆盖 user prompt、tool pre/post、permission request、stop 等任务关键边界。
+- Hook payload 是否包含足够的 tool name、input、output、session/thread、cwd、approval 和 error 信息。
+- Tool pre/post 是否有稳定 correlation key；没有则无法可靠合并成一个工具事件。
+- 多个 hook 并发触发时，collector 是否能建立 partial order 和 sequence number。
+- Hook command 同步开销是否可控，能否只做轻量 enqueue。
+- sandbox、权限和网络限制下，hook adapter 是否能可靠写入本地 queue 或连接本地 collector service。
+
+Phase 0 不通过时，降级路线包括 wrapper CLI、shell history + artifact scanner、人工 task boundary marker，或等待 Runtime 级 observability。
+
+### 1.7.2 Phase 1：Execution Event Sourcing MVP
 
 目标：获得 50 条高质量 trajectory 和 200 条普通 trajectory，而不是只追求数量。
 
 范围：
 
-- Trace Collector Skill。
-- 前置的最小 Snapshot Skill。
-- Raw Trajectory Store。
-- trajectory schema。
+- Hook adapter。
+- Trajectory Collector Service。
+- Ordering Buffer。
+- 分层 Snapshot Manager。
+- Artifact Indexer。
+- Append-only Raw Event Store。
+- Raw trajectory schema v1。
 - 人工标注模板。
 - 基础质量评分 rubric。
 
 验收：
 
+- Raw collection 路径 LLM call count 为 0。
+- Collector 不依赖 agent 主动调用 skill。
+- Hook p95 overhead 和 raw event 丢失率有记录。
+- Tool pre/post 事件可关联；不可关联的比例有记录。
 - 80% 轨迹能回答“做了什么、为什么做、结果如何”。
 - 至少 50 条轨迹能被第三方 reviewer 复盘。
 - 每条高质量轨迹有 artifact 或 evidence 指针。
-- 每条高质量轨迹包含 `causal_link` 和 `uncertainty`。
+- 每条高质量轨迹有关键 decision point 候选或明确说明没有决策价值。
 
-### 1.7.2 Phase 2：State Reconstruction
+### 1.7.3 异步 Semantic Distillation
 
-目标：人工 review 100 条 trajectory，验证 reconstructed state 是否可靠。
+目标：在不污染主任务上下文、不放大同步延迟的前提下，把 raw trajectory 转换为可 review、可重建、可挖掘的 distilled trajectory。
+
+约束：
+
+- LLM 只在异步 distiller 中使用，不进入 hook 和 raw collection 同步路径。
+- distiller 输入为 raw event stream、snapshot 和 artifact index。
+- distiller 输出的 interpreted intent、Distilled Causal Link、decision point、uncertainty、failure_tags 和 state hints 必须保存 evidence chain。
+- distilled trajectory 是派生产物，不得覆盖 append-only raw event stream。
+- 每次 distillation run 必须保存 distiller version 和 source trajectory version，支持新旧算法重跑结果比较。
+- Human review 只审核关键 decision point 和高影响 causal link，不审核所有事件。
+
+### 1.7.4 Phase 2：State Graph Reconstruction
+
+目标：人工 review 100 条 trajectory，验证 reconstructed state graph 是否可靠。早期不直接输出 FSM，因为状态集合和转移边界尚未稳定。
 
 新增组件：
 
-- State Reconstruction Skill。
+- State Graph Reconstruction Skill。
 - State Extractor。
-- State schema。
+- State graph schema。
 - Reconstruction report。
 - 缺失事件类型统计。
 
@@ -256,8 +364,9 @@ Snapshot 不需要完整复制所有上下文，但必须能支撑后续 reviewe
 - 20% 以上轨迹达到 `score = 3`。
 - 形成导致不可恢复的 top failure modes。
 - Counterfactual Stability 能暴露“只在单一路径成立”的脆弱状态。
+- state graph 中的节点和边必须能回溯到 raw event、snapshot 或 distilled claim。
 
-### 1.7.3 Phase 3：Pattern Mining、Skill Mining 和 Benchmark Generation
+### 1.7.5 Phase 3：Pattern Mining、Skill Mining 和 Benchmark Generation
 
 目标：从高质量 trajectory 中挖掘可复用流程，生成 candidate skill 和 benchmark。
 
@@ -265,6 +374,7 @@ Snapshot 不需要完整复制所有上下文，但必须能支撑后续 reviewe
 
 ```text
 Trajectory
+  -> Decision Point
   -> Repeated Pattern
   -> Candidate Heuristic
   -> Validated Procedure
@@ -311,7 +421,26 @@ evaluation:
 - 每个 benchmark 有可执行或可人工复核的 evaluation。
 - mined skill 在 holdout tasks 上优于无 skill baseline。
 
-## 1.8 Failure Taxonomy 作为一级资产
+## 1.8 五类资产模型
+
+Trajectory 系统的产物收敛为五类资产，避免把原始事实、语义理解、边界知识和应用 benchmark 混在同一层：
+
+| 资产 | 层级 | 说明 |
+|---|---|---|
+| Raw Event Store | 事实层 | append-only raw events、ordering metadata、tool input/output refs、artifact refs |
+| Snapshot Store | 状态层 | baseline、incremental 和 decision checkpoint snapshot |
+| Distilled Experience Store | 理解层 | interpreted intent、Distilled Causal Link、decision point、state hints、claim-level evidence chain |
+| Failure Knowledge Base | 边界层 | failure taxonomy、negative cases、反例、不可恢复原因和误判模式 |
+| Benchmark Repository | 应用层 | 可执行或可人工复核的 benchmark case、evaluation 和 holdout tasks |
+
+层级约束：
+
+- Raw Event Store 和 Snapshot Store 是事实源。
+- Distilled Experience Store 是派生产物，不能覆盖 raw facts。
+- Failure Knowledge Base 必须能追溯到失败轨迹或 review 证据。
+- Benchmark Repository 必须有 evaluation，否则只是样例库。
+
+## 1.9 Failure Taxonomy 作为一级资产
 
 Failure Taxonomy 不应只是 Phase 2 的副产物，而应贯穿采集、重建、挖掘和评估。
 
@@ -333,19 +462,22 @@ Failure Taxonomy 不应只是 Phase 2 的副产物，而应贯穿采集、重建
 Failure Taxonomy 的用途：
 
 - 反向修正 trajectory schema。
-- 指导 Snapshot Skill 增加必要字段。
+- 指导 Snapshot 增加必要字段。
 - 生成 benchmark 的 negative cases。
 - 作为 skill mining 的禁止条件和风险标签。
 
-## 1.9 质量门禁
+## 1.10 质量门禁
 
 一条高质量 trajectory 至少应满足：
 
 - 有明确 task intent 和 success criteria。
-- 有最小可验证 snapshot。
-- event sequence 能区分 observe、reason、decide、act、verify、fail。
-- 关键 event 有 causal_link。
+- 有最小可验证分层 snapshot。
+- event sequence 能区分 observe、act、verify、fail、handoff。
+- raw event 有 event_id、parent_event_id 或明确无父事件、ordering metadata、artifact refs。
+- 关键 decision point 记录 chosen option、alternatives considered、rejection reasons 和 evidence chain。
+- 关键因果关系由 distiller 生成 Distilled Causal Link，并保留置信度和证据链。
 - 关键假设有 uncertainty。
+- distilled claim 有 claim-level evidence chain。
 - outcome 有验证证据或明确 unresolved_items。
 - failure tags 不因最终成功而被删除。
 
@@ -356,20 +488,29 @@ Failure Taxonomy 的用途：
 - 必须能映射到 benchmark evaluation。
 - 未经过 holdout 验证前只保留为 candidate skill。
 
-## 1.10 风险与边界
+## 1.11 风险与边界
 
-- Skill 层观测不到完整 Runtime 内部状态，因此 reconstructed state 只能声称“基于外部事件和 artifact 的可恢复状态”，不能声称等价于真实 hidden state。
-- `causal_link` 和 `uncertainty` 会增加记录成本，需要控制字段粒度，避免压垮采集流程。
-- Snapshot 如果过重，会干扰任务执行；如果过轻，会导致状态不可验证。
+- 非 Runtime 级观测看不到完整内部状态，因此 reconstructed state 只能声称“基于外部事件和 artifact 的可恢复状态”，不能声称等价于真实 hidden state。
+- Collector 不应作为 skill 落地；否则会依赖 agent 自觉调用，并把采集动作污染进决策空间。
+- Hook adapter 是否足以支撑 collector service 尚未验证；必须先完成 Phase 0 feasibility spike。
+- Hook command 若只能同步执行且并发启动，必须保持轻量 enqueue，避免把 collector I/O 和排序成本放进 hook path。
+- 多个异步事件只能保证 partial order；不能把 ingestion 顺序伪装成因果顺序。
+- Raw collection 同步路径不得调用 LLM；否则会污染任务上下文、增加不可控延迟，并把后验解释混入原始事实。
+- Semantic Distillation 可能产生后验叙事，因此 distilled trajectory 必须保留 evidence chain，且不能替代 raw event stream。
+- 采集阶段生成完整 causal_link 成本过高，应只在 distillation 阶段生成 Distilled Causal Link。
+- Snapshot 如果过重，会干扰任务执行；如果过轻，会导致状态不可验证，因此必须分层。
+- 过早抽象 FSM 容易固化不稳定状态边界；早期应使用 state graph。
 - 过早 Skill Mining 容易把偶然路径固化为错误规范。
 - Benchmark 如果没有 evaluation，只是样例集，不能用于优化 agent。
 - Failure Taxonomy 需要定期合并同义项，否则会碎片化。
 
-## 1.11 Promotion Blockers
+## 1.12 Promotion Blockers
 
 该候选目前不得直接提升到正式知识区，阻塞项包括：
 
 - 尚未有真实 trajectory 采集数据验证。
+- Codex hook feasibility spike 尚未完成。
+- collector service、event ordering guarantee、schema version 和分层 snapshot 尚未实现验证。
 - State Reconstruction 指标尚未在 100 条轨迹上人工 review。
 - Counterfactual Stability 指标尚未形成稳定 rubric。
 - Failure Taxonomy 尚未经过真实失败样本校准。
