@@ -2,7 +2,7 @@
 type: structure_audit
 status: active
 scope: 记录知识库结构化、current 标准化、总览内容化的当前迁移状态；不作为具体主题事实源。
-updated_at: 2026-07-08
+updated_at: 2026-07-09
 supersedes:
   - 02_Projects/Knowledge-Base/知识库结构审计-2026-06-05.md
 ---
@@ -66,7 +66,7 @@ supersedes:
 - Knowledge-Base 维护治理相关的 `knowledge-base-structure-builder` 与 `knowledge-base-retriever` 文档已归位到 codex-capability 项目；Knowledge-Base 项目只保留知识库侧结构审计、治理边界和历史实现记录。
 - 现有 Traceability CLI 的目录枚举、索引、匹配和原文读取尚未全链路接受 authorized paths，后续实现前必须先消除越权扫描风险。
 - CVAT 云端部署 current 文档组已创建，状态为 `created_but_not_fully_verified`；当前方案已从 turbo/API 回写主路径调整为 NAS 持续挂载、训练平台模型结果落盘、CVAT 读取并人工复核；尚未完成真实云桌面 Docker/Compose、NAS share、模型结果导入、导出和备份恢复验证。
-- agent-trajectory 项目 current 入口已创建，状态为 `created_but_not_fully_verified`；当前方案已收敛为 hook feasibility 前置、hook adapter 轻量触发、collector service 采集 raw events、分层 Snapshot、异步 Semantic Distillation、decision point、state graph 和五类资产模型；尚未完成真实 trajectory 采集、hook payload/correlation/ordering 验证、collector service 实现、100 条人工重建 review、Counterfactual Stability rubric、Failure Taxonomy 样本校准和 holdout 验证，未声明 `single_pass_recoverable: true`。
+- agent-trajectory 项目 current 入口已创建，状态为 `created_but_not_fully_verified`；当前方案已收敛为 hook feasibility 前置、hook adapter 轻量触发、collector service 采集 raw events、分层 Snapshot、异步 Semantic Distillation、decision point、state graph 和五类资产模型；P0 已完成最小 collector、raw event schema、global passive hook + allowlist 注册、5 个单元测试和一次模拟 hook 到 report 链路验证；尚未完成真实新 Codex 会话下的 trajectory 采集、真实 hook payload/correlation/ordering 验证、hook overhead/丢失率统计、100 条人工重建 review、Counterfactual Stability rubric、Failure Taxonomy 样本校准和 holdout 验证，未声明 `single_pass_recoverable: true`。
 
 ## 1.7 2026-06-09 Tracking current 增量维护记录
 
@@ -331,3 +331,10 @@ supersedes:
 - 本记录将回灌方案命名为 DMS 回灌方案，而非原始图像回灌方案，以保留 README 中 `start_stage=model` 与 `start_stage=postprocess` 的同一配置语义。
 - 当前事实边界：`start_stage=model` 的模型阶段回灌路径已有源码静态证据；`start_stage=postprocess` 为 README 预留但目前不支持，未看到 atomic 结果注入 Fuse/后处理的运行时链路。
 - 本轮未执行编译、x86 回灌或板端回灌验证；未新增或保留 `single_pass_recoverable: true` 声明。
+
+## 1.36 2026-07-09 agent-trajectory P0 实现与 Hook 注册写回
+
+- 新增项目级阶段记录：`02_Projects/agent-trajectory/agent_trajectory_p0_implementation_and_hook_registration-2026-07-09.md`。
+- 已同步 agent-trajectory overview current、项目总览和本结构审计。
+- 本轮不提升正式知识，不改变 `created_but_not_fully_verified` 状态，不新增或保留 `single_pass_recoverable: true`。
+- 当前事实变化为：P0 最小 collector、raw event schema、global passive hook wrapper、allowlist 和模拟链路验证已完成；真实 Codex 会话 hook payload/correlation/ordering 仍是后续验证缺口。
