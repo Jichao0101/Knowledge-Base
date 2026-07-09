@@ -67,6 +67,7 @@ supersedes:
 - 现有 Traceability CLI 的目录枚举、索引、匹配和原文读取尚未全链路接受 authorized paths，后续实现前必须先消除越权扫描风险。
 - CVAT 云端部署 current 文档组已创建，状态为 `created_but_not_fully_verified`；当前方案已从 turbo/API 回写主路径调整为 NAS 持续挂载、训练平台模型结果落盘、CVAT 读取并人工复核；尚未完成真实云桌面 Docker/Compose、NAS share、模型结果导入、导出和备份恢复验证。
 - agent-trajectory 项目 current 入口已创建，状态为 `created_but_not_fully_verified`；当前方案已收敛为 hook feasibility 前置、hook adapter 轻量触发、collector service 采集 raw events、分层 Snapshot、异步 Semantic Distillation、decision point、state graph 和五类资产模型；P0 已完成最小 collector、raw event schema、global passive hook + allowlist 注册、5 个单元测试和一次模拟 hook 到 report 链路验证；尚未完成真实新 Codex 会话下的 trajectory 采集、真实 hook payload/correlation/ordering 验证、hook overhead/丢失率统计、100 条人工重建 review、Counterfactual Stability rubric、Failure Taxonomy 样本校准和 holdout 验证，未声明 `single_pass_recoverable: true`。
+- agent-trajectory 后续已补充 hook / collector / distiller 三层解析边界和 hook 外 scheduler 调度实现：新增 `collector.scheduler`、`collector.cli schedule`、`storage/collector.lock`、limit、loop 和 write-report 支持，8 个单元测试通过，并已消费真实本地 queue 中 90 条 payload 生成 91 条 raw events；仍未完成长期 timer/daemon 稳定性、overhead、丢失率、重复 envelope 幂等加固和异步 distiller 验证。
 
 ## 1.7 2026-06-09 Tracking current 增量维护记录
 
@@ -338,3 +339,12 @@ supersedes:
 - 已同步 agent-trajectory overview current、项目总览和本结构审计。
 - 本轮不提升正式知识，不改变 `created_but_not_fully_verified` 状态，不新增或保留 `single_pass_recoverable: true`。
 - 当前事实变化为：P0 最小 collector、raw event schema、global passive hook wrapper、allowlist 和模拟链路验证已完成；真实 Codex 会话 hook payload/correlation/ordering 仍是后续验证缺口。
+
+## 1.37 2026-07-09 agent-trajectory Scheduler 与分层解析写回
+
+- 新增项目级阶段记录：`02_Projects/agent-trajectory/agent_trajectory_scheduler_and_layered_parse_update-2026-07-09.md`。
+- 已同步 agent-trajectory overview current、项目总览和本结构审计。
+- 本轮不提升正式知识，不改变 `created_but_not_fully_verified` 状态，不新增或保留 `single_pass_recoverable: true`。
+- 当前事实变化为：hook / collector / distiller 三层边界已明确，每次 hook 抓取后不做同步解析；collector 解析改由 hook 外 timer、loop 或后续 daemon 执行；distiller 仍保持 trajectory/session 级异步批处理。
+- 当前实现变化为：`/home/jichao/agent-trajectory` 新增 `collector.scheduler` 和 CLI `schedule` 子命令，支持 lock、limit、loop 和 write-report；8 个单元测试通过，真实本地 scheduler 已消费 90 条 queued payload 并刷新 Phase 0 report。
+- 残余风险为：当前增量处理依赖 `collector_state.json:last_queue_line`，正常重复运行只处理新增 queue 行，但 raw event append 后、state 保存前仍有 crash 重复窗口；长期 timer/daemon 稳定性、overhead、丢失率和异步 distiller 尚未验证。
