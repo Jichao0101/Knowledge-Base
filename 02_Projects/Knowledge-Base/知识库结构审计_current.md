@@ -357,3 +357,12 @@ supersedes:
 - 当前设计变化为：P1 不应继续把不同会话长期集中写入单一 `trajectories/raw_events.jsonl`；应按 `trajectories/raw/<trajectory_id>/` 建立 per-trajectory raw bundle，并用 `trajectory_meta.json` 记录 session、workspace、UserPrompt/Stop、空闲超时、quality tier 和 segmentation reason。
 - 全局 ingest/raw audit stream 可保留用于排错和重放，但 distiller 默认输入应切换到分段后的 trajectory bundle；若从 legacy/global raw stream 重建分段，必须生成 migration proposal 或 recovery record，不得静默覆盖。
 - 残余风险为：该设计尚未在 `/home/jichao/agent-trajectory` 实现，真实 session/thread 字段、Stop 边界、空闲超时和人工 marker 策略仍需验证。
+
+## 1.39 2026-07-09 agent-trajectory P1 Raw Bundle 实现写回
+
+- `/home/jichao/agent-trajectory` 已提交 `243585f feat: store raw events per trajectory`，本地未推送远程。
+- 已同步 agent-trajectory overview current、P1 initial design、项目总览和本结构审计。
+- 本轮不提升正式知识，不改变 `created_but_not_fully_verified` 状态，不新增或保留 `single_pass_recoverable: true`。
+- 当前实现变化为：取消 P0 集中 `trajectories/raw_events.jsonl` 和 `phase0_feasibility_report.json` 兼容输出；collector 只写 `trajectories/raw/<trajectory_id>/raw_events.jsonl`、`trajectory_meta.json`、`artifact_index.json`、`snapshot_refs.json`，report 聚合 per-trajectory bundle 并写入 `trajectories/collection_report.json`。
+- 分段规则已实现基础版：`session_id + workspace` 归属同一 active trajectory，session 变化、workspace 变化会创建新 trajectory，`Stop` 后新的 `UserPromptSubmit` 会创建新 trajectory；空闲超时、人工 marker、capture policy 和 distiller 输入切换仍未实现。
+- 验证结果：`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v` 11 个测试通过。
