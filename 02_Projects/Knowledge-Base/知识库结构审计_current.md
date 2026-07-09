@@ -348,3 +348,12 @@ supersedes:
 - 当前事实变化为：hook / collector / distiller 三层边界已明确，每次 hook 抓取后不做同步解析；collector 解析改由 hook 外 timer、loop 或后续 daemon 执行；distiller 仍保持 trajectory/session 级异步批处理。
 - 当前实现变化为：`/home/jichao/agent-trajectory` 新增 `collector.scheduler` 和 CLI `schedule` 子命令，支持 lock、limit、loop 和 write-report；8 个单元测试通过，真实本地 scheduler 已消费 90 条 queued payload 并刷新 Phase 0 report。
 - 残余风险为：当前增量处理依赖 `collector_state.json:last_queue_line`，正常重复运行只处理新增 queue 行，但 raw event append 后、state 保存前仍有 crash 重复窗口；长期 timer/daemon 稳定性、overhead、丢失率和异步 distiller 尚未验证。
+
+## 1.38 2026-07-09 agent-trajectory P1 Raw Trace 分段设计写回
+
+- 已直接修订 `02_Projects/agent-trajectory/agent_trajectory_initial_design.md` 的 Phase 1 设计，避免另建补丁文档影响后续检索准确率。
+- 已同步 agent-trajectory overview current 和本结构审计。
+- 本轮不提升正式知识，不改变 `created_but_not_fully_verified` 状态，不新增或保留 `single_pass_recoverable: true`。
+- 当前设计变化为：P1 不应继续把不同会话长期集中写入单一 `trajectories/raw_events.jsonl`；应按 `trajectories/raw/<trajectory_id>/` 建立 per-trajectory raw bundle，并用 `trajectory_meta.json` 记录 session、workspace、UserPrompt/Stop、空闲超时、quality tier 和 segmentation reason。
+- 全局 ingest/raw audit stream 可保留用于排错和重放，但 distiller 默认输入应切换到分段后的 trajectory bundle；若从 legacy/global raw stream 重建分段，必须生成 migration proposal 或 recovery record，不得静默覆盖。
+- 残余风险为：该设计尚未在 `/home/jichao/agent-trajectory` 实现，真实 session/thread 字段、Stop 边界、空闲超时和人工 marker 策略仍需验证。

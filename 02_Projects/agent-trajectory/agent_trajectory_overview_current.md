@@ -21,7 +21,7 @@ updated_at: 2026-07-09
 
 本项目当前处于 `created_but_not_fully_verified` 状态，用于指导工业 agent 任务轨迹库、轻量可观测性和轨迹蒸馏系统的后续实现。
 
-当前已形成项目级阶段性方案，并已完成 P0 最小实现、全局 passive hook 注册和 hook 外 scheduler 调度入口；真实本地 queue 已通过 scheduler 消费并刷新 Phase 0 report，但尚未完成长期 daemon、真实多任务 hook overhead、丢失率或 recoverability 验证。本 current 文档只记录当前状态、事实源、关键决策和验证缺口；详细设计、schema、phase 计划、Failure Taxonomy 和质量门禁以 [[02_Projects/agent-trajectory/agent_trajectory_initial_design]] 为事实源，P0 实现和注册结果以 [[02_Projects/agent-trajectory/agent_trajectory_p0_implementation_and_hook_registration-2026-07-09]] 为事实源，hook / collector / distiller 分层调度和 scheduler 实现以 [[02_Projects/agent-trajectory/agent_trajectory_scheduler_and_layered_parse_update-2026-07-09]] 为事实源。
+当前已形成项目级阶段性方案，并已完成 P0 最小实现、全局 passive hook 注册和 hook 外 scheduler 调度入口；真实本地 queue 已通过 scheduler 消费并刷新 Phase 0 report，但尚未完成长期 daemon、真实多任务 hook overhead、丢失率或 recoverability 验证。本 current 文档只记录当前状态、事实源、关键决策和验证缺口；详细设计、schema、phase 计划、Failure Taxonomy、质量门禁和 P1 raw trace 分段设计以 [[02_Projects/agent-trajectory/agent_trajectory_initial_design]] 为事实源，P0 实现和注册结果以 [[02_Projects/agent-trajectory/agent_trajectory_p0_implementation_and_hook_registration-2026-07-09]] 为事实源，hook / collector / distiller 分层调度和 scheduler 实现以 [[02_Projects/agent-trajectory/agent_trajectory_scheduler_and_layered_parse_update-2026-07-09]] 为事实源。
 
 本项目不声明 `single_pass_recoverable: true`。
 
@@ -41,6 +41,7 @@ updated_at: 2026-07-09
 - P0 已在 `/home/jichao/agent-trajectory` 完成 stdlib-only 最小实现：hook adapter enqueue、collector service raw event 落盘、baseline snapshot/artifact refs、feasibility report 和 raw event schema。
 - P0 已注册全局 passive Codex hook，collector root 固定为 `/home/jichao/agent-trajectory`，通过 allowlist 采集 `/home/jichao/dms`、`/mnt/d/Knowledge-Base` 和 `/home/jichao/agent-trajectory`。
 - P0 后已新增 `collector.scheduler` 和 `collector.cli schedule`：支持受锁保护的 `run_once`、`--loop --interval`、`--limit` 和 `--write-report`，推荐由 timer 或轻量 loop 在 hook 外运行，避免每次 hook 抓取后同步解析。
+- 当前 P1 设计已补充 raw trace segmentation：集中 `trajectories/raw_events.jsonl` 只适合 P0 验证，P1 应按 `trajectories/raw/<trajectory_id>/` 建立 per-trajectory raw bundle；全局 ingest/raw audit stream 可保留用于排错和重放，但 distiller 默认输入应是分段后的 trajectory bundle。
 
 ## 1.3 当前关键决策
 
@@ -52,6 +53,7 @@ updated_at: 2026-07-09
 - 每次 hook 抓取后不得同步解析；collector 解析应由 hook 外 timer、loop 或后续 daemon 执行，distiller 语义解析继续按 session/trajectory 批处理。
 - Raw collection 同步路径禁止调用 LLM，只记录结构化原始事实、snapshot id 和 artifact 指针。
 - Collector 当前增量边界依赖 `storage/collector_state.json` 的 `last_queue_line`；正常重复运行 scheduler 只处理新增 queue 行，但 raw event append 后、state 保存前仍存在崩溃导致重复处理的窗口。
+- P1 必须显式实现 `trajectory_id` 创建和轮转规则；新 session/thread、workspace 变化、`Stop` 后新 `UserPromptSubmit`、空闲超时或人工 marker 应触发新 trajectory，避免多个会话静默混入同一 raw event stream。
 - Raw event schema 必须包含 trajectory schema version、collector version 和 ordering metadata。
 - Snapshot 分为 baseline、incremental 和 decision checkpoint 三层，避免每个 event 都做全量 snapshot。
 - Raw event stream 和 Raw Event Store 必须 append-only，不被蒸馏结果覆盖。
@@ -89,6 +91,7 @@ updated_at: 2026-07-09
 - hook overhead、raw event 丢失率和真实 LLM call count 统计。
 - collector service、event ordering guarantee 和 tool pre/post correlation 的长期真实任务验证。
 - scheduler 长期 timer/daemon 稳定性、queue backlog、重复 `queued_envelope_id` 统计和 crash 幂等加固。
+- P1 per-trajectory raw bundle、`trajectory_meta.json`、session/task 分段、legacy raw stream 迁移 proposal 和 distiller 输入切换尚未实现。
 - raw event stream、snapshot、artifact index 和 distilled claims 的生产级落盘验证。
 - trajectory schema version 与 distillation run version 的重跑对比验证。
 - decision point schema 与人工 review 流程验证。

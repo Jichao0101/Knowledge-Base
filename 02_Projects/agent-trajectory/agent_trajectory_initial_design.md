@@ -301,8 +301,44 @@ Phase 0 不通过时，降级路线包括 wrapper CLI、shell history + artifact
 - Artifact Indexer。
 - Append-only Raw Event Store。
 - Raw trajectory schema v1。
+- Raw trace segmentation 与 per-trajectory raw bundle。
 - 人工标注模板。
 - 基础质量评分 rubric。
+
+P1 必须把当前 P0 的集中 raw event stream 演进为按 trajectory/session/task 分段的 Raw Event Store。当前集中写入 `trajectories/raw_events.jsonl` 只适合 P0 验证 hook payload、ordering、correlation 和 report 链路；长期 trajectory 库应避免多个 Codex 会话、多个任务或不同 workspace 静默混在同一条 raw event stream 中。
+
+推荐 P1 物理布局：
+
+```text
+trajectories/
+  raw/
+    <trajectory_id>/
+      trajectory_meta.json
+      raw_events.jsonl
+      artifact_index.json
+      snapshot_refs.json
+      phase0_report.json
+```
+
+可选保留全局审计流：
+
+```text
+storage/
+  queue/
+    hook_events.jsonl
+  ingest/
+    raw_events_all.jsonl
+```
+
+其中 `storage/queue/hook_events.jsonl` 是 hook 原始 envelope 队列；`storage/ingest/raw_events_all.jsonl` 若存在，只用于 append-only 审计、排错和重放；`trajectories/raw/<trajectory_id>/raw_events.jsonl` 是 distiller、reviewer 和 state reconstruction 的默认 raw 输入。若需要从全局 ingest audit 流重建 trajectory，必须生成 segmentation proposal 或 recovery record，不得静默覆盖既有 raw bundle。
+
+`trajectory_id` 创建和轮转规则必须显式实现。建议新建 trajectory 的触发条件包括：新 `session_id` 第一次出现，hook payload 中 `session_id` 或 `thread_id` 变化，workspace/cwd 跨 allowlist root 或跨项目变化，收到 `UserPromptSubmit` 且上一条 trajectory 已收到 `Stop`，空闲超过阈值，或人工 marker/capture policy 明确要求 start new trajectory。建议结束或冻结 trajectory 的触发条件包括：收到 `Stop` 且当前 trajectory 至少包含一个 user prompt 或 tool event，空闲超过阈值并已有可复盘事件，capture policy 判断为低质量且可归档或 TTL 清理，或人工 marker 明确 close trajectory。`Stop` 不应无条件删除或丢弃 trajectory；若后续同 session 又出现新 `UserPromptSubmit`，应创建新 trajectory 或明确记录 continuation/reopen 原因。
+
+`trajectory_meta.json` 建议至少记录 `trajectory_id`、schema/version、created/closed time、open/closed/archived 状态、start/close reason、session/thread/workspace、user prompt event、stop event、idle timeout、quality tier、domain tags、capture/drop reason、first/last sequence、artifact index、snapshot refs 和 unresolved items。该 metadata 不替代 raw events，只记录分段、质量和恢复入口。
+
+Collector service 应从当前单一 state 演进为 active trajectory manager：维护 `session_id/workspace -> active_trajectory_id` 映射；对每个 queued envelope 先判断所属 trajectory，再 append 到对应 raw bundle；保留 collector instance 单调 `sequence_no`，并增加每条 trajectory 内的局部 `trajectory_sequence_no`；对 tool pre/post 使用 correlation key 归属到同一 trajectory，缺失 correlation 时记录 blocker 或 uncertain correlation；对并发事件只声明 partial order，不用物理文件顺序伪造因果关系。若边界无法确定，应记录 `segmentation_uncertainty`，而不是把多个会话静默合入同一条 raw event stream。
+
+P0 集中 raw event 文件不需要立即删除。P1 可以保留当前 `trajectories/raw_events.jsonl` 作为 legacy/global raw stream，新事件写入分段 bundle，必要时同时写全局 audit stream；对 P0 已有集中 raw events，后续只能生成 migration proposal，不直接静默切分。
 
 验收：
 
@@ -310,6 +346,8 @@ Phase 0 不通过时，降级路线包括 wrapper CLI、shell history + artifact
 - Collector 不依赖 agent 主动调用 skill。
 - Hook p95 overhead 和 raw event 丢失率有记录。
 - Tool pre/post 事件可关联；不可关联的比例有记录。
+- 不同 session/workspace 或 `Stop` 后新任务默认进入不同 trajectory raw bundle。
+- 每条进入 distiller 的 trajectory 都有 `trajectory_meta.json`、raw event 文件、artifact refs 和 snapshot refs。
 - 80% 轨迹能回答“做了什么、为什么做、结果如何”。
 - 至少 50 条轨迹能被第三方 reviewer 复盘。
 - 每条高质量轨迹有 artifact 或 evidence 指针。
@@ -322,7 +360,7 @@ Phase 0 不通过时，降级路线包括 wrapper CLI、shell history + artifact
 约束：
 
 - LLM 只在异步 distiller 中使用，不进入 hook 和 raw collection 同步路径。
-- distiller 输入为 raw event stream、snapshot 和 artifact index。
+- distiller 输入为 per-trajectory raw bundle、snapshot 和 artifact index；全局 ingest/raw audit stream 只用于排错、重放或重新生成 segmentation proposal。
 - distiller 输出的 interpreted intent、Distilled Causal Link、decision point、uncertainty、failure_tags 和 state hints 必须保存 evidence chain。
 - distilled trajectory 是派生产物，不得覆盖 append-only raw event stream。
 - 每次 distillation run 必须保存 distiller version 和 source trajectory version，支持新旧算法重跑结果比较。
