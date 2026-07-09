@@ -366,3 +366,13 @@ supersedes:
 - 当前实现变化为：取消 P0 集中 `trajectories/raw_events.jsonl` 和 `phase0_feasibility_report.json` 兼容输出；collector 只写 `trajectories/raw/<trajectory_id>/raw_events.jsonl`、`trajectory_meta.json`、`artifact_index.json`、`snapshot_refs.json`，report 聚合 per-trajectory bundle 并写入 `trajectories/collection_report.json`。
 - 分段规则已实现基础版：`session_id + workspace` 归属同一 active trajectory，session 变化、workspace 变化会创建新 trajectory，`Stop` 后新的 `UserPromptSubmit` 会创建新 trajectory；空闲超时、人工 marker、capture policy 和 distiller 输入切换仍未实现。
 - 验证结果：`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v` 11 个测试通过。
+
+## 1.40 2026-07-09 agent-trajectory 异步 Semantic Distillation Skill 实现写回
+
+- 已直接修订 `02_Projects/agent-trajectory/agent_trajectory_initial_design.md` 的 1.7.3 异步 Semantic Distillation 设计，避免新增补丁文档影响后续检索准确率。
+- 已同步 agent-trajectory overview current、项目总览和本结构审计。
+- 本轮不提升正式知识，不改变 `created_but_not_fully_verified` 状态，不新增或保留 `single_pass_recoverable: true`。
+- 当前设计变化为：异步 Semantic Distillation 作为 `/home/jichao/agent-trajectory` repo-local 中文 skill 维护，并通过 `~/.codex/skills/semantic-distillation` 软链接暴露给 Codex runtime；skill 不进入 hook、collector、scheduler 或 daemon 的同步路径，只处理明确指定的 `trajectory_id` 或 raw bundle。
+- 当前实现变化为：新增 `skills/semantic-distillation/SKILL.md`、`distiller/scripts/prepare_distillation.py` 和 distiller 单元测试；确定性脚本读取 `trajectories/raw/<trajectory_id>/`，写入 `trajectories/distilled/<trajectory_id>/<distillation_run_id>/` 下的 `run_meta.json`、`evidence_index.json`、`distilled_experience.json` 和 `distilled_experience.md` 脚手架。
+- 验证结果：`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v` 14 个测试通过；软链接 `/home/jichao/.codex/skills/semantic-distillation -> /home/jichao/agent-trajectory/skills/semantic-distillation` 已验证。
+- 残余风险为：尚未用真实 trajectory 完成人工或 LLM 语义蒸馏、reviewer 复核、批量候选选择、daemon 调度或 distillation run 版本对比验证；`reviewer_status` 默认仍应保持 `unreviewed`。

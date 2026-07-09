@@ -8,13 +8,14 @@ sources:
   - "2026-07-07 当前对话：工业 agent 任务轨迹库、Trace Capture、State Reconstruction、Skill Mining 与 Benchmark Generation 方案讨论"
   - "2026-07-08 当前对话：hook 触发 raw trajectory、采集阶段禁用 LLM、异步 semantic distillation 与 evidence chain 方案优化"
   - "2026-07-08 当前对话：collector service、trajectory version、event ordering、decision point、分层 snapshot、state graph 与五类资产模型方案优化"
+  - "2026-07-09 当前对话：异步 Semantic Distillation 作为 repo-local 中文 skill 并软链接到用户级 skills 目录的实现方案"
 scope: "agent-trajectory 项目的初始架构设计；覆盖工业 agent 任务轨迹库、轻量 observability、轨迹蒸馏、状态重建、skill mining 和 benchmark generation。"
 risks:
   - "当前方案尚未经过真实 trajectory 采集、人工 reconstruction review 或 holdout benchmark 验证。"
   - "非 Runtime 级观测只能采集外部可观察事件，不能声称等价于 Agent Runtime hidden state。"
   - "Semantic Distillation 可能产生后验叙事，必须通过 evidence chain 约束，不能替代 raw event stream。"
   - "Codex hook 是否能提供足够的 tool input/output、session、ordering 和 correlation 信息尚未验证，collector service 落地前必须先做 hook feasibility spike。"
-updated_at: 2026-07-08
+updated_at: 2026-07-09
 ---
 
 # 1 Agent 执行事件溯源与轨迹蒸馏系统初始设计
@@ -356,6 +357,16 @@ P0 集中 raw event 文件不作为 P1 兼容输入。若需要处理 P0 已有�
 - distilled trajectory 是派生产物，不得覆盖 append-only raw event stream。
 - 每次 distillation run 必须保存 distiller version 和 source trajectory version，支持新旧算法重跑结果比较。
 - Human review 只审核关键 decision point 和高影响 causal link，不审核所有事件。
+
+实现形态：
+
+- 异步 Semantic Distillation 应作为 repo-local skill 落地在 `/home/jichao/agent-trajectory/skills/semantic-distillation/SKILL.md`，并通过软链接暴露到用户级 `~/.codex/skills/semantic-distillation`。这样 skill 的版本、脚本和 trajectory schema 能随 agent-trajectory 仓库演进，同时 Codex runtime 仍能按普通 skill 发现和调用。
+- Skill 文本和工作输出使用中文，避免把 distillation 产物写成英文运行说明；但 schema 字段名保持稳定英文，便于后续自动化消费。
+- Skill 不替代 collector，也不被 hook、scheduler 或 daemon 自动同步调用；它只在用户或后续异步调度明确指定 `trajectory_id` 时运行。
+- Distiller 的确定性准备步骤由仓库脚本承担，例如 `distiller/scripts/prepare_distillation.py` 只读取指定 `trajectories/raw/<trajectory_id>/` bundle，生成 `trajectories/distilled/<trajectory_id>/<distillation_run_id>/run_meta.json`、`evidence_index.json`、`distilled_experience.json` 和 `distilled_experience.md` 脚手架。
+- LLM 或人工语义判断只补全 `distilled_experience.*` 中的任务意图、关键事实、decision point、failure tags、uncertainty、causal links 和可复用经验；每条语义结论必须引用 raw event、artifact、snapshot 或事件范围。
+- 默认不扫描全部 raw bundle；若要批量蒸馏，应先由外部 daemon/scheduler 选择候选 trajectory，再逐条调用 skill 或确定性脚本，避免把低质量轨迹无差别蒸馏成知识候选。
+- `reviewer_status` 默认保持 `unreviewed`；没有人工或授权 reviewer 复核时，不得把 distillation 结果提升为 verified fact、正式 skill 或正式知识。
 
 ### 1.7.4 Phase 2：State Graph Reconstruction
 

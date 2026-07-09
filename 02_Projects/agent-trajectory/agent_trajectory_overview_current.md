@@ -12,6 +12,7 @@ sources:
   - "02_Projects/agent-trajectory/agent_trajectory_initial_design.md"
   - "02_Projects/agent-trajectory/agent_trajectory_p0_implementation_and_hook_registration-2026-07-09.md"
   - "02_Projects/agent-trajectory/agent_trajectory_scheduler_and_layered_parse_update-2026-07-09.md"
+  - "2026-07-09 当前对话：repo-local 中文 semantic-distillation skill、确定性 distillation scaffold 与用户级软链接实现"
 updated_at: 2026-07-09
 ---
 
@@ -21,7 +22,7 @@ updated_at: 2026-07-09
 
 本项目当前处于 `created_but_not_fully_verified` 状态，用于指导工业 agent 任务轨迹库、轻量可观测性和轨迹蒸馏系统的后续实现。
 
-当前已形成项目级阶段性方案，并已完成 P0 最小实现、全局 passive hook 注册、hook 外 scheduler 调度入口和 P1 per-trajectory raw bundle 实现；P1 开发阶段已取消 P0 集中 `raw_events.jsonl` 与 `phase0_feasibility_report.json` 兼容输出，但尚未完成长期 daemon、真实多任务 hook overhead、丢失率或 recoverability 验证。本 current 文档只记录当前状态、事实源、关键决策和验证缺口；详细设计、schema、phase 计划、Failure Taxonomy、质量门禁和 P1 raw trace 分段设计以 [[02_Projects/agent-trajectory/agent_trajectory_initial_design]] 为事实源，P0 实现和注册结果以 [[02_Projects/agent-trajectory/agent_trajectory_p0_implementation_and_hook_registration-2026-07-09]] 为事实源，hook / collector / distiller 分层调度和 scheduler 实现以 [[02_Projects/agent-trajectory/agent_trajectory_scheduler_and_layered_parse_update-2026-07-09]] 为事实源。
+当前已形成项目级阶段性方案，并已完成 P0 最小实现、全局 passive hook 注册、hook 外 scheduler 调度入口、P1 per-trajectory raw bundle 实现和 repo-local 中文 `semantic-distillation` skill 初版实现；P1 开发阶段已取消 P0 集中 `raw_events.jsonl` 与 `phase0_feasibility_report.json` 兼容输出，但尚未完成长期 daemon、真实多任务 hook overhead、丢失率或 recoverability 验证。本 current 文档只记录当前状态、事实源、关键决策和验证缺口；详细设计、schema、phase 计划、Failure Taxonomy、质量门禁、P1 raw trace 分段设计和异步 distiller skill 形态以 [[02_Projects/agent-trajectory/agent_trajectory_initial_design]] 为事实源，P0 实现和注册结果以 [[02_Projects/agent-trajectory/agent_trajectory_p0_implementation_and_hook_registration-2026-07-09]] 为事实源，hook / collector / distiller 分层调度和 scheduler 实现以 [[02_Projects/agent-trajectory/agent_trajectory_scheduler_and_layered_parse_update-2026-07-09]] 为事实源。
 
 本项目不声明 `single_pass_recoverable: true`。
 
@@ -42,6 +43,7 @@ updated_at: 2026-07-09
 - P0 已注册全局 passive Codex hook，collector root 固定为 `/home/jichao/agent-trajectory`，通过 allowlist 采集 `/home/jichao/dms`、`/mnt/d/Knowledge-Base` 和 `/home/jichao/agent-trajectory`。
 - P0 后已新增 `collector.scheduler` 和 `collector.cli schedule`：支持受锁保护的 `run_once`、`--loop --interval`、`--limit` 和 `--write-report`，推荐由 timer 或轻量 loop 在 hook 外运行，避免每次 hook 抓取后同步解析。
 - 当前 P1 已实现 raw trace segmentation：collector 不再生成全局 `trajectories/raw_events.jsonl`，而是写入 `trajectories/raw/<trajectory_id>/raw_events.jsonl`、`trajectory_meta.json`、`artifact_index.json` 和 `snapshot_refs.json`；report 改为聚合 per-trajectory bundle 并输出 `trajectories/collection_report.json`。
+- 当前已实现异步 Semantic Distillation skill 初版：`/home/jichao/agent-trajectory/skills/semantic-distillation/SKILL.md` 为中文 skill，软链接到 `~/.codex/skills/semantic-distillation`；`distiller/scripts/prepare_distillation.py` 为确定性准备脚本，只读取指定 per-trajectory raw bundle，并写入 `trajectories/distilled/<trajectory_id>/<distillation_run_id>/` 下的 run meta、evidence index 和 distilled experience 脚手架。
 
 ## 1.3 当前关键决策
 
@@ -51,6 +53,7 @@ updated_at: 2026-07-09
 - Repo-local hook 只适合自测 collector；跨业务任务采集采用全局 passive hook + allowlist，避免只观测 agent-trajectory 仓库本身。
 - Codex hook 包装器必须 fail-open，stdout 保持单一合法 JSON 对象 `{}`，同步路径只做 allowlist 判断和 enqueue，不运行 collector service 或 LLM。
 - 每次 hook 抓取后不得同步解析；collector 解析应由 hook 外 timer、loop 或后续 daemon 执行，distiller 语义解析继续按 session/trajectory 批处理。
+- 异步 Semantic Distillation 作为 repo-local 中文 skill 落地，通过用户级 skills 目录软链接暴露；skill 只处理明确指定的 `trajectory_id` 或 raw bundle，不默认扫描全部 raw traces，不修改 raw bundle，不进入 hook/collector/scheduler 同步路径。
 - Raw collection 同步路径禁止调用 LLM，只记录结构化原始事实、snapshot id 和 artifact 指针。
 - Collector 当前增量边界依赖 `storage/collector_state.json` 的 `last_queue_line`；正常重复运行 scheduler 只处理新增 queue 行，但 raw event append 后、state 保存前仍存在崩溃导致重复处理的窗口。
 - P1 已实现基础 `trajectory_id` 创建和轮转规则：`session_id + workspace` 归属同一 active trajectory，session 变化、workspace 变化会创建新 trajectory，`Stop` 后新的 `UserPromptSubmit` 会创建新 trajectory；空闲超时和人工 marker 尚未实现。
@@ -81,8 +84,9 @@ updated_at: 2026-07-09
 
 - P0 最小 collector 实现、raw event schema、hook adapter、global passive hook wrapper、allowlist 和 report 生成。
 - 单元测试与手动模拟 payload 到 raw event/report 的链路验证。
-- Hook 外 scheduler 已完成实现和测试，`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v` 8 个测试通过。
-- P1 per-trajectory raw bundle 已在 `/home/jichao/agent-trajectory` 实现；`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v` 11 个测试通过，覆盖同 session 同 workspace 归并、session/workspace 分段、`Stop` 后新 `UserPromptSubmit` 分段、scheduler/report 聚合和不生成全局 `trajectories/raw_events.jsonl`。
+- Hook 外 scheduler 已完成实现和测试，已纳入当前完整测试集。
+- P1 per-trajectory raw bundle 已在 `/home/jichao/agent-trajectory` 实现，覆盖同 session 同 workspace 归并、session/workspace 分段、`Stop` 后新 `UserPromptSubmit` 分段、scheduler/report 聚合和不生成全局 `trajectories/raw_events.jsonl`。
+- 异步 Semantic Distillation skill 初版已在 `/home/jichao/agent-trajectory` 实现并软链接到 `~/.codex/skills/semantic-distillation`；`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v` 14 个测试通过，新增覆盖完整 raw bundle scaffold、不完整 bundle 拒绝和 evidence index event/artifact/snapshot 引用。
 
 尚未完成：
 
@@ -91,7 +95,8 @@ updated_at: 2026-07-09
 - hook overhead、raw event 丢失率和真实 LLM call count 统计。
 - collector service、event ordering guarantee 和 tool pre/post correlation 的长期真实任务验证。
 - scheduler 长期 timer/daemon 稳定性、queue backlog、重复 `queued_envelope_id` 统计和 crash 幂等加固。
-- P1 空闲超时、人工 marker、capture policy、legacy raw stream migration proposal 和 distiller 输入切换尚未实现。
+- P1 空闲超时、人工 marker、capture policy 和 legacy raw stream migration proposal 尚未实现。
+- 异步 distiller 已有 skill/scaffold 初版，但尚未用真实 trajectory 完成人工或 LLM 语义蒸馏、reviewer 复核、批量候选选择、daemon 调度或 distillation run 版本对比验证。
 - raw event stream、snapshot、artifact index 和 distilled claims 的生产级落盘验证。
 - trajectory schema version 与 distillation run version 的重跑对比验证。
 - decision point schema 与人工 review 流程验证。
