@@ -9,12 +9,15 @@ sources:
   - 2026-07-13 Jira Parser 与 Data Loader 实现及真实只读验证
   - 2026-07-13 Evidence Package Builder 实现与集成验证
   - 2026-07-13 当前版本跳过 R 核并在结论中披露分析覆盖缺口的用户决策
+  - 2026-07-13 A-core 日志索引与证据选择实现、36 项仓库测试验证及用户确认的手工规则更新边界
 scope: DMS 问题的只读采集、证据打包、R/A 核分析和 Jira 结论回写。
 risks:
   - R 核文档和日志规则尚未补齐，首版不能保证形成跨核根因结论。
   - 飞书多维表格字段名可能变化，需要通过可配置别名维持兼容并对缺失字段 fail-closed。
   - Jira 写回属于外部变更，必须预览并确认目标与内容。
   - Jira 访问依赖本地 Bearer token；凭据不得进入版本控制或知识库正文。
+  - A 核查询规则由 Skill reference 手工维护；运行版本变化后规则可能过期，单次问题分析不得临时读取源码或自动改规则。
+  - 初始问题时间只能作为检索 seed；异步多线程、时钟偏差和字段缺失仍可能限制跨阶段因果关联。
 updated_at: 2026-07-13
 ---
 
@@ -217,6 +220,29 @@ Evidence Package 是本工作流的输入快照和阶段交接契约；它本身
 
 当前 A 核输出只代表 A 核可观察范围内的事实和推断。涉及 R 核消费结果、R/A 交互或最终系统行为的判断必须降级为待验证假设或未知。
 
+当前已实现确定性日志索引与证据选择层，入口为 `scripts/analyze_a_core.py`。脚本把 Evidence Package 作为只读输入，扫描 Data Loader 标记的全部 `a_core_log_candidate`，但不把全部原文放入 Agent context。输出目录必须位于源数据和 Evidence Package 之外，采用临时目录加原子切换，避免污染输入快照。
+
+确定性输出包括：
+
+```text
+a-core-analysis/
+├── a_core_log_index.jsonl
+├── a_core_signature_summary.json
+├── a_core_selection_manifest.json
+└── a_core_result.json
+```
+
+- `a_core_log_index.jsonl`：为每个物理日志行保存文件、行号、byte offset、解析状态、时间、级别、线程、源码位置、模块、签名、关联键和原文。
+- `a_core_signature_summary.json`：保存输入文件 hash、行覆盖不变量、级别/模块计数、签名计数及首次/末次样本。
+- `a_core_selection_manifest.json`：记录 Jira/显式关键词、问题时间、错误级别、初始化、通用异常、低频签名、邻接上下文以及 frame ID、timestamp、tracking ID、sequence 跨线程扩展的选择原因和字符预算。
+- `a_core_result.json`：保存确定性事实、覆盖声明、手工规则版本状态和工件 hash；初始状态固定为 `partial`、`reasoning_status=pending_agent_review`，不得冒充完整诊断。
+
+全量处理的硬约束是 `total_lines = parsed_lines + unparsed_lines`；无法按已知格式解析的行仍保留原文和位置。若 Data Loader 已记录日志 hash，分析前必须一致；分析过程中再次校验文件未变化。
+
+A 核模块、初始化、异常和 correlation 查询规则的运行时事实源是 `references/a-core-analysis-strategy.json`。这些规则只能通过显式修改 Skill 并重新验证来更新。日常问题分析不读取 DMS 源码，不自动生成 reference，也不根据单个 case 静默修改固定规则。`compatible_runtime_revisions` 只用于提示已验证版本：为空时为 `generic_unversioned`，版本未知时为 `runtime_version_unknown`，不在兼容列表时为 `review_recommended`。
+
+Agent review 仍是后续步骤：Agent 只消费 selection manifest 和按原始位置定向回读的少量证据，再形成 `fact`、`inference`、`hypothesis` 与 `unknown`。若 selection 不足，应增加显式 anchor 重跑或定向回读，不得把完整日志直接放入 context。
+
 ## 1.8 结论合成
 
 所有结论按以下证据等级标记：
@@ -271,6 +297,7 @@ analyze-dms-issue/
 │   ├── build_evidence_package.py
 │   ├── analyze_r_core.py
 │   ├── analyze_a_core.py
+│   ├── test_analyze_a_core.py
 │   ├── synthesize_conclusion.py
 │   └── writeback_jira.py
 ├── references/
@@ -281,11 +308,12 @@ analyze-dms-issue/
 │   ├── evidence-schema.md
 │   ├── r-core-analysis.md
 │   ├── a-core-analysis.md
+│   ├── a-core-analysis-strategy.json
 │   └── conclusion-policy.md
 └── assets/jira-comment-template.md
 ```
 
-确定性采集、校验、打包和写回使用脚本；可变业务规则和领域知识放入 references。日志格式稳定后，再逐步将 R/A 核日志解析从 Agent 推理固化为可测试脚本。
+确定性采集、校验、打包和写回使用脚本；可变业务规则和领域知识放入 references。A 核当前已将全量行索引、签名 census、规则版本提示、多锚点选择、跨线程 correlation 扩展和预算控制固化为可测试脚本；事实解释、竞争假设和根因判断仍由 Agent review 完成。
 
 `jira-credentials.local.json` 是本地运行时输入，必须由 `.gitignore` 排除，不属于可提交的 Skill 资源或知识事实源。
 
@@ -306,6 +334,8 @@ analyze-dms-issue/
 - 建立 A 核 reference。
 - 实现带分析覆盖声明的结论合成规则；R 核缺失时不生成跨核根因。
 
+当前进展：A 核确定性索引与证据选择层已实现；查询规则固定在 Skill reference 中并要求手工更新，单次分析不读取源码。新增物理行覆盖、未解析行保留、问题时间 seed、跨线程 correlation、候选上限下高优先级保留、版本提示、hash 一致性、输出隔离和不覆盖验证，仓库 36 项测试全部通过。真实现场日志端到端运行、Agent review 产物固化和 Conclusion Synthesizer 尚未完成。
+
 ### 1.11.3 阶段三：验证与受控写回
 
 - 用真实但脱敏的故障样例验证检索和证据包。
@@ -319,4 +349,6 @@ analyze-dms-issue/
 - 数据路径协议、目录布局、日志命名、压缩格式和数据规模上限。
 - R 核文档、日志格式、R/A 接口、消息 ID 和时间同步规则。
 - A 核代码仓库、默认 branch/commit 获取方式和模块覆盖范围。
+- 首批真实脱敏 A 核日志的格式、轮转顺序、规模、时钟质量和 correlation 字段覆盖。
+- 手工规则升级时的 reviewer、兼容版本清单与回归样例维护方式。
 - Jira 评论目标、模板、审批方式和是否允许更新已有评论。
