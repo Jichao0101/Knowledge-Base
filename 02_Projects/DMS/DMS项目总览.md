@@ -3,7 +3,7 @@ type: project_entry
 status: active
 project: DMS
 scope: DMS 项目区模块入口索引；只负责导航和内容简介，不替代各模块 current 文档。
-updated_at: 2026-07-02
+updated_at: 2026-07-13
 ---
 
 # 1 DMS 项目总览
@@ -18,6 +18,7 @@ updated_at: 2026-07-02
 | SDK Integration | [[02_Projects/DMS/06_SDK_Integration/sdk_overview_current]] | SDK 两条使用路径、动态库接口、回灌入口、DMS 回灌方案、Pipeline/Fuse 和硬件加速落点 | 按 current 恢复顺序读取 |
 | EyeStatus | [[02_Projects/DMS/08_EyeStatus/eyestatus_overview_current]] | 睁闭眼模型部署态、眼部 crop、VP resize、推理输出和验证证据 | 按 current 恢复顺序读取 |
 | FaceID | [[02_Projects/DMS/09_FaceID/overview_current]] | A 核 FaceID 录入、登录、解绑、删除、check、恢复出厂设置和本地特征库 | 按 current 恢复顺序读取 |
+| Issue Analysis Skill | [[02_Projects/DMS/10_Issue_Analysis_Skill/DMS问题分析Skill模块索引]] | 从飞书表格定位 Jira 与数据路径，汇聚证据后依次分析 R 核、A 核并受控回写 Jira | 先读模块索引 |
 | Model Training | [[02_Projects/DMS/03_Model_Training/model_training_overview_current]] | 睁闭眼数据构建、输入生成、训练配置、对照实验和增量更新链路 | 按 current 恢复顺序读取 |
 | Postprocess | [[02_Projects/DMS/05_Postprocess/后处理模块索引]] | 疲劳驾驶监测后处理、闭眼/哈欠规则、报警条件和头姿兜底修复 | 先读模块索引 |
 | State Machine | [[02_Projects/DMS/07_State_Machine/状态机模块索引]] | 事件状态机、报警条件、测试方案和测试 TP | 先读模块索引 |
