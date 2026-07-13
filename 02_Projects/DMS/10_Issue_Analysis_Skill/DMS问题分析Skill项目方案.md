@@ -10,6 +10,7 @@ sources:
   - 2026-07-13 Evidence Package Builder 实现与集成验证
   - 2026-07-13 当前版本跳过 R 核并在结论中披露分析覆盖缺口的用户决策
   - 2026-07-13 A-core 日志索引与证据选择实现、36 项仓库测试验证及用户确认的手工规则更新边界
+  - 2026-07-13 Conclusion Synthesizer、手工结论策略、证据链门禁与44项仓库测试验证
 scope: DMS 问题的只读采集、证据打包、R/A 核分析和 Jira 结论回写。
 risks:
   - R 核文档和日志规则尚未补齐，首版不能保证形成跨核根因结论。
@@ -18,6 +19,7 @@ risks:
   - Jira 访问依赖本地 Bearer token；凭据不得进入版本控制或知识库正文。
   - A 核查询规则由 Skill reference 手工维护；运行版本变化后规则可能过期，单次问题分析不得临时读取源码或自动改规则。
   - 初始问题时间只能作为检索 seed；异步多线程、时钟偏差和字段缺失仍可能限制跨阶段因果关联。
+  - 当前 R 核固定跳过，因此结论不能确认 R 核或跨核归属，其他归属的最高可信度也受策略限制。
 updated_at: 2026-07-13
 ---
 
@@ -272,6 +274,12 @@ Agent review 仍是后续步骤：Agent 只消费 selection manifest 和按原�
 - 明确说明结论仅覆盖 A 核与现有输入证据，未验证 R 核行为和跨核链路。
 - 在 R 核未执行时，不得把问题确认为 `R_CORE` 或 `CROSS_CORE_INTERFACE`；相关判断只能列为假设、未知或补证方向。
 
+当前已实现确定性 Conclusion Synthesizer，入口为 `scripts/synthesize_conclusion.py`。脚本只消费 Evidence Package、A-core result 及同目录 selection manifest，不读取 DMS 源码、不修改任一输入、不自动学习规则，也不写 Jira。可执行策略位于 `references/conclusion-policy.json`，解释性契约位于 `references/conclusion-policy.md`；两者只能通过显式 Skill 变更手工更新。
+
+Agent review 尚未完成时，综合器只输出 `partial/INSUFFICIENT_EVIDENCE/low`。完成 review 时，A-core result 必须同时声明 `status=complete` 和 `reasoning_status=complete`，提供摘要、拟议归属、置信度、事实、推断、假设、未知项、反证与下一步，并至少用一个 `evidence_ids` 引用 selection manifest 中的现有证据。综合器校验 package ID、Jira ID、Evidence Package manifest hash、selection manifest hash 和全部 evidence ID；任一不一致即 fail-closed。
+
+输出为独立目录中的 `conclusion.json`，保存分析覆盖、归属、置信度、事实/推断/假设/未知项、反证、下一步、证据链、策略调整和 Jira 回写限制。当前 `R_CORE` 与 `CROSS_CORE_INTERFACE` 拟议归属会降级为 `INSUFFICIENT_EVIDENCE`；其他归属在 R 核跳过期间最高为 `medium`。输出目录必须不存在，且不能与源数据、Evidence Package 或 A-core analysis 目录重叠。
+
 ## 1.9 Jira 回写
 
 Jira 回写分为草稿和提交两个阶段：
@@ -299,6 +307,7 @@ analyze-dms-issue/
 │   ├── analyze_a_core.py
 │   ├── test_analyze_a_core.py
 │   ├── synthesize_conclusion.py
+│   ├── test_synthesize_conclusion.py
 │   └── writeback_jira.py
 ├── references/
 │   ├── lark-base-strategy.json
@@ -309,6 +318,7 @@ analyze-dms-issue/
 │   ├── r-core-analysis.md
 │   ├── a-core-analysis.md
 │   ├── a-core-analysis-strategy.json
+│   ├── conclusion-policy.json
 │   └── conclusion-policy.md
 └── assets/jira-comment-template.md
 ```
@@ -334,7 +344,7 @@ analyze-dms-issue/
 - 建立 A 核 reference。
 - 实现带分析覆盖声明的结论合成规则；R 核缺失时不生成跨核根因。
 
-当前进展：A 核确定性索引与证据选择层已实现；查询规则固定在 Skill reference 中并要求手工更新，单次分析不读取源码。新增物理行覆盖、未解析行保留、问题时间 seed、跨线程 correlation、候选上限下高优先级保留、版本提示、hash 一致性、输出隔离和不覆盖验证，仓库 36 项测试全部通过。真实现场日志端到端运行、Agent review 产物固化和 Conclusion Synthesizer 尚未完成。
+当前进展：A 核确定性索引与证据选择层和 Conclusion Synthesizer 已实现；查询与结论规则均固定在 Skill reference 中并要求手工更新，单次分析不读取源码。综合器新增 pending review 降级、A 核合法归属、R/跨核禁用归属降级、R 核缺失置信度封顶、package/manifest/selection/evidence ID 一致性、输出隔离和不覆盖验证；既有测试与新增测试共 44 项全部通过。真实现场日志端到端运行和独立 Agent review 产物仍未完成，因此结论综合尚未完成真实 case 闭环。
 
 ### 1.11.3 阶段三：验证与受控写回
 
@@ -348,7 +358,7 @@ analyze-dms-issue/
 - Jira 必采字段、关联 Issue 规则和附件策略。
 - 数据路径协议、目录布局、日志命名、压缩格式和数据规模上限。
 - R 核文档、日志格式、R/A 接口、消息 ID 和时间同步规则。
-- A 核代码仓库、默认 branch/commit 获取方式和模块覆盖范围。
+- 手工规则升级时允许参考的 A 核源码版本、revision 记录方式和模块覆盖范围；普通 case 不读取源码。
 - 首批真实脱敏 A 核日志的格式、轮转顺序、规模、时钟质量和 correlation 字段覆盖。
 - 手工规则升级时的 reviewer、兼容版本清单与回归样例维护方式。
 - Jira 评论目标、模板、审批方式和是否允许更新已有评论。
