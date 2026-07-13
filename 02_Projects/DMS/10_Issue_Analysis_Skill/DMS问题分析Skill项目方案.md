@@ -7,6 +7,7 @@ summary: 建立从飞书表格定位问题输入、汇聚 Jira 与日志证据�
 sources:
   - 2026-07-13 用户确认的工作流与方案讨论
   - 2026-07-13 Jira Parser 与 Data Loader 实现及真实只读验证
+  - 2026-07-13 Evidence Package Builder 实现与集成验证
 scope: DMS 问题的只读采集、证据打包、R/A 核分析和 Jira 结论回写。
 risks:
   - R 核文档和日志规则尚未补齐，首版不能保证形成跨核根因结论。
@@ -25,7 +26,7 @@ updated_at: 2026-07-13
 本项目当前边界：
 - 首版只新增 Jira 评论，不自动修改状态、负责人、优先级或其他字段。
 - 结论必须区分事实、推断、假设与未知，不以证据不足的局部发现替代完整根因。
-- 本文同时记录当前实施状态；飞书入口、Jira Parser 与 Data Loader 已实现并完成对应验证，后续分析与回写阶段仍以实际验证结果为准。
+- 本文同时记录当前实施状态；飞书入口、Jira Parser、Data Loader 与 Evidence Package Builder 已实现并完成对应验证，后续分析与回写阶段仍以实际验证结果为准。
 
 ## 1.2 总体架构
 
@@ -156,7 +157,7 @@ Data Loader 不修改、移动或删除原始数据。分析产物写入独立�
 
 ## 1.5 Evidence Package
 
-建议产物结构：
+产物结构：
 
 ```text
 evidence-package/
@@ -166,18 +167,16 @@ evidence-package/
 │   ├── issue.json
 │   ├── comments.json
 │   ├── changelog.json
-│   └── attachments_manifest.json
-├── data/
-│   ├── files_manifest.json
-│   └── selected/
+│   ├── attachments_manifest.json
+│   └── raw/
+├── data/files_manifest.json
 ├── analysis/
-│   ├── r_core_result.json
-│   ├── a_core_result.json
-│   └── conclusion.json
-└── reports/jira_comment.md
+└── reports/
 ```
 
-`manifest.json` 至少记录输入来源、Jira ID、数据路径、采集时间、分析器版本、缺失证据和各阶段状态。
+Builder 只接受 `ready` 飞书候选，并在构建前校验飞书、Jira 与 Data Loader 输入中的 Jira ID 和数据路径一致。输出目录必须不存在且不得位于源数据目录内；构建使用同级临时目录和原子切换，失败时不保留半成品，也不覆盖已有 package。
+
+`manifest.json` 记录 package ID、Jira ID、数据路径、构建时间、builder 版本、输入路径与 hash、缺失证据、各阶段状态，以及每个交付文件的相对路径、大小和 SHA-256。Jira 和 Data Loader 任一为 `partial` 时允许生成 `partial` package；`blocked`、`failed`、输入冲突或 Jira 原始响应缺失时 fail-closed。
 
 统一阶段状态：
 
@@ -188,7 +187,7 @@ evidence-package/
 - `failed`
 - `skipped`
 
-Evidence Package 是本工作流的输入快照和阶段交接契约；它本身不是未经核验结论的可信性证明。
+Evidence Package 是本工作流的输入快照和阶段交接契约；它本身不是未经核验结论的可信性证明。Builder 不复制源日志，`analysis/` 与 `reports/` 在本阶段保持为空，不伪造尚未执行的分析或回写结果。
 
 ## 1.6 R-core Analyser
 
@@ -288,7 +287,7 @@ analyze-dms-issue/
 - 实现飞书 Base URL 解析、按责任人/Jira ID 筛选、重复分析门禁、Jira URL 规范化、Jira 只读采集和 Data Loader。
 - 实现 Evidence Package 与 Jira 评论草稿生成。
 
-当前进展：飞书入口、Jira Parser 和 Data Loader 已实现；Jira Parser 已通过真实 Issue 的 Bearer 只读采集验证，Data Loader 已通过本地日志目录验证。Evidence Package 与 Jira 评论草稿尚未实现。
+当前进展：飞书入口、Jira Parser、Data Loader 和 Evidence Package Builder 已实现；Jira Parser 已通过真实 Issue 的 Bearer 只读采集验证，Data Loader 已通过本地日志目录验证，Evidence Package 已使用真实 Jira/Data 输入与明确标注的 synthetic 飞书候选完成集成构建。在线飞书到 package 的端到端验证和 Jira 评论草稿尚未完成。
 
 ### 1.11.2 阶段二：分析器
 

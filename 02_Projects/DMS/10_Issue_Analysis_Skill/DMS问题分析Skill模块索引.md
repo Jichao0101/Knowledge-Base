@@ -15,11 +15,12 @@ updated_at: 2026-07-13
 
 ## 当前状态
 
-- 项目状态：阶段一实施中；飞书入口、Jira Parser 与 Data Loader 已实现，Evidence Package 和后续分析/回写阶段尚未实现。
+- 项目状态：阶段一实施中；飞书入口、Jira Parser、Data Loader 与 Evidence Package Builder 已实现，Jira 评论草稿和后续分析/回写阶段尚未实现。
 - 已确认主链路：飞书表格读取 Jira ID 和数据路径 → Jira Parser 与 Data Loader → Evidence Package → R-core Analyser → A-core Analyser → 结论回写 Jira。
 - 飞书表格仅作为只读问题入口，不承担分析结果回写。
 - Jira Parser 使用本地 Bearer token 做只读采集，已通过真实 Issue 验证；凭据不进入版本控制或知识库。
 - Data Loader 已完成只读清单、hash 和候选分类验证，`calmcar_camera_service` 作为 A 核日志候选。
+- Evidence Package Builder 已完成输入一致性校验、原子构建、阶段状态、缺失证据和 artifact hash；已使用真实 Jira/Data 输入与 synthetic 飞书候选完成集成验证，在线飞书端到端验证仍待完成。
 - R 核分析资料尚未补齐；A 核参考资料计划从指定版本代码中总结。
 
 ## 维护规则
