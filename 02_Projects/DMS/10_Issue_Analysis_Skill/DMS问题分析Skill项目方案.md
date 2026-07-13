@@ -11,15 +11,19 @@ sources:
   - 2026-07-13 当前版本跳过 R 核并在结论中披露分析覆盖缺口的用户决策
   - 2026-07-13 A-core 日志索引与证据选择实现、36 项仓库测试验证及用户确认的手工规则更新边界
   - 2026-07-13 Conclusion Synthesizer、手工结论策略、证据链门禁与44项仓库测试验证
+  - 2026-07-13 Jira 自动评论写回、marker 去重、失败边界与54项仓库测试验证
+  - 2026-07-13 ADASL2-1565 首个真实端到端分析、Jira 评论 8654391/8654396 与中文 Wiki Markup 修复记录
 scope: DMS 问题的只读采集、证据打包、R/A 核分析和 Jira 结论回写。
 risks:
   - R 核文档和日志规则尚未补齐，首版不能保证形成跨核根因结论。
   - 飞书多维表格字段名可能变化，需要通过可配置别名维持兼容并对缺失字段 fail-closed。
-  - Jira 写回属于外部变更，必须预览并确认目标与内容。
+  - Jira 写回属于外部变更；当前按用户决策默认自动新增评论，不再要求提交确认，因此必须通过 conclusion 锁定目标、固定接口范围、marker 去重和结果凭据约束风险。
   - Jira 访问依赖本地 Bearer token；凭据不得进入版本控制或知识库正文。
   - A 核查询规则由 Skill reference 手工维护；运行版本变化后规则可能过期，单次问题分析不得临时读取源码或自动改规则。
   - 初始问题时间只能作为检索 seed；异步多线程、时钟偏差和字段缺失仍可能限制跨阶段因果关联。
   - 当前 R 核固定跳过，因此结论不能确认 R 核或跨核归属，其他归属的最高可信度也受策略限制。
+  - Jira marker 去重是提交前查询实现的 best-effort 机制；并发执行仍可能在查询与 POST 之间产生重复评论。
+  - Jira Server v2 使用 Jira Wiki Markup；Markdown 行首 `#` 会被解释为多级有序列表。评论正文必须使用中文和 Jira Wiki 模板，既有错误评论因禁止更新/删除只能追加纠正版。
 updated_at: 2026-07-13
 ---
 
@@ -30,7 +34,7 @@ updated_at: 2026-07-13
 目标是建立一个可复用的 DMS 问题分析 Skill，从飞书表格中按责任人姓名或指定 Jira ID 定位问题，读取对应 Jira ID、数据路径和分析上下文，采集 Jira 信息与现场数据，构建可追溯证据包并形成受证据边界约束的分析结论。当前版本尚无 R 核分析方案，Evidence Package 构建完成后直接进入 A 核分析；未来补齐 R 核方案后再恢复 R 核到 A 核的完整顺序。
 
 本项目当前边界：
-- 首版只新增 Jira 评论，不自动修改状态、负责人、优先级或其他字段。
+- 首版只自动新增 Jira 评论，不自动修改状态、负责人、优先级或其他字段，也不更新或删除既有评论。
 - 结论必须区分事实、推断、假设与未知，不以证据不足的局部发现替代完整根因。
 - 本文同时记录当前实施状态；飞书入口、Jira Parser、Data Loader 与 Evidence Package Builder 已实现并完成对应验证，后续分析与回写阶段仍以实际验证结果为准。
 
@@ -282,15 +286,17 @@ Agent review 尚未完成时，综合器只输出 `partial/INSUFFICIENT_EVIDENCE
 
 ## 1.9 Jira 回写
 
-Jira 回写分为草稿和提交两个阶段：
+Jira 自动写回已实现，入口为 `scripts/writeback_jira.py`，可执行规则位于 `references/jira-writeback-policy.json`，边界说明位于 `references/jira-writeback.md`，评论格式位于 `assets/jira-comment-template.md`。默认 `automatic_comment` 模式不要求提交前确认；`--dry-run` 只用于测试或排查，不是自动化链路前置条件。
 
-1. 生成 Jira 评论草稿。
-2. 展示目标 Jira ID 和完整评论内容。
-3. 新增评论。
-4. 保存 comment ID、提交时间和响应结果。
-5. 使用分析运行 ID 避免重复评论。
+写回脚本只接受 `conclusion.json`，Jira ID 只能来自结论输入元数据，命令行不能替换目标。脚本只调用 Jira v2 新增评论接口，不开放状态、负责人、优先级、标签、既有评论更新或删除。`complete` 和 `partial` 结论都可写回，但评论必须原样披露结论状态、归属、置信度、R/A 核覆盖、事实、推断、竞争假设、未知项、反证与下一步；完整日志不进入评论。
 
-评论建议包含分析状态、关键事实、R 核分析、A 核分析、初步结论、缺失证据和下一步建议。完整日志不直接粘贴进 Jira。
+analysis key 由 Jira ID、Evidence Package manifest hash、A-core result hash 与结论策略版本生成，不包含 `generated_at`。评论尾部写入 `[dms-ai-analysis:<key>]`；提交前分页读取既有评论，命中 marker 时记录 `already_exists` 并跳过 POST。该设计覆盖普通重试，以及远端已成功但本地结果未落盘后的再次运行；Jira 未提供本流程使用的服务端 idempotency key，两个并发执行者仍可能在查询与 POST 之间竞态，因此不得声明绝对幂等。
+
+本地输出目录必须不存在且不能与 conclusion 输入重叠。`submitted` 和 `already_exists` 生成 `comment.md`、`writeback_result.json` 与 `jira_response.json`；`dry_run` 不生成远端响应。远端失败时不生成成功工件。POST 成功但响应缺少 comment ID 时仍记录 `submitted`、完整响应和 warning，避免把已发生的外部变更误报为失败。
+
+Jira 用户可见的摘要、事实、推断、竞争假设、未知项、反证和下一步必须包含中文；允许保留必要的英文日志原文、枚举值和技术名词。写回策略固定 `comment_language=zh-CN` 和 `comment_markup=jira_wiki`，模板使用 `h2.` / `h3.`、`*` 与 `bq.`，并在提交前拒绝行首 `#`，避免 Jira renderer 产生重复编号。
+
+`ADASL2-1565` 已完成首个真实写回：英文评论 `8654391` 暴露了英文可读性和 Markdown/Jira Wiki 语法不兼容问题；修复后中文纠正版评论 `8654396` 提交成功。现行边界禁止更新或删除既有评论，因此纠错采用新增评论并生成新 analysis marker。详细证据见 [[02_Projects/DMS/10_Issue_Analysis_Skill/Current Maintenance Records/2026-07-13-ADASL2-1565真实端到端验证与Jira中文写回修复]]。
 
 ## 1.10 Skill 资源规划
 
@@ -308,7 +314,8 @@ analyze-dms-issue/
 │   ├── test_analyze_a_core.py
 │   ├── synthesize_conclusion.py
 │   ├── test_synthesize_conclusion.py
-│   └── writeback_jira.py
+│   ├── writeback_jira.py
+│   └── test_writeback_jira.py
 ├── references/
 │   ├── lark-base-strategy.json
 │   ├── jira-fetch-strategy.json
@@ -319,46 +326,12 @@ analyze-dms-issue/
 │   ├── a-core-analysis.md
 │   ├── a-core-analysis-strategy.json
 │   ├── conclusion-policy.json
-│   └── conclusion-policy.md
+│   ├── conclusion-policy.md
+│   ├── jira-writeback-policy.json
+│   └── jira-writeback.md
 └── assets/jira-comment-template.md
 ```
 
 确定性采集、校验、打包和写回使用脚本；可变业务规则和领域知识放入 references。A 核当前已将全量行索引、签名 census、规则版本提示、多锚点选择、跨线程 correlation 扩展和预算控制固化为可测试脚本；事实解释、竞争假设和根因判断仍由 Agent review 完成。
 
 `jira-credentials.local.json` 是本地运行时输入，必须由 `.gitignore` 排除，不属于可提交的 Skill 资源或知识事实源。
-
-## 1.11 分阶段实施建议
-
-### 1.11.1 阶段一：输入与证据框架
-
-- 建立 Skill 骨架和阶段契约。
-- 实现飞书 Base URL 解析、按责任人/Jira ID 筛选、重复分析门禁、Jira URL 规范化、Jira 只读采集和 Data Loader。
-- 实现 Evidence Package 与 Jira 评论草稿生成。
-
-当前进展：飞书入口、Jira Parser、Data Loader 和 Evidence Package Builder 已实现；Jira Parser 已通过真实 Issue 的 Bearer 只读采集验证，Data Loader 已通过本地日志目录验证，Evidence Package 已使用真实 Jira/Data 输入与明确标注的 synthetic 飞书候选完成集成构建。在线飞书到 package 的端到端验证和 Jira 评论草稿尚未完成。
-
-### 1.11.2 阶段二：分析器
-
-- 当前先实现 A 核分析器；R 核阶段固定标记为 `skipped`，并把覆盖缺口传递给结论合成。
-- 后续补齐 R 核资料、日志规则和接口映射后，再恢复 R 核分析器。
-- 建立 A 核 reference。
-- 实现带分析覆盖声明的结论合成规则；R 核缺失时不生成跨核根因。
-
-当前进展：A 核确定性索引与证据选择层和 Conclusion Synthesizer 已实现；查询与结论规则均固定在 Skill reference 中并要求手工更新，单次分析不读取源码。综合器新增 pending review 降级、A 核合法归属、R/跨核禁用归属降级、R 核缺失置信度封顶、package/manifest/selection/evidence ID 一致性、输出隔离和不覆盖验证；既有测试与新增测试共 44 项全部通过。真实现场日志端到端运行和独立 Agent review 产物仍未完成，因此结论综合尚未完成真实 case 闭环。
-
-### 1.11.3 阶段三：验证与受控写回
-
-- 用真实但脱敏的故障样例验证检索和证据包。
-- 覆盖缺字段、多路径、版本不一致和 R 核阻塞等降级场景。
-- 验证 Jira 草稿预览、确认提交、幂等和失败恢复。
-
-## 1.12 待确认事项
-
-- 飞书 Base 默认入口 URL、table/view 是否固定，以及字段别名变更治理方式。
-- Jira 必采字段、关联 Issue 规则和附件策略。
-- 数据路径协议、目录布局、日志命名、压缩格式和数据规模上限。
-- R 核文档、日志格式、R/A 接口、消息 ID 和时间同步规则。
-- 手工规则升级时允许参考的 A 核源码版本、revision 记录方式和模块覆盖范围；普通 case 不读取源码。
-- 首批真实脱敏 A 核日志的格式、轮转顺序、规模、时钟质量和 correlation 字段覆盖。
-- 手工规则升级时的 reviewer、兼容版本清单与回归样例维护方式。
-- Jira 评论目标、模板、审批方式和是否允许更新已有评论。
