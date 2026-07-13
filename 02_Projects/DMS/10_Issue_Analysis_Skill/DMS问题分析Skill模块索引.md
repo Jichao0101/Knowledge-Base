@@ -21,7 +21,8 @@ updated_at: 2026-07-13
 - Jira Parser 使用本地 Bearer token 做只读采集，已通过真实 Issue 验证；凭据不进入版本控制或知识库。
 - Data Loader 已完成只读清单、hash 和候选分类验证，`calmcar_camera_service` 作为 A 核日志候选。
 - Evidence Package Builder 已完成输入一致性校验、原子构建、阶段状态、缺失证据和 artifact hash；已使用真实 Jira/Data 输入与 synthetic 飞书候选完成集成验证，在线飞书端到端验证仍待完成。
-- R 核分析资料尚未补齐；A 核参考资料计划从指定版本代码中总结。
+- 当前没有 R 核分析方案，R 核阶段固定标记为 `skipped` 后直接进入 A 核；最终结论必须披露 R 核未执行及覆盖缺口，不得确认 R 核或跨核根因。
+- A 核参考资料计划从指定版本代码中总结，当前 A 核结论只覆盖 A 核可观察范围。
 
 ## 维护规则
 
