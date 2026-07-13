@@ -6,11 +6,13 @@ module: Issue Analysis Skill
 summary: 建立从飞书表格定位问题输入、汇聚 Jira 与日志证据、依次分析 R 核和 A 核并将结论回写 Jira 的 DMS 问题分析 Skill。
 sources:
   - 2026-07-13 用户确认的工作流与方案讨论
+  - 2026-07-13 Jira Parser 与 Data Loader 实现及真实只读验证
 scope: DMS 问题的只读采集、证据打包、R/A 核分析和 Jira 结论回写。
 risks:
   - R 核文档和日志规则尚未补齐，首版不能保证形成跨核根因结论。
   - 飞书多维表格字段名可能变化，需要通过可配置别名维持兼容并对缺失字段 fail-closed。
   - Jira 写回属于外部变更，必须预览并确认目标与内容。
+  - Jira 访问依赖本地 Bearer token；凭据不得进入版本控制或知识库正文。
 updated_at: 2026-07-13
 ---
 
@@ -23,7 +25,7 @@ updated_at: 2026-07-13
 本项目当前边界：
 - 首版只新增 Jira 评论，不自动修改状态、负责人、优先级或其他字段。
 - 结论必须区分事实、推断、假设与未知，不以证据不足的局部发现替代完整根因。
-- 本文是项目方案，不代表 Skill 已实现或通过验证。
+- 本文同时记录当前实施状态；飞书入口、Jira Parser 与 Data Loader 已实现并完成对应验证，后续分析与回写阶段仍以实际验证结果为准。
 
 ## 1.2 总体架构
 
@@ -49,19 +51,12 @@ Jira Writeback
 
 ### 1.3.1 定位方式
 
-输入为带 `table` 和 `view` 参数的飞书 Wiki/Base URL
-
-解析完成后使用：
-
-- `lark-cli base +table-get` 获取表、字段和视图结构。
-- `lark-cli base +record-list` 按指定 table/view 串行分页读取记录。
-
-入口按实际字段名及配置别名读取记录。
-
 Skill 只在以下两类请求中触发：
 
 - 用户要求分析飞书中某个责任人名下的 DMS 问题。
 - 用户要求分析某个 Jira ID 的 DMS 问题。
+
+输入为带 `table` 和 `view` 参数的飞书 Wiki/Base URL，入口按实际字段名及配置别名读取记录。
 
 按责任人筛选时使用去除首尾空白后的精确姓名匹配；按 Jira ID 筛选时同时接受纯 ID 和完整 Jira URL。两个条件同时存在时取交集。未提供任一条件时拒绝执行，避免无范围扫描。
 
@@ -136,6 +131,8 @@ Jira 地址按以下规则生成：
 
 Jira Parser 负责只读采集并保留原始响应。当前策略是支持配置化的 required/optional 字段集合。
 
+Jira 认证统一使用 Bearer token。Token 仅允许保存在被 Git 忽略的本地 credential reference。采集失败时保留明确认证错误，不自动轮询其他认证方式。
+
 候选信息包括：
 
 - Issue 基本字段、描述、状态、优先级和类型。
@@ -151,10 +148,11 @@ Data Loader 负责：
 - 校验数据路径是否合法、存在且可读。
 - 生成文件清单，记录相对路径、类型、大小、修改时间和必要的 hash。
 - 识别 R 核日志、A 核日志、配置、版本信息和其他辅助文件。
-- 对压缩包、超大文件、二进制文件和敏感文件执行受控策略。
 - 将无法分类的文件显式列入 `unclassified`。
 
 Data Loader 不修改、移动或删除原始数据。分析产物写入独立工作目录。
+
+文件分类使用可配置规则；包含 `calmcar_camera_service` 关键字的日志作为 A 核日志候选，尚未命中规则的文件继续显式进入 `unclassified`，候选分类不等同于已完成日志协议解析。
 
 ## 1.5 Evidence Package
 
@@ -268,7 +266,9 @@ analyze-dms-issue/
 │   └── writeback_jira.py
 ├── references/
 │   ├── lark-base-strategy.json
-│   ├── jira-fetch-strategy.yaml
+│   ├── jira-fetch-strategy.json
+│   ├── jira-credentials.local.json
+│   ├── data-loader-strategy.json
 │   ├── evidence-schema.md
 │   ├── r-core-analysis.md
 │   ├── a-core-analysis.md
@@ -278,6 +278,8 @@ analyze-dms-issue/
 
 确定性采集、校验、打包和写回使用脚本；可变业务规则和领域知识放入 references。日志格式稳定后，再逐步将 R/A 核日志解析从 Agent 推理固化为可测试脚本。
 
+`jira-credentials.local.json` 是本地运行时输入，必须由 `.gitignore` 排除，不属于可提交的 Skill 资源或知识事实源。
+
 ## 1.11 分阶段实施建议
 
 ### 1.11.1 阶段一：输入与证据框架
@@ -285,6 +287,8 @@ analyze-dms-issue/
 - 建立 Skill 骨架和阶段契约。
 - 实现飞书 Base URL 解析、按责任人/Jira ID 筛选、重复分析门禁、Jira URL 规范化、Jira 只读采集和 Data Loader。
 - 实现 Evidence Package 与 Jira 评论草稿生成。
+
+当前进展：飞书入口、Jira Parser 和 Data Loader 已实现；Jira Parser 已通过真实 Issue 的 Bearer 只读采集验证，Data Loader 已通过本地日志目录验证。Evidence Package 与 Jira 评论草稿尚未实现。
 
 ### 1.11.2 阶段二：分析器
 
@@ -301,7 +305,7 @@ analyze-dms-issue/
 ## 1.12 待确认事项
 
 - 飞书 Base 默认入口 URL、table/view 是否固定，以及字段别名变更治理方式。
-- Jira 认证模式、必采字段、关联 Issue 规则和附件策略。
+- Jira 必采字段、关联 Issue 规则和附件策略。
 - 数据路径协议、目录布局、日志命名、压缩格式和数据规模上限。
 - R 核文档、日志格式、R/A 接口、消息 ID 和时间同步规则。
 - A 核代码仓库、默认 branch/commit 获取方式和模块覆盖范围。
