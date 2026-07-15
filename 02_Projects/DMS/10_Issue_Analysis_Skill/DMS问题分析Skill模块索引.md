@@ -7,14 +7,14 @@ scope: DMS 问题分析 Skill 的方案、实现、验证和维护记录入口�
 updated_at: 2026-07-13
 ---
 
-# DMS 问题分析 Skill 模块索引
+# 1 DMS 问题分析 Skill 模块索引
 
-## 当前入口
+## 1.1 当前入口
 
 - [[02_Projects/DMS/10_Issue_Analysis_Skill/DMS问题分析Skill项目方案]]：当前初版架构、阶段契约、降级策略、Jira 回写边界和实施建议。
 - [[02_Projects/DMS/10_Issue_Analysis_Skill/Current Maintenance Records/2026-07-13-ADASL2-1565真实端到端验证与Jira中文写回修复]]：首个真实端到端 case、证据不足结论、Jira 中文化和 Wiki Markup 修复记录。
 
-## 当前状态
+## 1.2 当前状态
 
 - 项目状态：阶段三验证中；已用 `ADASL2-1565` 完成首个在线飞书 → Jira/Data → Evidence Package → A 核准备 → Agent review → Conclusion → 真实 Jira 新增评论闭环，但结论为 `partial/INSUFFICIENT_EVIDENCE/low`，仍未形成真实根因闭环。
 - 已确认主链路：飞书表格读取 Jira ID 和数据路径 → Jira Parser 与 Data Loader → Evidence Package → R-core Analyser → A-core Analyser → 结论回写 Jira。
@@ -32,7 +32,7 @@ updated_at: 2026-07-13
 - 首次英文评论 `8654391` 作为历史事实保留；中文纠正版评论 `8654396` 已成功新增。格式修复前仓库全量 54 项测试通过，修复后相关 18 项回归测试、Skill 校验和 diff check 通过；未在修复后重跑全量 54 项。
 - 当前验证只覆盖 1 个证据不足的真实 case；R 核仍固定跳过，真实 DMS 状态链、多 case 诊断有效性、并发去重和 recoverability verification 仍未闭环。
 
-## 维护规则
+## 1.3 维护规则
 
 - 实现、验证或接口发生变化时，先更新项目方案或新增对应记录，再同步本索引。
 - 在完成独立 recoverability verification 前，不建立 `single_pass_recoverable: true` 的 current 状态。
