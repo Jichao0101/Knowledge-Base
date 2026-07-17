@@ -2,7 +2,7 @@
 type: vault_entry
 status: active
 scope: 知识库顶层导航；只负责入口分流，不作为具体主题真相源。
-updated_at: 2026-06-22
+updated_at: 2026-07-17
 ---
 
 # 1 知识库总入口
@@ -43,6 +43,7 @@ updated_at: 2026-06-22
 | agent-trajectory | [[02_Projects/agent-trajectory/agent_trajectory_overview_current]] | 工业 agent 任务轨迹库、Agent Execution Event Sourcing、状态重建、Failure Taxonomy 和轨迹蒸馏实现指导 |
 | Knowledge-Base | [[02_Projects/Knowledge-Base/知识库维护治理项目总览]] | 知识库结构维护、写前追溯门禁、生命周期元数据和防静默覆盖治理 |
 | CVAT | [[02_Projects/cvat/CVAT云端部署项目总览_current]] | CVAT 云端标注平台部署、Docker Compose 架构、NAS 数据层、训练平台模型任务输出和人工复核流程 |
+| AI Career Transition | [[02_Projects/AI-Career-Transition/AI职业转型项目总览]] | 结合知识库已有 DMS、端侧部署和 Agent 工程项目，向多模态 AI、VLM、Agent Systems、ML Systems 和端云协同迁移的长期学习项目 |
 
 ## 1.4 入口说明
 
