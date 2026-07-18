@@ -49,23 +49,42 @@ updated_at: 2026-07-17
 ## 1.2 全局数据流
 
 ```mermaid
-flowchart LR
-    A[原始文本 Prompt] --> B[Tokenizer]
-    B --> C[Token IDs<br/>shape: T]
-    C --> D[Embedding Lookup<br/>shape: T x d_model]
-    D --> E[位置信息]
-    E --> F[第 1 个 Transformer Block]
-    F --> G[第 2...L 个 Transformer Block]
-    G --> H[最终归一化]
-    H --> I[取最后位置 hidden state<br/>shape: d_model]
-    I --> J[LM Head]
-    J --> K[Vocabulary Logits<br/>shape: V]
-    K --> L[Temperature / Top-k / Top-p]
-    L --> M[Greedy 或 Sampling]
-    M --> N[一个新 Token ID]
-    N --> O[追加到输入序列]
-    O --> D
+flowchart TB
+    subgraph S1[阶段 1：文本编码]
+        direction TB
+        A[原始文本 Prompt] --> B[Tokenizer]
+        B --> C[Token IDs<br/>shape: T]
+        C --> D[Embedding Lookup<br/>shape: T x d_model]
+        D --> E[加入位置信息]
+    end
+
+    subgraph S2[阶段 2：Transformer 主干]
+        direction TB
+        F[第 1 个 Transformer Block]
+        F --> G[第 2 ... L 个 Transformer Block]
+        G --> H[最终归一化]
+        H --> I[取最后位置 hidden state<br/>shape: d_model]
+    end
+
+    subgraph S3[阶段 3：预测下一个 token]
+        direction TB
+        J[LM Head] --> K[Vocabulary Logits<br/>shape: V]
+        K --> L[Temperature / Top-k / Top-p]
+        L --> M[Greedy 或 Sampling]
+        M --> N[一个新 Token ID]
+    end
+
+    subgraph S4[阶段 4：进入下一轮生成]
+        direction TB
+        O[把新 Token ID<br/>追加到输入序列]
+        O --> P[使用更长的序列继续推理<br/>实际解码通常复用 KV Cache]
+    end
+
+    E --> F
+    I --> J
+    N --> O
 ```
+实际逐 token 解码通常会利用 KV cache，只增量计算新位置，而不是完整重算全部历史 token。
 
 符号约定：
 
