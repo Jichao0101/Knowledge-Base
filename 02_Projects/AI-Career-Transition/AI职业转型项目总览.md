@@ -5,6 +5,7 @@ project: AI-Career-Transition
 summary: 以知识库已有 DMS 感知、模型训练、端侧部署和 Agent 工程项目为实践背景，向多模态 AI、VLM、Agent Systems 和 ML Systems 迁移的长期学习与作品建设项目。
 sources:
   - 2026-07-17 用户确认的学习目标、项目背景与隐私边界
+  - 2026-07-21 第一阶段 LLM 主动学习对话与迁移检查
   - 02_Projects/DMS/03_Model_Training/model_training_overview_current.md
   - 02_Projects/DMS/08_EyeStatus/eyestatus_overview_current.md
   - 02_Projects/agent-trajectory/agent_trajectory_overview_current.md
@@ -13,7 +14,7 @@ scope: 职业方向、能力补齐、学习路线、作品建设、阶段验证�
 risks:
   - 学习范围横跨模型、系统和 Agent，若缺少阶段性交付，容易再次退化为零散学习或 vibe coding。
   - 本项目记录的是规划和阶段证据，不代表目标能力已经掌握或项目已经完成生产验证。
-updated_at: 2026-07-17
+updated_at: 2026-07-21
 ---
 
 # 1 AI 职业转型项目总览
@@ -69,7 +70,9 @@ DMS/OMS 视觉感知与端侧部署项目基础
 ## 1.5 当前状态
 
 - 已完成职业方向定位和 12 个月学习路线优化。
-- 尚未完成学习基线测评、阶段项目实现或独立能力验证。
+- 已完成第一阶段 LLM 最小推理机制主动诊断；概念解释、边界辨析与 VLM 输入迁移达到对话诊断意义上的可用理解。
+- 当前转入 LLM 训练机制学习，重点覆盖 shifted labels、cross-entropy、反向传播、参数更新与 train/eval 边界。
+- 尚未完成闭卷独立重画、最小代码实现、测试、性能测量、阶段项目实现或独立工程验证。
 - 当前不创建五份 current 文档组；待本项目形成持续迭代的设计、实现和验证事实后再评估 current 化。
 - 不声明 `single_pass_recoverable: true`。
 

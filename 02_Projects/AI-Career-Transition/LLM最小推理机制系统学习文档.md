@@ -6,13 +6,14 @@ learning_stage: Phase 0
 summary: 面向当前理解缺口，系统解释 decoder-only LLM 从文本、token、逐层 Transformer 到下一个 token 生成的完整推理机制。
 sources:
   - 2026-07-17 Phase 0 主动诊断对话
+  - 2026-07-21 第一阶段主动学习对话与 VLM 迁移检查
   - 02_Projects/AI-Career-Transition/多模态AI职业转型学习方案.md
 scope: decoder-only 自回归语言模型的最小训练与推理闭环；为后续 VLM、Agent 和评测学习建立机制基础。
 risks:
   - 本文是学习材料，不是能力已掌握或完成独立验证的证据。
   - 不同模型在归一化、位置编码、激活函数、bias 和权重绑定上存在实现差异，本文优先解释共同主干。
   - 文中的小型张量和中文 token 仅用于说明机制，不代表真实 tokenizer 的切分结果。
-updated_at: 2026-07-17
+updated_at: 2026-07-21
 ---
 
 # 1 LLM 最小推理机制系统学习文档
@@ -235,8 +236,6 @@ $$
 第 3 层：由第 2 层输出的 hidden states 计算 Q3/K3/V3
 ...
 ```
-
-所以“最后 token 的 embedding 生成一个 query，然后一直用到最后”是不准确的。更准确的说法是：
 
 > 每一层中，最后位置的当前 hidden state 都会生成该层自己的 query；所有可见位置的当前 hidden states 都会生成该层自己的 keys 和 values。
 
@@ -623,3 +622,48 @@ text → token IDs → embeddings → blocks → last hidden → LM Head → log
 - VLM projector、视觉 token 压缩和视频采样的实现对比。
 
 这些内容重要，但当前不应阻塞最小机制闭环。
+
+## 1.18 第一阶段主动学习进度（2026-07-21）
+
+### 1.18.1 阶段结论
+
+本轮采用主动回忆、苏格拉底追问、费曼复述和迁移题完成口头机制诊断。当前将“LLM 最小推理机制”记录为：
+
+```text
+可用理解（working）
+```
+
+该结论仅表示在本轮对话提示范围内能够解释主干机制并完成相邻场景迁移，不代表已经完成闭卷独立重画、代码实现、测试、性能测量或工程故障定位，因此不提升为“已独立验证”或“完全掌握”。
+
+### 1.18.2 已通过的诊断点
+
+- 能解释 causal mask 通过阻断未来 token 的 attention 权重防止答案泄漏，并区分“训练可并行”与“生成逐 token”。
+- 能说明训练输入与监督标签错开一位；当前位置可以读取自身输入，但监督目标是下一个 token。
+- 能闭环说明 `token IDs → embeddings → Transformer blocks → 最后位置 hidden state → LM Head → logits → decoding → 新 token`。
+- 能说明 Q/K/V 在每一层由该层输入 hidden states 重新计算，后续层不直接复用原始 embeddings。
+- 能区分 attention 输出、完整 block 输出、最终 hidden state、vocabulary logits 和 softmax 概率。
+- 能区分 temperature、top-k、top-p 与最终 greedy/sampling，并解释 temperature 对 top-k 集合和 top-p 候选数量的不同影响。
+- 能区分 prefill 与 decode，说明 KV cache 保存历史 K/V 而不保存历史 Q 的原因。
+- 能用位置敏感性解释：无位置信息时，attention 无法区分可见前缀内部的排列顺序。
+- 能迁移到 VLM：视觉 encoder 与 projector 改变输入 embedding 的来源，后续 causal LLM 生成主干基本保持不变。
+
+### 1.18.3 已纠正但仍需在实践中复核的边界
+
+- 完整序列训练通常并不使用推理解码意义上的 KV cache；训练或 prefill 会并行计算多个位置，增量 decode 才只计算新位置的 Q/K/V。
+- logits 是未归一化词表分数，不是“伪概率”；softmax 后才得到概率分布。
+- Transformer block 内 norm、residual 与 attention/MLP 的具体先后顺序依模型架构而异，不能把一种实现顺序泛化为全部模型。
+
+### 1.18.4 下一阶段
+
+下一阶段转入 LLM 训练机制，按以下顺序继续主动学习：
+
+```text
+训练样本与 shifted labels
+→ vocabulary logits
+→ cross-entropy loss
+→ 梯度与反向传播
+→ optimizer 参数更新
+→ train / eval 行为边界
+```
+
+第一道诊断问题是：模型如何根据目标 token 的概率得到“本次预测错了多少”的标量信号，并把该信号传回 embedding、attention、MLP 与 LM Head 参数。
