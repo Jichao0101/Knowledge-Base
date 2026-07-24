@@ -7,6 +7,7 @@ sources:
   - 2026-07-17 用户确认的学习目标、项目背景与隐私边界
   - 2026-07-21 第一阶段 LLM 主动学习对话与迁移检查
   - 2026-07-21 第二阶段 LLM 训练机制主动学习评测
+  - 2026-07-24 第二阶段续测、系统学习文档与滚动检查点结构决策
   - 02_Projects/DMS/03_Model_Training/model_training_overview_current.md
   - 02_Projects/DMS/08_EyeStatus/eyestatus_overview_current.md
   - 02_Projects/agent-trajectory/agent_trajectory_overview_current.md
@@ -15,7 +16,7 @@ scope: 职业方向、能力补齐、学习路线、作品建设、阶段验证�
 risks:
   - 学习范围横跨模型、系统和 Agent，若缺少阶段性交付，容易再次退化为零散学习或 vibe coding。
   - 本项目记录的是规划和阶段证据，不代表目标能力已经掌握或项目已经完成生产验证。
-updated_at: 2026-07-21
+updated_at: 2026-07-24
 ---
 
 # 1 AI 职业转型项目总览
@@ -65,7 +66,8 @@ DMS/OMS 视觉感知与端侧部署项目基础
 
 - 主学习方案：[[02_Projects/AI-Career-Transition/多模态AI职业转型学习方案]]
 - Phase 0 系统学习文档：[[02_Projects/AI-Career-Transition/LLM最小推理机制系统学习文档]]
-- Phase 1 训练机制检查点：[[02_Projects/AI-Career-Transition/LLM训练机制主动学习检查点]]
+- 当前阶段固定检查点：[[02_Projects/AI-Career-Transition/当前阶段学习检查点]]
+- Phase 1 训练机制系统学习文档：[[02_Projects/AI-Career-Transition/LLM训练机制系统学习文档]]
 
 后续阶段实验、作品和求职记录优先留在本项目目录。只有形成长期稳定、经过审核并具有明确适用边界的可复用结论后，才评估是否提升到正式知识区。
 
@@ -73,8 +75,9 @@ DMS/OMS 视觉感知与端侧部署项目基础
 
 - 已完成职业方向定位和 12 个月学习路线优化。
 - 已完成第一阶段 LLM 最小推理机制主动诊断；概念解释、边界辨析与 VLM 输入迁移达到对话诊断意义上的可用理解。
-- 第二阶段 LLM 训练机制主动评测进行中；cross-entropy、基础梯度流和 train/eval 边界已形成，Adam/AdamW 与 SFT prompt/label masking 尚未闭合。
-- 切换设备后从 [[02_Projects/AI-Career-Transition/LLM训练机制主动学习检查点]] 的 `1.7.1` 继续，不重复第一阶段已通过内容。
+- 第二阶段 LLM 训练机制概念评测已完成；cross-entropy、SFT masking、基础梯度流、训练循环可靠性和混合精度主干已形成，Adam/AdamW 仍需系统学习。
+- 已生成 [[02_Projects/AI-Career-Transition/LLM训练机制系统学习文档]]；下一步补齐 Adam/AdamW 并执行最小训练实践验证。
+- 后续阶段统一从 [[02_Projects/AI-Career-Transition/当前阶段学习检查点]] 恢复；阶段完成后先生成持久系统学习文档，再滚动更新该固定检查点。
 - 尚未完成闭卷独立重画、最小代码实现、测试、性能测量、阶段项目实现或独立工程验证。
 - 当前不创建五份 current 文档组；待本项目形成持续迭代的设计、实现和验证事实后再评估 current 化。
 - 不声明 `single_pass_recoverable: true`。
