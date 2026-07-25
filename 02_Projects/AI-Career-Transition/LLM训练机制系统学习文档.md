@@ -5,7 +5,7 @@ project: AI-Career-Transition
 learning_stage: Phase 1 - LLM training mechanism
 summary: 系统解释 decoder-only LLM 从训练样本、loss、反向传播到 AdamW、混合精度与训练恢复的完整训练闭环，重点补齐主动评测暴露的薄弱项。
 sources:
-  - 2026-07-21 至 2026-07-24 第二阶段主动学习与概念评测
+  - 2026-07-21 至 2026-07-25 第二阶段主动学习、闭卷检查与最小实践代码审查
   - 02_Projects/AI-Career-Transition/当前阶段学习检查点.md
   - 02_Projects/AI-Career-Transition/LLM最小推理机制系统学习文档.md
   - 02_Projects/AI-Career-Transition/多模态AI职业转型学习方案.md
@@ -14,7 +14,7 @@ risks:
   - 本文是学习材料，不代表已经完成最小代码实验或独立工程验证。
   - 不同框架对 label shift、mask、autocast、scheduler 和 optimizer step 的封装顺序可能不同，使用时必须核对实际 API。
   - AdamW、混合精度和分布式训练存在更多实现细节，本文先闭合单机最小机制主干。
-updated_at: 2026-07-24
+updated_at: 2026-07-25
 ---
 
 # 1 LLM 训练机制系统学习文档
@@ -548,6 +548,34 @@ optimizer.step()
 - 对比正确与错误 label mask 的训练曲线。
 - 保存模型、optimizer、scheduler、step 和 scaler 后执行一次恢复验证。
 
+### 1.14.3 当前实践进度
+
+截至 2026-07-25，实践位于 `/home/jichao/test`：
+
+```text
+已完成代码审查
+→ input_ids / attention / labels shape 对齐
+→ next-token label shift
+→ 有效监督 token 与忽略位置统计
+→ PAD 输入与 label=-100 一致性检查
+
+当前任务
+→ 一层 TinyCausalLM
+→ causal mask + padding mask
+→ logits[:, :-1, :] 对齐 labels[:, 1:]
+→ cross-entropy loss
+```
+
+已能解释：原始位置 3 的 ASSISTANT hidden state 产生位置 3 的 logits，而 shift 后它与原始位置 4 的 label `A` 配对；ASSISTANT 自身的 label 为 `-100`，只表示不要求前一位置直接预测该模板 token。
+
+证据边界：
+
+- 已审查用户提交的 tensor 构造与 shift 代码。
+- 尚未收到脚本实际运行输出。
+- 尚未观察到 finite loss、有效梯度、参数变化或 loss 下降。
+- 尚未执行错误 label mask 对照实验和 checkpoint 恢复验证。
+- 因此当前只能标记为“实践进行中”，不能标记为“实践验证完成”。
+
 ## 1.15 常见误解与纠正
 
 | 误解 | 更准确的理解 |
@@ -586,3 +614,5 @@ tokens / labels / masks
 ### 1.16.3 实践完成边界
 
 只有在最小训练实验中观察到 loss 下降、梯度有效、参数真实更新，并完成一次 checkpoint 恢复验证后，才把本阶段从“系统学习材料已生成”提升为“实践验证完成”。
+
+当前状态：Adam/AdamW 和训练主链闭卷主干已通过；最小实践已完成数据与监督对齐代码审查，正在进入 TinyCausalLM forward 与 loss。
