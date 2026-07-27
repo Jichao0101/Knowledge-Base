@@ -13,9 +13,10 @@ sources:
   - 2026-07-13 Conclusion Synthesizer、手工结论策略、证据链门禁与44项仓库测试验证
   - 2026-07-13 Jira 自动评论写回、marker 去重、失败边界与54项仓库测试验证
   - 2026-07-13 ADASL2-1565 首个真实端到端分析、Jira 评论 8654391/8654396 与中文 Wiki Markup 修复记录
+  - 2026-07-27 R 核项目流程文档、Skill reference/strategy 分层、Skill 瘦身与55项仓库测试验证
 scope: DMS 问题的只读采集、证据打包、R/A 核分析和 Jira 结论回写。
 risks:
-  - R 核文档和日志规则尚未补齐，首版不能保证形成跨核根因结论。
+  - R 核规则 reference/strategy 已补齐，但确定性 analyser、输入适配和结果合同尚未实现，仍不能形成 R 核或跨核根因结论。
   - 飞书多维表格字段名可能变化，需要通过可配置别名维持兼容并对缺失字段 fail-closed。
   - Jira 写回属于外部变更；当前按用户决策默认自动新增评论，不再要求提交确认，因此必须通过 conclusion 锁定目标、固定接口范围、marker 去重和结果凭据约束风险。
   - Jira 访问依赖本地 Bearer token；凭据不得进入版本控制或知识库正文。
@@ -24,14 +25,14 @@ risks:
   - 当前 R 核固定跳过，因此结论不能确认 R 核或跨核归属，其他归属的最高可信度也受策略限制。
   - Jira marker 去重是提交前查询实现的 best-effort 机制；并发执行仍可能在查询与 POST 之间产生重复评论。
   - Jira Server v2 使用 Jira Wiki Markup；Markdown 行首 `#` 会被解释为多级有序列表。评论正文必须使用中文和 Jira Wiki 模板，既有错误评论因禁止更新/删除只能追加纠正版。
-updated_at: 2026-07-13
+updated_at: 2026-07-27
 ---
 
 # 1 DMS 问题分析 Skill 项目方案
 
 ## 1.1 目标与边界
 
-目标是建立一个可复用的 DMS 问题分析 Skill，从飞书表格中按责任人姓名或指定 Jira ID 定位问题，读取对应 Jira ID、数据路径和分析上下文，采集 Jira 信息与现场数据，构建可追溯证据包并形成受证据边界约束的分析结论。当前版本尚无 R 核分析方案，Evidence Package 构建完成后直接进入 A 核分析；未来补齐 R 核方案后再恢复 R 核到 A 核的完整顺序。
+目标是建立一个可复用的 DMS 问题分析 Skill，从飞书表格中按责任人姓名或指定 Jira ID 定位问题，读取对应 Jira ID、数据路径和分析上下文，采集 Jira 信息与现场数据，构建可追溯证据包并形成受证据边界约束的分析结论。当前 R 核规则 reference/strategy 已就绪，但 analyser 尚未实现；Evidence Package 构建完成后仍将 R 核标记为 `skipped` 并直接进入 A 核分析，待输入适配、输出合同和验证闭环后再恢复完整顺序。
 
 本项目当前边界：
 - 首版只自动新增 Jira 评论，不自动修改状态、负责人、优先级或其他字段，也不更新或删除既有评论。
@@ -201,7 +202,9 @@ Evidence Package 是本工作流的输入快照和阶段交接契约；它本身
 
 ## 1.6 R-core Analyser
 
-当前版本没有可执行的 R 核分析方案、日志协议和 reference，因此不对 R 核候选日志进行推测性解析。Evidence Package 完成后，将 R 核阶段标记为 `skipped`，原因固定记录为 `r_core_analyser_not_available`，然后直接进入 A 核分析。
+R 核规则已按渐进披露分层：Skill 的 `references/r-core-analysis.md` 保存排查顺序、输入与证据边界，`references/r-core-analysis-strategy.json` 保存信号、阈值、灵敏度、优先级和候选分类规则，并记录项目来源文档的 SHA-256。当前状态为 `reference_ready/analyser_not_implemented`；确定性 analyser、MF4/信号输入适配、证据 ID 和原子输出合同尚未实现，因此仍不对 R 核候选日志进行推测性解析。Evidence Package 完成后，R 核阶段继续标记为 `skipped/r_core_analyser_not_available`，然后进入 A 核分析。
+
+reference 对原始规则未覆盖的普通灵敏度哈欠、`isMonitoringEnabled` 门禁关系、抽烟持续时间和灵敏度条件显式保留 `not_documented` 或 `rule_incomplete`，不得从相邻功能阈值推断补齐。
 
 跳过 R 核时必须保留以下边界：
 
@@ -211,7 +214,7 @@ Evidence Package 是本工作流的输入快照和阶段交接契约；它本身
 4. A 核可以继续形成局部事实、推断和补证建议，但不得据此声明 R 核行为或跨核根因。
 5. 最终结论必须显式披露 R 核未执行及其对结论覆盖范围和可信度的影响。
 
-未来补齐 R 核分析方案后，应重新评审阶段顺序、输出契约和既有结论适用范围，不静默把 `skipped` 改写为已完成。
+未来实现 R 核 analyser 后，应重新评审输入适配、阶段顺序、输出契约、结论策略和既有结论适用范围，不得仅凭 reference 已存在就把 `skipped` 改写为已完成。
 
 ## 1.7 A-core Analyser
 
@@ -273,7 +276,7 @@ Agent review 仍是后续步骤：Agent 只消费 selection manifest 和按原�
 
 当前版本的结论必须增加分析覆盖声明：
 
-- `R_CORE`：`skipped`，原因是 R 核分析方案未实现。
+- `R_CORE`：`skipped`，原因是 R 核 analyser 尚未实现。
 - `A_CORE`：按实际执行结果记录 `complete`、`partial`、`blocked` 或 `failed`。
 - 明确说明结论仅覆盖 A 核与现有输入证据，未验证 R 核行为和跨核链路。
 - 在 R 核未执行时，不得把问题确认为 `R_CORE` 或 `CROSS_CORE_INTERFACE`；相关判断只能列为假设、未知或补证方向。
@@ -309,7 +312,7 @@ analyze-dms-issue/
 │   ├── fetch_jira_evidence.py
 │   ├── load_case_data.py
 │   ├── build_evidence_package.py
-│   ├── analyze_r_core.py
+│   ├── analyze_r_core.py（待实现）
 │   ├── analyze_a_core.py
 │   ├── test_analyze_a_core.py
 │   ├── synthesize_conclusion.py
@@ -323,6 +326,7 @@ analyze-dms-issue/
 │   ├── data-loader-strategy.json
 │   ├── evidence-schema.md
 │   ├── r-core-analysis.md
+│   ├── r-core-analysis-strategy.json
 │   ├── a-core-analysis.md
 │   ├── a-core-analysis-strategy.json
 │   ├── conclusion-policy.json
@@ -332,6 +336,6 @@ analyze-dms-issue/
 └── assets/jira-comment-template.md
 ```
 
-确定性采集、校验、打包和写回使用脚本；可变业务规则和领域知识放入 references。A 核当前已将全量行索引、签名 census、规则版本提示、多锚点选择、跨线程 correlation 扩展和预算控制固化为可测试脚本；事实解释、竞争假设和根因判断仍由 Agent review 完成。
+确定性采集、校验、打包和写回使用脚本；可变业务规则和领域知识放入 references。R 核已完成解释性流程与机器可消费 strategy 的分层，但 analyser 仍待实现；A 核已将全量行索引、签名 census、规则版本提示、多锚点选择、跨线程 correlation 扩展和预算控制固化为可测试脚本。事实解释、竞争假设和根因判断仍由 Agent review 完成。
 
 `jira-credentials.local.json` 是本地运行时输入，必须由 `.gitignore` 排除，不属于可提交的 Skill 资源或知识事实源。

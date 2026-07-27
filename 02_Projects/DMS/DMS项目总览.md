@@ -3,7 +3,7 @@ type: project_entry
 status: active
 project: DMS
 scope: DMS 项目区模块入口索引；只负责导航和内容简介，不替代各模块 current 文档。
-updated_at: 2026-07-13
+updated_at: 2026-07-27
 ---
 
 # 1 DMS 项目总览
@@ -18,10 +18,11 @@ updated_at: 2026-07-13
 | SDK Integration | [[02_Projects/DMS/06_SDK_Integration/sdk_overview_current]] | SDK 两条使用路径、动态库接口、回灌入口、DMS 回灌方案、Pipeline/Fuse 和硬件加速落点 | 按 current 恢复顺序读取 |
 | EyeStatus | [[02_Projects/DMS/08_EyeStatus/eyestatus_overview_current]] | 睁闭眼模型部署态、眼部 crop、VP resize、推理输出和验证证据 | 按 current 恢复顺序读取 |
 | FaceID | [[02_Projects/DMS/09_FaceID/overview_current]] | A 核 FaceID 录入、登录、解绑、删除、check、恢复出厂设置和本地特征库 | 按 current 恢复顺序读取 |
-| Issue Analysis Skill | [[02_Projects/DMS/10_Issue_Analysis_Skill/DMS问题分析Skill模块索引]] | 从飞书/Jira/现场数据构建证据包；当前跳过 R 核，已完成首个真实 case 的 A 核准备、Agent review、受约束结论和中文 Jira 评论闭环，仍待多 case 与完整状态链验证 | 先读模块索引 |
+| Issue Analysis Skill | [[02_Projects/DMS/10_Issue_Analysis_Skill/DMS问题分析Skill模块索引]] | 从飞书/Jira/现场数据构建证据包；R 核规则 reference 已就绪但 analyser 尚未实现且运行时仍跳过，已完成首个真实 case 的 A 核准备、Agent review、受约束结论和中文 Jira 评论闭环 | 先读模块索引 |
 | Model Training | [[02_Projects/DMS/03_Model_Training/model_training_overview_current]] | 睁闭眼数据构建、输入生成、训练配置、对照实验和增量更新链路 | 按 current 恢复顺序读取 |
 | Postprocess | [[02_Projects/DMS/05_Postprocess/后处理模块索引]] | 疲劳驾驶监测后处理、闭眼/哈欠规则、报警条件和头姿兜底修复 | 先读模块索引 |
 | State Machine | [[02_Projects/DMS/07_State_Machine/状态机模块索引]] | 事件状态机、报警条件、测试方案和测试 TP | 先读模块索引 |
+| Law Test | [[02_Projects/DMS/11_Law_Test/法规测试模块索引]] | DMS 法规测试问题、日志时序、报警等级、测试口径与证据边界 | 先读模块索引 |
 | Vehicle Config | [[02_Projects/DMS/2026-06-02-车型配置增量读取与双路径车型来源]] | 车型配置增量读取、双路径车型来源和配置兼容记录 | 单记录入口 |
 
 ## 1.2 推荐读取顺序
@@ -45,4 +46,4 @@ DMS current 覆盖情况、模块索引状态和待修复项记录在 [[02_Proje
 - 当前验证边界：profile split、driver-bound body evidence、body-to-hand snapshot 和三笔 hand lambda 可读性整理已有本地编译与独立 review 记录；runtime replay、单元测试、代表性视频集和区域级唯一性验证仍未闭合。
 - 历史方案、superseded lambda 路线、整体架构评审和每步验证命令详见 `02_Projects/DMS/04_Tracking/Current Maintenance Records/` 与 `02_Projects/DMS/04_Tracking/subpower_runs/`。
 - SDK Integration 当前补充记录：[[02_Projects/DMS/06_SDK_Integration/DMS回灌方案]] 记录 `start_stage=model` 已实现的模型阶段回灌路径，以及 README 中 `start_stage=postprocess` 预留但暂不支持的边界；该记录仅为源码静态整理，未完成 x86 或板端运行验证。
-- Issue Analysis Skill 当前处于阶段三验证：`ADASL2-1565` 已完成在线飞书、真实 Jira/Data、Evidence Package、308/308 行 A 核准备、Agent review、证据不足结论和真实 Jira 评论闭环；R 核仍跳过，结论为 `partial/INSUFFICIENT_EVIDENCE/low`。写回已强制中文并切换到 Jira Wiki Markup，中文纠正版评论为 `8654396`。格式修复前全量 54 项测试通过，修复后相关 18 项测试通过；多 case、完整 DMS 状态链、并发去重和 recoverability verification 仍未闭环。
+- Issue Analysis Skill 当前处于阶段三验证：`ADASL2-1565` 已完成在线飞书、真实 Jira/Data、Evidence Package、308/308 行 A 核准备、Agent review、证据不足结论和真实 Jira 评论闭环；R 核规则已拆分为解释性 reference 与机器可消费 strategy，但 analyser、输入适配和结果合同仍未实现，运行时继续 `skipped/r_core_analyser_not_available`。Skill 瘦身与 R 核 reference 分层后全量 55 项测试通过；多 case、完整 DMS 状态链、并发去重和 recoverability verification 仍未闭环。

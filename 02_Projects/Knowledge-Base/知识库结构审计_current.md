@@ -2,7 +2,7 @@
 type: structure_audit
 status: active
 scope: 记录知识库结构化、current 标准化、总览内容化的当前迁移状态；不作为具体主题事实源。
-updated_at: 2026-07-13
+updated_at: 2026-07-27
 supersedes:
   - 02_Projects/Knowledge-Base/知识库结构审计-2026-06-05.md
 ---
@@ -34,7 +34,7 @@ supersedes:
 | Model Training | current 组已创建；created_but_not_fully_verified | 后续补 recoverability verification |
 | Postprocess | 已补模块索引；无 current 组 | 若持续迭代，再创建 current 组 |
 | State Machine | 已补模块索引；无 current 组 | 若进入实现或长期维护，再创建 current 组 |
-| Issue Analysis Skill | 已补模块索引和项目方案；完成首个真实 case，但无 current 组 | 补多 case、完整状态链和独立 recoverability verification 后再评估 current 化 |
+| Issue Analysis Skill | 已补模块索引和项目方案；R 核 reference 已就绪但 analyser 未实现；完成首个真实 case，但无 current 组 | 补 R 核 analyser、多 case、完整状态链和独立 recoverability verification 后再评估 current 化 |
 
 ## 1.4 正式知识结构化状态
 
@@ -69,7 +69,7 @@ supersedes:
 - CVAT 云端部署 current 文档组已创建，状态为 `created_but_not_fully_verified`；当前方案已从 turbo/API 回写主路径调整为 NAS 持续挂载、训练平台模型结果落盘、CVAT 读取并人工复核；尚未完成真实云桌面 Docker/Compose、NAS share、模型结果导入、导出和备份恢复验证。
 - agent-trajectory 项目 current 入口已创建，状态为 `created_but_not_fully_verified`；当前方案已收敛为 hook feasibility 前置、hook adapter 轻量触发、collector service 采集 raw events、分层 Snapshot、异步 Semantic Distillation、decision point、state graph 和五类资产模型；P0 已完成最小 collector、raw event schema、global passive hook + allowlist 注册、5 个单元测试和一次模拟 hook 到 report 链路验证；尚未完成真实新 Codex 会话下的 trajectory 采集、真实 hook payload/correlation/ordering 验证、hook overhead/丢失率统计、100 条人工重建 review、Counterfactual Stability rubric、Failure Taxonomy 样本校准和 holdout 验证，未声明 `single_pass_recoverable: true`。
 - agent-trajectory 后续已补充 hook / collector / distiller 三层解析边界和 hook 外 scheduler 调度实现：新增 `collector.scheduler`、`collector.cli schedule`、`storage/collector.lock`、limit、loop 和 write-report 支持，8 个单元测试通过，并已消费真实本地 queue 中 90 条 payload 生成 91 条 raw events；仍未完成长期 timer/daemon 稳定性、overhead、丢失率、重复 envelope 幂等加固和异步 distiller 验证。
-- DMS Issue Analysis Skill 已完成 `ADASL2-1565` 首个在线飞书到真实 Jira 评论的端到端运行，并修复中文正文与 Jira Wiki Markup；但该 case 结论为证据不足，R 核、多 case、完整 DMS 状态链、并发去重和 recoverability verification 仍未闭合。
+- DMS Issue Analysis Skill 已完成 `ADASL2-1565` 首个在线飞书到真实 Jira 评论的端到端运行，并修复中文正文与 Jira Wiki Markup；R 核规则 reference/strategy 已完成分层，但 analyser、输入适配和结果合同仍未实现。该 case 结论仍为证据不足，R 核执行、多 case、完整 DMS 状态链、并发去重和 recoverability verification 尚未闭合。
 
 ## 1.7 2026-06-09 Tracking current 增量维护记录
 
@@ -387,3 +387,12 @@ supersedes:
 - Jira 写回已强制用户可见正文包含中文，模板从 Markdown 标题改为 Jira Wiki Markup 的 `h2.` / `h3.`、`*` 和 `bq.`，消除 `1. 1. 1.` 重复编号；中文纠正版评论 ID 为 `8654396`。
 - R 核仍为 `skipped/r_core_analyser_not_available`；多 case、完整 DMS 状态链、并发去重和独立 recoverability verification 仍待完成。
 - 本轮不提升正式知识，不新增 `single_pass_recoverable: true`。
+
+## 1.42 2026-07-27 DMS Issue Analysis Skill R 核 Reference 分层写回
+
+- 新增项目级维护记录：[[02_Projects/DMS/10_Issue_Analysis_Skill/Current Maintenance Records/2026-07-27-R核Reference分层与Skill瘦身状态同步]]。
+- 已同步 Issue Analysis Skill 模块索引、项目方案、DMS 项目总览、项目总览和本结构审计；未创建或整组重写 current 文档组。
+- 当前事实变化为：R 核项目流程已转换为 Skill 内的 `r-core-analysis.md` 与 `r-core-analysis-strategy.json`，并以项目来源文档 SHA-256 绑定输入快照；`SKILL.md` 已压缩为主流程、门禁和 reference 路由。
+- R 核 analyser、输入适配、证据 ID 和 `r_core_result.json` 合同尚未实现，运行阶段继续为 `skipped/r_core_analyser_not_available`，既有 R 核/跨核归属禁用和置信度边界不变。
+- Skill 结构校验、JSON/来源 hash/引用一致性检查、`git diff --check` 和仓库全量 55 项测试通过。
+- 本轮不提升正式知识，不改变 recoverability 状态，不新增 `single_pass_recoverable: true`。
