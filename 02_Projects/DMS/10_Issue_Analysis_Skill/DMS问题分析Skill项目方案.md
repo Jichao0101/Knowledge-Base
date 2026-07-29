@@ -14,6 +14,7 @@ sources:
   - 2026-07-13 Jira 自动评论写回、marker 去重、失败边界与54项仓库测试验证
   - 2026-07-13 ADASL2-1565 首个真实端到端分析、Jira 评论 8654391/8654396 与中文 Wiki Markup 修复记录
   - 2026-07-27 R 核项目流程文档、Skill reference/strategy 分层、Skill 瘦身与55项仓库测试验证
+  - 2026-07-29 用户提供并确认的 R 核远程规则更新、问题修正与本地来源同步
 scope: DMS 问题的只读采集、证据打包、R/A 核分析和 Jira 结论回写。
 risks:
   - R 核规则 reference/strategy 已补齐，但确定性 analyser、输入适配和结果合同尚未实现，仍不能形成 R 核或跨核根因结论。
@@ -23,9 +24,10 @@ risks:
   - A 核查询规则由 Skill reference 手工维护；运行版本变化后规则可能过期，单次问题分析不得临时读取源码或自动改规则。
   - 初始问题时间只能作为检索 seed；异步多线程、时钟偏差和字段缺失仍可能限制跨阶段因果关联。
   - 当前 R 核固定跳过，因此结论不能确认 R 核或跨核归属，其他归属的最高可信度也受策略限制。
+  - 2026-07-29 项目来源文档已更新，既有 R 核 reference/strategy 仍锁定旧 SHA-256 快照；在完成差异转换、策略版本更新和回归验证前，二者不得视为与最新来源一致。
   - Jira marker 去重是提交前查询实现的 best-effort 机制；并发执行仍可能在查询与 POST 之间产生重复评论。
   - Jira Server v2 使用 Jira Wiki Markup；Markdown 行首 `#` 会被解释为多级有序列表。评论正文必须使用中文和 Jira Wiki 模板，既有错误评论因禁止更新/删除只能追加纠正版。
-updated_at: 2026-07-27
+updated_at: 2026-07-29
 ---
 
 # 1 DMS 问题分析 Skill 项目方案
@@ -202,9 +204,9 @@ Evidence Package 是本工作流的输入快照和阶段交接契约；它本身
 
 ## 1.6 R-core Analyser
 
-R 核规则已按渐进披露分层：Skill 的 `references/r-core-analysis.md` 保存排查顺序、输入与证据边界，`references/r-core-analysis-strategy.json` 保存信号、阈值、灵敏度、优先级和候选分类规则，并记录项目来源文档的 SHA-256。当前状态为 `reference_ready/analyser_not_implemented`；确定性 analyser、MF4/信号输入适配、证据 ID 和原子输出合同尚未实现，因此仍不对 R 核候选日志进行推测性解析。Evidence Package 完成后，R 核阶段继续标记为 `skipped/r_core_analyser_not_available`，然后进入 A 核分析。
+R 核规则已按渐进披露分层：Skill 的 `references/r-core-analysis.md` 保存排查顺序、输入与证据边界，`references/r-core-analysis-strategy.json` 保存信号、阈值、灵敏度、优先级和候选分类规则，并记录项目来源文档的 SHA-256。2026-07-29 项目来源文档已同步新规则，SHA-256 从 `228a09cea3cdfa44cef06083dc2e18e2b9773d7d1500eb9df9e57b9c56b567f3` 变为 `2d436f92572391fb373117dc3de3c2a77d199721ccfb67dbce6348dfa16ddee9`；既有 reference/strategy 尚未同步，因此当前细分状态为 `source_updated/reference_sync_pending/analyser_not_implemented`。确定性 analyser、MF4/信号输入适配、证据 ID 和原子输出合同仍未实现，Evidence Package 完成后 R 核阶段继续标记为 `skipped/r_core_analyser_not_available`，然后进入 A 核分析。
 
-reference 对原始规则未覆盖的普通灵敏度哈欠、`isMonitoringEnabled` 门禁关系、抽烟持续时间和灵敏度条件显式保留 `not_documented` 或 `rule_incomplete`，不得从相邻功能阈值推断补齐。
+新来源补充了闭眼、哈欠、视线分心、头部姿态、电话和抽烟检测中的间歇 `false` 容忍窗口，并明确抽烟持续时间、High 灵敏度边界、危险报警信号名和遮挡/无人脸优先级。普通灵敏度哈欠与 `isMonitoringEnabled` 门禁关系仍未说明，后续 reference/strategy 必须继续保留 `not_documented` 或 `decision_relation_not_documented`，不得从相邻功能规则推断补齐。
 
 跳过 R 核时必须保留以下边界：
 

@@ -11,9 +11,16 @@
 | 7 | ADASDMSWrkStaAtthctd | DMS状态：$0=Off; $1=Standby; $2=Active; |
 | 8 | PID_DMS_Inhibit_Byte0_3<br>PID_DMS_Inhibit_Byte4_7 | DMS inhibit |
 
-## 1.1 闭眼功能排查
+## 1.1 闭眼检测
 
-1. 驾驶员闭眼，isEyeClosed持续true，2s以上（非低灵敏度），5s以上（低灵敏度），ADASDMSDrwsyDrvrWrngIndReq一直是0
+1. 驾驶员闭眼，`isEyeClosed` 在一段时间内为 `true`：
+
+   - Normal/High 灵敏度：持续 2s 以上。
+   - Low 灵敏度：持续 5s 以上。
+   - 轻度疲劳判定中，允许多次不超过 150ms 的间歇 `false`。
+   - 重度疲劳判定中，允许多次不超过 200ms 的间歇 `false`。
+
+   `ADASDMSDrwsyDrvrWrngIndReq` 一直是 0。
 
    1.1 检查ADASDMSWrkStaAtthctd是否为Active，如果不是，读取：
 
@@ -31,9 +38,15 @@
 
 ---
 
-## 1.2 打哈欠功能排查
+## 1.2 打哈欠检测
 
-1. 驾驶员打哈欠，isYawn一直为true，持续3s以上（高灵敏度，低灵敏度无该功能），ADASDMSDrwsyDrvrWrngIndReq一直是0
+1. 驾驶员打哈欠，`isYawn` 在一段时间内为 `true`：
+
+   - High 灵敏度：持续 3s 以上。
+   - Low 灵敏度无该功能；Normal 灵敏度规则未说明。
+   - 允许多次不超过 150ms 的间歇 `false`。
+
+   `ADASDMSDrwsyDrvrWrngIndReq` 一直是 0。
 
    1.1 检查ADASDMSWrkStaAtthctd是否为Active，如果不是，读取：
 
@@ -65,9 +78,14 @@
 | 8   | ADASDMSWrkStaAtthctd                               | DMS状态：$0=Off; $1=Standby; $2=Active;                                                                                                                    |
 | 9   | PID_DMS_Inhibit_Byte0_3<br>PID_DMS_Inhibit_Byte4_7 | DMS inhibit                                                                                                                                             |
 
-## 2.1 视线分心功能排查
+## 2.1 视线分心检测
 
-1. 驾驶员视线不在车辆正前方，if_attentionoff持续true，3s以上，非低灵敏度ADASDMSInattntvDrvrWrngIndReq一直是0
+1. 驾驶员视线不在车辆正前方，`if_attentionoff` 在一段时间内为 `true`：
+
+   - Normal/High 灵敏度：持续 3s 以上。
+   - 允许多次不超过 100ms 的间歇 `false`。
+
+   `ADASDMSInattntvDrvrWrngIndReq` 一直是 0。
 
    1.1 检查ADASDMSWrkStaAtthctd是否为Active，如果不是，读取：
 
@@ -85,14 +103,15 @@
 3. 驾驶员视线正常前方，但if_attentionoff一直为true，定位为感知问题
 
 
-## 2.2 头部姿态分心功能排查（当前状态标定关闭）
+## 2.2 头部姿态异常检测（当前状态标定关闭）
 
-1. 驾驶员头部姿态不正，if_abnormalhead持续true：
+1. 驾驶员头部姿态不正，`if_abnormalhead` 在一段时间内为 `true`：
 
-   - 3s（非低灵敏度）
-   - 60s（低灵敏度）
+   - Normal/High 灵敏度：持续 3s。
+   - Low 灵敏度：持续 60s。
+   - 允许多次不超过 300ms 的间歇 `false`。
 
-   ADASDMSInattntvDrvrWrngIndReq一直是0
+   `ADASDMSInattntvDrvrWrngIndReq` 一直是 0。
 
    1.1 检查ADASDMSWrkStaAtthctd是否为Active，如果不是，读取：
 
@@ -116,7 +135,7 @@
 
 | 序号 | 信号名 | 含义 |
 |---|---|---|
-| 1 | ADASDMSDangrsDrvgBhvWrngIndReq | 危险报警：$0=Indicator Off; $1=smoke; $3=phone |
+| 1 | ADASDMSDangrsDrvgBhvrWrngIndReq | 危险报警：$0=Indicator Off; $1=smoke; $3=phone |
 | 2 | if_phone | 是否打电话 |
 | 3 | if_smoke | 是否抽烟 |
 | 4 | vis_spd | 表显车速（kph） |
@@ -126,14 +145,21 @@
 | 8 | ADASDMSWrkStaAtthctd | DMS状态：$0=Off; $1=Standby; $2=Active; |
 | 9 | PID_DMS_Inhibit_Byte0_3<br>PID_DMS_Inhibit_Byte4_7 | DMS inhibit |
 
-1. 驾驶员视线在接打电话，if_phone持续true，3s以上，高灵敏度，其余灵敏度该功能无，ADASDMSDangrsDrvgBhvWrngIndReq一直是0
+## 3.1 接打电话检测
+
+1. 驾驶员在接打电话，`if_phone` 在一段时间内为 `true`：
+
+   - High 灵敏度：持续 3s 以上；其余灵敏度无该功能。
+   - 允许多次不超过 200ms 的间歇 `false`。
+
+   `ADASDMSDangrsDrvgBhvrWrngIndReq` 一直是 0。
 
    1.1 检查ADASDMSWrkStaAtthctd是否为Active，如果不是，读取：
 
    - PID_DMS_Inhibit_Byte0_3
    - PID_DMS_Inhibit_Byte4_7
 
-   1.2 检查ADASDMSWrkStaAtthctd为Active，功能是否处于冷却期if_PhoneinCool=true，如果处于冷却期，正常表现（抽烟对应if_SmokeinCool）
+   1.2 检查ADASDMSWrkStaAtthctd为Active，功能是否处于冷却期if_PhoneinCool=true，如果处于冷却期，正常表现
 
    1.3 检查vis_spd是否大于18kph持续2s，如果车速不满足要求，正常表现
 
@@ -141,6 +167,41 @@
 
    1.5 ADASDMSInattntvDrvrWrngIndReq>0，分心优先级高，表现正常
 
-2. 驾驶员视线打电话，但if_phone一直为false，定位为感知问题
+2. 驾驶员打电话，但if_phone一直为false，定位为感知问题
 
-3. 驾驶员视线不在打电话，但if_phone一直为true，定位为感知问题
+3. 驾驶员不在打电话，但if_phone一直为true，定位为感知问题
+
+
+---
+
+## 3.2 抽烟检测
+
+1. 驾驶员在抽烟，`if_smoke` 在一段时间内为 `true`：
+
+   - High 灵敏度：持续 2s 以上；其余灵敏度无该功能。
+   - 允许多次不超过 200ms 的间歇 `false`。
+
+   `ADASDMSDangrsDrvgBhvrWrngIndReq` 一直是 0。
+
+   1.1 检查ADASDMSWrkStaAtthctd是否为Active，如果不是，读取：
+
+   - PID_DMS_Inhibit_Byte0_3
+   - PID_DMS_Inhibit_Byte4_7
+
+   1.2 检查ADASDMSWrkStaAtthctd为Active，功能是否处于冷却期if_SmokeinCool=true，如果处于冷却期，正常表现
+
+   1.3 检查vis_spd是否大于18kph持续2s，如果车速不满足要求，正常表现
+
+   1.4 ADASDMSDrwsyDrvrWrngIndReq>0，疲劳优先级高，表现正常
+
+   1.5 ADASDMSInattntvDrvrWrngIndReq>0，分心优先级高，表现正常
+
+2. 驾驶员抽烟，但if_smoke一直为false，定位为感知问题
+
+3. 驾驶员没有抽烟，但if_smoke一直为true，定位为感知问题
+
+
+## 其他场景
+
+- 当ADASDMSObsFltWrngIndReq=1，表示摄像头被遮挡；该报警优先级高于疲劳、分心和抽烟/接打电话报警。
+- 当ADASDMSNoDrvFltWrngIndReq=1，表示没有识别到人脸；该报警优先级高于疲劳、分心和抽烟/接打电话报警。
