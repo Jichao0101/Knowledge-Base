@@ -201,7 +201,7 @@
 3. 驾驶员没有抽烟，但if_smoke一直为true，定位为感知问题
 
 
-## 其他场景
+## 3.3 其他场景
 
 - 当ADASDMSObsFltWrngIndReq=1，表示摄像头被遮挡；该报警优先级高于疲劳、分心和抽烟/接打电话报警。
 - 当ADASDMSNoDrvFltWrngIndReq=1，表示没有识别到人脸；该报警优先级高于疲劳、分心和抽烟/接打电话报警。

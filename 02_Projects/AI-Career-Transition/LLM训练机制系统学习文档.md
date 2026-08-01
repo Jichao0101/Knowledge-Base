@@ -6,6 +6,7 @@ learning_stage: Phase 1 - LLM training mechanism
 summary: 系统解释 decoder-only LLM 从训练样本、loss、反向传播到 AdamW、混合精度与训练恢复的完整训练闭环，重点补齐主动评测暴露的薄弱项。
 sources:
   - 2026-07-21 至 2026-07-25 第二阶段主动学习、闭卷检查与最小实践代码审查
+  - 2026-08-01 TinyCausalLM 单步训练运行、有效 token 加权、AMP 与 checkpoint 主动学习续测
   - 02_Projects/AI-Career-Transition/当前阶段学习检查点.md
   - 02_Projects/AI-Career-Transition/LLM最小推理机制系统学习文档.md
   - 02_Projects/AI-Career-Transition/多模态AI职业转型学习方案.md
@@ -14,7 +15,7 @@ risks:
   - 本文是学习材料，不代表已经完成最小代码实验或独立工程验证。
   - 不同框架对 label shift、mask、autocast、scheduler 和 optimizer step 的封装顺序可能不同，使用时必须核对实际 API。
   - AdamW、混合精度和分布式训练存在更多实现细节，本文先闭合单机最小机制主干。
-updated_at: 2026-07-25
+updated_at: 2026-08-01
 ---
 
 # 1 LLM 训练机制系统学习文档
@@ -215,7 +216,20 @@ $$
 
 若每个 micro-batch 先独立取平均，再对 micro-batch 做算术平均，100-token batch 与 700-token batch 会得到相同权重，结果不再是全体 token 的真实平均。
 
-实践中应累计有效 token loss 总和，并按总有效 token 数归一化，或按每个 micro-batch 的有效 token 比例缩放。
+实践中应累计有效 token loss 总和，并按总有效 token 数归一化，或按每个 micro-batch 的有效 token 比例缩放。`F.cross_entropy` 默认 `reduction="mean"`，且 `ignore_index=-100` 时只对未忽略的有效 label 取平均；因此，分别对不等长 micro-batch 求 mean 再等权平均，会错误地放大短序列 token 的权重。
+
+显存受限时，可逐个释放计算图：
+
+```text
+optimizer.zero_grad()
+→ 每个 micro-batch 计算 reduction="sum" 的 loss
+→ 每个 micro-batch 立即 backward，累积 sum 梯度
+→ 全部梯度除以累积窗口的 total_valid_tokens
+→ gradient clipping
+→ optimizer.step()
+```
+
+归一化必须发生在 clipping 之前。sum 梯度随 token 数增大只是聚合尺度变化，不等于梯度爆炸；若先 clipping 再除以 token 数，将不能与一个大 batch 的 mean-loss 梯度保持一致。
 
 ## 1.7 Adam：先看它要解决的两个训练问题
 
@@ -423,6 +437,7 @@ AdamW 在 LLM 中常用，不是因为“W 版本更先进”这一条抽象结�
 ```text
 backward
 → unscale（混合精度时）
+→ 按有效 token 总数归一化（使用 sum loss 累积时）
 → gradient clipping
 → optimizer.step
 ```
@@ -448,7 +463,15 @@ loss × scale
 → optimizer.step
 ```
 
-若在 unscale 前 clipping，正常梯度会因人为放大而被误判为梯度爆炸。
+若在 unscale 前 clipping，正常梯度会因人为放大而被误判为梯度爆炸。混合精度与变长 micro-batch 累积组合时，完整顺序是：
+
+```text
+scaled sum loss backward
+→ unscale，移除 AMP scale
+→ 除以 total_valid_tokens，恢复 token mean 梯度
+→ clipping
+→ optimizer.step
+```
 
 ### 1.10.3 FP32 master weights
 
@@ -488,6 +511,13 @@ optimizer.step()
 
 真正使用 `.grad` 更新参数。
 
+单步训练函数与训练管理应分层：
+
+- `train_step(model, optimizer, batch)` 执行一次 `zero_grad → forward → loss → backward → grad norm → optimizer.step`，并返回 loss、有效 token 数、梯度范数和参数变化等标量；它会修改 model、optimizer、grad buffer 与 RNG，因此不是无状态函数。
+- 外层训练循环负责 `global_step`、scheduler、日志频率、停止条件、评估和 checkpoint，不应依赖全局 model/optimizer 变量。
+- 独立评估函数不接收 optimizer；它记录原模式，切换到 `model.eval()` 与 `torch.no_grad()`，使用更新后的参数重新 forward，计算 eval loss 和有效 token accuracy，最后恢复原 train/eval 状态。
+- `train_step` 中的 logits 产生于 `optimizer.step` 之前且受 train-mode dropout 影响，不能用来证明更新后的模型已达到过拟合门槛。
+
 ## 1.12 Checkpoint 为什么不只保存模型权重
 
 精确恢复同一次训练通常需要：
@@ -499,8 +529,23 @@ optimizer.step()
 | scheduler state | 学习率阶段跳变或重复 warmup |
 | global step | 日志、评测、保存和累积周期错位 |
 | loss scaler | 混合精度缩放重新探索，可能 overflow 或效率下降 |
+| RNG state | 下一次 dropout、采样或随机数据操作偏离原训练轨迹 |
+| DataLoader/Sampler state | 样本顺序或数据位置发生跳变 |
 
 “从预训练权重开始新的微调”可以重新初始化这些状态，因为它开启的是新优化过程；“机器故障后继续同一次训练”则需要完整状态以延续原优化轨迹。
+
+`global_step` 通常记录实际执行 `optimizer.step()` 的参数更新次数，而不是 forward/backward 次数或 micro-batch 数。RNG state 也不是“相同随机种子”的同义词：seed 只定义随机序列起点，RNG state 记录当前伪随机序列的位置与内部状态。Dropout ratio 是模型配置，具体 dropout mask 由 RNG state 决定。
+
+恢复时应先重建 model、optimizer 与 scheduler 并加载各自 state，再恢复 global step，最后在下一次 dropout、采样或 shuffle 发生前恢复 CPU/CUDA RNG state。若先恢复 RNG 再创建模型，随机初始化会推进随机序列；虽然初始化参数会被 model state 覆盖，下一次随机操作仍会偏离中断前轨迹。
+
+严格恢复验证应从同一初始状态分叉并比较：
+
+```text
+路径 A：连续训练 step 1 → step 2
+路径 B：训练 step 1 → 保存 → 重建并恢复 → step 2
+```
+
+第二步结束后应比较 loss、model parameters、optimizer state、scheduler state、global step 与 RNG state；只比较恢复元数据而不比较模型参数，不能证明最终更新轨迹一致。
 
 ## 1.13 一个可靠的训练 step 顺序
 
@@ -510,12 +555,13 @@ optimizer.step()
 3. 由 logits 与有效 labels 计算 loss
 4. scaled loss backward
 5. unscale gradients
-6. 检查 finite，执行 global norm clipping
-7. optimizer.step
-8. 更新 loss scaler
-9. scheduler.step（按所用 scheduler 语义）
-10. zero_grad，开始下一累积窗口
-11. 按 global step 触发日志、评测与 checkpoint
+6. 使用 sum loss 累积时，按累积窗口的有效 token 总数归一化
+7. 检查 finite，执行 global norm clipping
+8. optimizer.step
+9. 更新 loss scaler
+10. scheduler.step（按所用 scheduler 语义）
+11. zero_grad，开始下一累积窗口
+12. 按 global step 触发日志、评测与 checkpoint
 ```
 
 框架可能把部分步骤封装在 Trainer 中，但机制顺序不应被封装名掩盖。
@@ -525,6 +571,17 @@ optimizer.step()
 ### 1.14.1 为什么先过拟合一个 batch
 
 若模型不能拟合单个固定 batch，通常不是泛化问题，而是训练设置、标签、优化、容量或数值稳定性存在问题。
+
+单次 finite loss、有限非零梯度和参数变化只能证明训练更新链路工作，不能证明模型已经学会样本。单 batch 过拟合的成功门槛应在参数更新后重新评估：
+
+```text
+model.eval() + torch.no_grad()
+→ 使用更新后的参数重新 forward
+→ eval loss 低于预设阈值
+→ 所有有效监督 token 的 accuracy == 100%
+```
+
+只满足 accuracy 仍不够：argmax 全部正确时，正确 token 可能只比其他类别高一点，概率分布仍然分散，CE loss 仍可能较高。只满足某一步 train loss 阈值也不够：train-mode dropout 会产生随机波动，且该 logits 来自参数更新前。
 
 优先检查：
 
@@ -545,12 +602,13 @@ optimizer.step()
 - 记录 token IDs、labels、有效 token 数和被忽略位置数。
 - 记录初始 loss、每若干 step 的 loss、梯度范数和有效学习率。
 - 选择一个参数，验证 `optimizer.step` 前后是否改变。
+- 达到 train loss 阈值后切换到确定性 eval，记录 eval loss、正确 token 数、有效 token 数和 token accuracy。
 - 对比正确与错误 label mask 的训练曲线。
 - 保存模型、optimizer、scheduler、step 和 scaler 后执行一次恢复验证。
 
 ### 1.14.3 当前实践进度
 
-截至 2026-07-25，实践位于 `/home/jichao/test`：
+截至 2026-08-01，实践位于 `/home/jichao/test`：
 
 ```text
 已完成代码审查
@@ -559,20 +617,36 @@ optimizer.step()
 → 有效监督 token 与忽略位置统计
 → PAD 输入与 label=-100 一致性检查
 
-当前任务
-→ 一层 TinyCausalLM
+已完成单步运行
+→ 一层 nn.Module TinyCausalLM
 → causal mask + padding mask
 → logits[:, :-1, :] 对齐 labels[:, 1:]
-→ cross-entropy loss
+→ shifted cross-entropy + backward
+→ finite nonzero gradient norm
+→ AdamW step 后 LM Head 参数变化
+
+当前任务
+→ 外层单 batch 训练循环
+→ 更新后 model.eval() + no_grad() 确定性评估
+→ eval loss 阈值 + 3/3 有效 token accuracy
+→ checkpoint 轨迹恢复
 ```
 
 已能解释：原始位置 3 的 ASSISTANT hidden state 产生位置 3 的 logits，而 shift 后它与原始位置 4 的 label `A` 配对；ASSISTANT 自身的 label 为 `-100`，只表示不要求前一位置直接预测该模板 token。
 
+2026-08-01 使用 `/home/jichao/miniconda3/envs/openmmlab/bin/python` 运行 `/home/jichao/test/llm_practice.py`，得到：
+
+```text
+loss: 2.095466136932373
+grad_norm: 6.997917486628188
+lm_head_delta: 0.00010000145994126797
+```
+
 证据边界：
 
 - 已审查用户提交的 tensor 构造与 shift 代码。
-- 尚未收到脚本实际运行输出。
-- 尚未观察到 finite loss、有效梯度、参数变化或 loss 下降。
+- 已观察到单步 finite loss、有限非零梯度与参数变化。
+- 尚未观察到 loss 下降曲线、确定性 eval loss 达标或 `3/3` token accuracy。
 - 尚未执行错误 label mask 对照实验和 checkpoint 恢复验证。
 - 因此当前只能标记为“实践进行中”，不能标记为“实践验证完成”。
 
@@ -588,6 +662,10 @@ optimizer.step()
 | clipping 防止梯度过小 | clipping 主要限制异常大梯度，不修复梯度消失 |
 | eval 等于 no_grad | eval 改模块行为，no_grad 改 autograd 记录 |
 | checkpoint 只需模型权重 | 精确恢复还需 optimizer、scheduler、step 和 scaler |
+| global step 等于 micro-batch 数 | global step 通常记录实际 optimizer 参数更新次数 |
+| dropout ratio 足以恢复随机轨迹 | ratio 只是配置，下一张 mask 由 RNG state 决定 |
+| sum 梯度应先 clipping 再除 token 数 | 应先恢复 token mean 梯度，再判断是否需要 clipping |
+| 单次非零梯度和参数变化等于过拟合 | 它们只证明更新链路工作，过拟合还需更新后的确定性 eval 证据 |
 
 ## 1.16 闭卷检查与完成边界
 
@@ -615,4 +693,4 @@ tokens / labels / masks
 
 只有在最小训练实验中观察到 loss 下降、梯度有效、参数真实更新，并完成一次 checkpoint 恢复验证后，才把本阶段从“系统学习材料已生成”提升为“实践验证完成”。
 
-当前状态：Adam/AdamW 和训练主链闭卷主干已通过；最小实践已完成数据与监督对齐代码审查，正在进入 TinyCausalLM forward 与 loss。
+当前状态：Adam/AdamW、训练主链、有效 token 加权、AMP 缩放顺序、global step、RNG 与 checkpoint 主干已通过主动学习检查；最小实践已完成 TinyCausalLM 单步 backward、有效梯度和参数变化运行，正在进入单 batch 过拟合、确定性 eval 与 checkpoint 轨迹恢复。
