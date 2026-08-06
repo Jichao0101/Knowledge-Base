@@ -19,7 +19,7 @@ scope: 职业方向、能力补齐、学习路线、作品建设、阶段验证�
 risks:
   - 学习范围横跨模型、系统和 Agent，若缺少阶段性交付，容易再次退化为零散学习或 vibe coding。
   - 本项目记录的是规划和阶段证据，不代表目标能力已经掌握或项目已经完成生产验证。
-updated_at: 2026-08-04
+updated_at: 2026-08-06
 ---
 
 # 1 AI 职业转型项目总览
@@ -71,6 +71,7 @@ DMS/OMS 视觉感知与端侧部署项目基础
 - Phase 0 系统学习文档：[[02_Projects/AI-Career-Transition/LLM最小推理机制系统学习文档]]
 - 当前阶段固定检查点：[[02_Projects/AI-Career-Transition/当前阶段学习检查点]]
 - Phase 1 训练机制系统学习文档：[[02_Projects/AI-Career-Transition/LLM训练机制系统学习文档]]
+- Agent Systems 系统学习骨架：[[02_Projects/AI-Career-Transition/Agent开发系统学习文档]]
 
 后续阶段实验、作品和求职记录优先留在本项目目录。只有形成长期稳定、经过审核并具有明确适用边界的可复用结论后，才评估是否提升到正式知识区。
 
