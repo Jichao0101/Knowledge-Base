@@ -11,6 +11,7 @@ sources:
   - 2026-07-25 Adam/AdamW 闭卷检查与最小训练实践进度
   - 2026-08-01 TinyCausalLM 单步训练运行与训练恢复主动学习续测
   - 2026-08-04 TinyCausalLM 单 batch 过拟合、确定性评估、checkpoint 轨迹恢复与阶段收尾
+  - 2026-08-06 Phase 1-A closure 续测、范围豁免决定与 Phase 1-B 切换确认
   - 02_Projects/DMS/03_Model_Training/model_training_overview_current.md
   - 02_Projects/DMS/08_EyeStatus/eyestatus_overview_current.md
   - 02_Projects/agent-trajectory/agent_trajectory_overview_current.md
@@ -83,9 +84,10 @@ DMS/OMS 视觉感知与端侧部署项目基础
 - 已生成并更新 [[02_Projects/AI-Career-Transition/LLM训练机制系统学习文档]]；`/home/jichao/test/llm_practice.py` 已完成 `nn.Module` 形式 TinyCausalLM 的单步更新、单 batch 过拟合、确定性 eval 和 CPU 内存 checkpoint 轨迹恢复。
 - 后续阶段统一从 [[02_Projects/AI-Career-Transition/当前阶段学习检查点]] 恢复；阶段完成后先生成持久系统学习文档，再滚动更新该固定检查点。
 - 2026-08-04 用户运行报告确定性 eval loss 为 `0.0916125476360321`、有效 token accuracy 为 `3/3`；checkpoint 恢复分支与参考分支的 loss、gradient norm、LM Head delta 和最终参数最大差值均为 0。本结论同时经过静态代码审查，但未由代理独立复跑。
-- `Phase 1-A closure` 的 encoder/decoder 架构对比、multi-head attention、residual、LayerNorm、FFN、证据/拒答边界和 scaled dot-product attention 数学机制已通过主动诊断，达到对话诊断意义上的 working；位置编码边界尚未单独诊断。
-- scaled dot-product attention 独立实现由用户决定 `waived_by_scope`，不计为已独立实现；当前焦点转到固定 logits 与随机种子的采样参数受控实验，之后依次执行有/无证据对照、最小文本到文本推理链复核和位置编码边界诊断。
-- Phase 1-B“评测基本功与练习集”保留为下一阶段；只有 Phase 1-A closure 门禁满足后才正式切换。
+- 2026-08-06 用户确认 `Phase 1-A closure` 在面向 Agent 开发与 AI Infra 的调整范围内完成：架构、Transformer 主干、采样、位置编码、证据边界和自回归生成机制达到对话诊断意义上的 working。
+- Phase 1-A 的独立 attention 实现、真实采样实验和手写完整 GPT 记为 `waived_by_scope`；真实 tokenizer 到输出文本闭环及真实模型证据对照仍为 `not_verified`，不得改写为运行完成。
+- 当前主阶段已切换为 Phase 1-B“评测基本功与练习集”：先学习任务类型、评分方法与评测合同，再冻结一个小任务，构造 3 至 5 个 seed cases、重复评分并运行最简单基线。
+- Agent Systems 系统学习文档继续作为后续学习骨架，不在本次切换中替代 Phase 1-B 主线。
 - `global_step` 持久化、磁盘 checkpoint、错误 label mask、变长 micro-batch、性能测量和生产训练加固作为后续工程项保留，不阻塞本次学习主线切换。
 - 当前不创建五份 current 文档组；待本项目形成持续迭代的设计、实现和验证事实后再评估 current 化。
 - 不声明 `single_pass_recoverable: true`。

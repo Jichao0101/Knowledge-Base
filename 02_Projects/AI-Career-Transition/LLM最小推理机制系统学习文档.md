@@ -710,3 +710,34 @@ text → token IDs → embeddings → blocks → last hidden → LM Head → log
 ### 1.19.3 当前下一步
 
 进入固定 logits、固定随机种子的采样参数受控实验，依次观察 temperature、top-p、最大输出长度和上下文变化；随后完成有证据/无证据对照实验、最小文本到文本推理链复核，并在 Phase 1-A closure 前补做位置编码边界诊断。
+
+## 1.20 Phase 1-A 关闭记录（2026-08-06）
+
+### 1.20.1 关闭决定
+
+用户根据 Agent 开发与 AI Infra 的职业目标，确认 Phase 1-A 在调整后的课程范围内完成，并转入 Phase 1-B“评测基本功与练习集”。该决定关闭当前学习主线，不把未执行的实现或运行提升为验证证据。
+
+### 1.20.2 最终证据状态
+
+```text
+encoder/decoder、Transformer block 主干、证据边界：working
+scaled dot-product attention 数学机制与 shape：working
+temperature、top-p、停止条件与上下文影响机制：working
+位置编码作用、causal mask 隐式顺序与 RoPE 相对位置：working
+自回归生成、teacher forcing 与文本生成伪代码：working
+有证据/无证据回答边界：working
+
+独立实现 scaled dot-product attention：waived_by_scope
+真实采样参数抽样实验：waived_by_scope
+手写完整 GPT、tokenizer 与 generation：waived_by_scope
+真实 tokenizer → generation → decode 文本闭环：not_verified
+真实模型有/无证据对照运行：not_verified
+```
+
+`working` 只表示主动诊断中的可用理解；`waived_by_scope` 表示用户基于学习收益主动移出课程门禁；`not_verified` 表示没有运行证据。三者不得互相替代。
+
+### 1.20.3 后续恢复边界
+
+- Phase 1-B 不重复考察已达到 working 的 LLM 机制，除非评测设计暴露相关缺口。
+- Phase 1-B 可以调用成熟模型、tokenizer 与生成接口，不要求手写完整 GPT。
+- 若后续任务需要排查 attention、tokenizer 或 generation 的实现故障，必须重新补充相应运行证据，不能引用本次课程关闭决定作为实现证明。
