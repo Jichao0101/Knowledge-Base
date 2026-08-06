@@ -13,7 +13,7 @@ risks:
   - 本文是学习材料，不是能力已掌握或完成独立验证的证据。
   - 不同模型在归一化、位置编码、激活函数、bias 和权重绑定上存在实现差异，本文优先解释共同主干。
   - 文中的小型张量和中文 token 仅用于说明机制，不代表真实 tokenizer 的切分结果。
-updated_at: 2026-07-21
+updated_at: 2026-08-06
 ---
 
 # 1 LLM 最小推理机制系统学习文档
@@ -667,3 +667,46 @@ text → token IDs → embeddings → blocks → last hidden → LM Head → log
 ```
 
 第一道诊断问题是：模型如何根据目标 token 的概率得到“本次预测错了多少”的标量信号，并把该信号传回 embedding、attention、MLP 与 LM Head 参数。
+
+## 1.19 Phase 1-A closure 主动学习进度（2026-08-06）
+
+### 1.19.1 本轮达到 working 的理论主题
+
+1. **Encoder / decoder 架构边界**
+   - 能区分双向 encoder、因果 decoder 和 encoder-decoder；纠正了“encoder 本身适合翻译”的混淆。
+   - 能说明翻译时 encoder 双向读取完整源句，decoder 的 self-attention 只看目标前缀，cross-attention 使用 decoder query 与全部 encoder hidden states 投影得到的 K/V。
+   - 能用训练/推理一致性和答案泄漏解释 decoder-only 自回归生成的因果约束。
+
+2. **Transformer block 组成与职责**
+   - 能说明 multi-head attention 通过各 head 独立的 `W_Q/W_K/W_V` 在不同子空间形成 attention 分布，并由 `W_O` 混合；若各 head 投影相同，则功能上冗余。
+   - 能说明 residual 同时保留恒等信息路径和梯度路径，使子层学习增量修正。
+   - 能说明 LayerNorm 对单个 token 的特征维做尺度稳定，不在 token 或 batch 之间统计。
+   - 能说明 FFN 对每个 token 独立执行“升维线性层 → 非线性激活 → 降维线性层”；若移除非线性，两层可合并为单一仿射变换。
+   - 本轮尚未单独诊断位置编码，因此不能把整个 Transformer block 覆盖区标记为闭合。
+
+3. **证据、拒答与不确定性边界**
+   - 能区分结论客观真值与当前证据支持状态；即使结论碰巧为真，当前证据集中无依据时仍标记 `unsupported_claim`。
+   - 能区分 `unsupported_claim`、`fabricated_evidence`、`contradicted_by_evidence`，不依赖含义漂移的笼统“幻觉”标签。
+   - 缺失证据可在授权内补取时继续检索；证据源不可用时应 abstain、报告限制，并请求授权、替代证据或终止决定。
+
+### 1.19.2 Scaled dot-product attention 诊断边界
+
+已能闭卷说明：
+
+- `Q:[B,H,Tq,D]` 与 `K:[B,H,Tk,D]` 产生 scores `[B,H,Tq,Tk]`。
+- causal mask 在 softmax 前把不可见位置加为负无穷，softmax 沿 `Tk` 维归一化。
+- scores 与 `V:[B,H,Tk,Dv]` 相乘后输出 `[B,H,Tq,Dv]`。
+- 当 Q/K 分量近似独立、零均值、单位方差时，点积方差约为 `D`；除以 `sqrt(D)` 后约回到 1，降低 softmax 提前饱和与非最大位置梯度趋零的风险。
+
+用户明确决定不重复实现成熟 attention 算子。因此证据状态记录为：
+
+```text
+数学机制与 shape：working
+独立实现与参考测试：waived_by_scope
+```
+
+`waived_by_scope` 不等于“已独立实现并测试”，后续只有真实实现或故障定位证据才能提升该项。
+
+### 1.19.3 当前下一步
+
+进入固定 logits、固定随机种子的采样参数受控实验，依次观察 temperature、top-p、最大输出长度和上下文变化；随后完成有证据/无证据对照实验、最小文本到文本推理链复核，并在 Phase 1-A closure 前补做位置编码边界诊断。
