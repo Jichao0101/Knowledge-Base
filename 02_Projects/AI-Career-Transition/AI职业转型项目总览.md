@@ -79,11 +79,12 @@ DMS/OMS 视觉感知与端侧部署项目基础
 
 - 已完成职业方向定位和 12 个月学习路线优化。
 - 已完成第一阶段 LLM 最小推理机制主动诊断；概念解释、边界辨析与 VLM 输入迁移达到对话诊断意义上的可用理解。
-- Phase 1 阶段 A 的 LLM 训练机制学习主线已经完成；cross-entropy、SFT masking、基础梯度流、训练循环可靠性、混合精度以及 Adam/AdamW 闭卷主干已形成。
+- Phase 1 的 LLM 训练机制子主线已经完成；cross-entropy、SFT masking、基础梯度流、训练循环可靠性、混合精度以及 Adam/AdamW 闭卷主干已形成，但这不等同于原学习方案中 Phase 1-A 的全部理论与实践任务已经完成。
 - 已生成并更新 [[02_Projects/AI-Career-Transition/LLM训练机制系统学习文档]]；`/home/jichao/test/llm_practice.py` 已完成 `nn.Module` 形式 TinyCausalLM 的单步更新、单 batch 过拟合、确定性 eval 和 CPU 内存 checkpoint 轨迹恢复。
 - 后续阶段统一从 [[02_Projects/AI-Career-Transition/当前阶段学习检查点]] 恢复；阶段完成后先生成持久系统学习文档，再滚动更新该固定检查点。
 - 2026-08-04 用户运行报告确定性 eval loss 为 `0.0916125476360321`、有效 token accuracy 为 `3/3`；checkpoint 恢复分支与参考分支的 loss、gradient norm、LM Head delta 和最终参数最大差值均为 0。本结论同时经过静态代码审查，但未由代理独立复跑。
-- 当前焦点切换到 Phase 1 阶段 B“评测基本功与练习集”：先定义一个小型可复核任务和 3 至 5 个 seed cases，再验证 rubric 与最简单基线；不得提前称为 benchmark。
+- 当前焦点恢复到 `Phase 1-A closure - LLM minimum mechanism`：补齐 encoder/decoder 架构对比、Transformer block 边界、证据与拒答机制，以及 scaled dot-product attention、采样参数和有/无证据三项受控实践。
+- Phase 1-B“评测基本功与练习集”保留为下一阶段；只有 Phase 1-A closure 门禁满足后才正式切换。
 - `global_step` 持久化、磁盘 checkpoint、错误 label mask、变长 micro-batch、性能测量和生产训练加固作为后续工程项保留，不阻塞本次学习主线切换。
 - 当前不创建五份 current 文档组；待本项目形成持续迭代的设计、实现和验证事实后再评估 current 化。
 - 不声明 `single_pass_recoverable: true`。

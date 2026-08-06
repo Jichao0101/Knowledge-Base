@@ -22,7 +22,7 @@ updated_at: 2026-08-06
 
 本文解决“Agent 开发知识零散、能谈术语但不能连续设计和验证系统”的问题。它是 AI-Career-Transition 项目中的持久学习材料，不是 current 文档、正式知识或掌握证明。
 
-当前项目阶段仍保持 `Phase 1-B - evaluation fundamentals and exercise set`。本文先建立 Agent Systems 全景与后续练习顺序；是否把 Agent Systems 提升为当前主阶段，由用户另行确认。
+当前项目阶段为 `Phase 1-A closure - LLM minimum mechanism`。本文只预先建立 Agent Systems 全景与后续练习顺序；Phase 1-A 未闭合前不把 Agent Systems 或 Phase 1-B 提升为当前主阶段。
 
 ## 1.2 知识地图与推荐顺序
 
