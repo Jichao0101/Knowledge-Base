@@ -74,23 +74,23 @@ Agent 系统可以先抽象为六个相互独立但协作的面：
 
 普通 LLM 调用是一次映射：
 
-\[
+$$
 y \sim p_\theta(y \mid x, I)
-\]
+$$
 
 其中应用准备输入 `x` 和 instructions `I`，模型返回 `y`，没有依据中间环境反馈继续自主选择动作。
 
 workflow 允许多次 LLM 或工具调用，但主要控制流由代码预定义：
 
-\[
+$$
 s_{t+1}=f_{code}(s_t, o_t)
-\]
+$$
 
 Agent 的下一动作主要由模型基于当前状态和观察决定，同时仍受代码状态机、工具白名单和安全策略约束：
 
-\[
+$$
 a_t \sim \pi_\theta(a \mid s_t, I, O_t),\quad s_{t+1}=T(s_t,a_t,o_t)
-\]
+$$
 
 关键不是“调用了几次模型”，而是模型是否在闭环中拥有受约束的下一步决策权。
 
@@ -198,9 +198,9 @@ stateDiagram-v2
 
 设一次 run 发生 `N_model` 次模型调用、`N_tool` 次工具调用，总延迟近似为：
 
-\[
+$$
 L_{run}=\sum_{i=1}^{N_{model}}L_{model,i}+\sum_{j=1}^{N_{tool}}L_{tool,j}+L_{queue}+L_{approval}
-\]
+$$
 
 最大轮数只是保险丝，不是完成策略；正常任务应由显式 `FINAL/ABSTAIN` 条件结束。
 
@@ -274,9 +274,9 @@ return Failed("max_steps_exceeded", snapshot(state))
 
 上下文效用可用一个设计目标表达：
 
-\[
+$$
 \max_C\; U(C)=Signal(C)-\lambda_1 Tokens(C)-\lambda_2 Conflict(C)-\lambda_3 LeakageRisk(C)
-\]
+$$
 
 它不是可直接测量的物理公式，而是提醒：上下文越多不等于越好。
 
@@ -368,9 +368,9 @@ model arguments
 
 重试只适合瞬态失败。若每次独立尝试成功概率为 `p`，最多 `r` 次尝试的理论成功概率为：
 
-\[
+$$
 P(success\le r)=1-(1-p)^r
-\]
+$$
 
 但副作用工具若没有幂等键，重试会把“提高可用性”变成“重复执行”。
 
@@ -475,9 +475,9 @@ def run_tool(call, principal, deadline):
 
 检索到上下文的过程应保留来源：
 
-\[
+$$
 Context_t = I + Recent_t + Retrieve(K, q_t) + Recall(M, q_t) + StateSummary_t
-\]
+$$
 
 其中 `K` 与 `M` 不应因为被召回就复制成新的事实源。
 
@@ -584,9 +584,9 @@ flowchart LR
 
 并行理论加速比可粗略写为：
 
-\[
+$$
 Speedup \approx \frac{\sum_i L_i}{\max_i L_i + L_{coord}+L_{merge}}
-\]
+$$
 
 若共享依赖多、协调/合并成本高，`Speedup` 可能小于 1。
 
@@ -656,9 +656,9 @@ def choose_pattern(task):
 
 风险分级可用于审批策略：
 
-\[
+$$
 Risk = Impact \times Irreversibility \times Uncertainty \times Exposure
-\]
+$$
 
 它用于排序，不应伪装成精确概率。高风险动作应优先 dry-run、缩小权限或人工审批。
 
@@ -757,13 +757,13 @@ flowchart LR
 
 ## 9.4 指标
 
-\[
+$$
 ToolSuccessRate=\frac{N_{successful\ tool\ calls}}{N_{attempted\ tool\ calls}}
-\]
+$$
 
-\[
+$$
 TraceCompleteness=\frac{N_{required\ events\ present}}{N_{required\ events}}
-\]
+$$
 
 日志完整不等于任务正确；它只说明你有机会解释发生了什么。
 
@@ -836,27 +836,27 @@ model + instructions + tools + executor + state + policy + context + environment
 
 ## 10.3 指标
 
-\[
+$$
 TaskSuccessRate=\frac{N_{successful\ outcomes}}{N_{trials}}
-\]
+$$
 
-\[
+$$
 EvidenceCompleteness=\frac{N_{required\ evidence\ items\ present}}{N_{required\ evidence\ items}}
-\]
+$$
 
-\[
+$$
 UnsupportedClaimRate=\frac{N_{unsupported\ material\ claims}}{N_{material\ claims}}
-\]
+$$
 
-\[
+$$
 CostPerSuccess=\frac{TotalCost}{N_{successful\ outcomes}}
-\]
+$$
 
 延迟至少报告 p50/p95，而不是只报均值：
 
-\[
+$$
 p95 = Q_{0.95}(L_{run})
-\]
+$$
 
 ## 10.4 评测数据流
 
