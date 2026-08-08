@@ -3,190 +3,118 @@ type: project_learning_document
 status: draft
 project: AI-Career-Transition
 learning_area: Agent Systems
-summary: 从 Agent 边界、最小 loop、工具与状态开始，连续覆盖编排、安全、可观测性、评测、恢复和 DMS 证据任务实践的项目级学习框架。
+summary: 以一次可复核的 DMS 日志证据任务为贯穿案例，重点解释 Agent 运行时、工具执行、状态恢复、权限控制、证据链与评测，辅助说明架构选择和主流框架概念映射。
 sources:
   - 04_Sources/Agent工程化/2026-08-06_OpenAI与Anthropic_Agent官方文档来源证据卡.md
   - 02_Projects/AI-Career-Transition/多模态AI职业转型学习方案.md
   - 02_Projects/AI-Career-Transition/当前阶段学习检查点.md
 scope: Agent Systems 主动学习、最小实现、可观察实验和 DMS 日志证据任务的后续实践设计。
 risks:
-  - 本文是学习骨架，不代表内容已掌握、实现已验证或系统已达到生产可用。
+  - 本文是学习材料，不代表内容已掌握、实现已验证或系统已达到生产可用。
   - SDK/API 字段会变化；编码时必须回到来源证据卡中的官方页面复核当前版本。
-  - DMS 章节只定义最小实践路线，不在未读取具体日志和任务合同的情况下声称任何真实根因。
-updated_at: 2026-08-06
+  - DMS 案例只定义合成或明确授权数据上的最小实践，不据此声称任何真实问题根因。
+updated_at: 2026-08-08
 ---
 
 # 1 Agent 开发系统学习文档
 
-## 1.1 文档定位
+## 1.1 如何使用本文
 
-本文解决“Agent 开发知识零散、能谈术语但不能连续设计和验证系统”的问题。它是 AI-Career-Transition 项目中的持久学习材料，不是 current 文档、正式知识或掌握证明。
+本文不再按“每个概念一章、每章同一模板”组织。Agent Systems 的核心不是记住一组并列术语，而是理解一个任务如何从输入走到可验证结果，以及每一层分别防止什么错误。
 
-当前项目阶段为 `Phase 1-A closure - LLM minimum mechanism`。本文只预先建立 Agent Systems 全景与后续练习顺序；Phase 1-A 未闭合前不把 Agent Systems 或 Phase 1-B 提升为当前主阶段。
+全书只围绕一个问题展开：
 
-## 1.2 知识地图与推荐顺序
+> 给定一个明确授权的 DMS 日志证据包，系统如何生成带原文引用的受约束结论，并在缺证据、工具失败、越权或进程崩溃时安全停止或恢复？
 
-```mermaid
-flowchart TB
-    A[1 边界：LLM / workflow / agent] --> B[2 最小 Agent loop]
-    B --> C[3 Instructions / structured output / context]
-    C --> D[4 Tool contract 与执行器]
-    D --> E[5 状态 / 短期上下文 / 记忆 / 外部知识]
-    E --> F[6 单 Agent / manager / handoff / multi-agent]
-    F --> G[7 Guardrails / 权限 / 审批 / HITL]
-    G --> H[8 Trace / 日志 / 轨迹 / 故障定位]
-    H --> I[9 Agent 评测]
-    I --> J[10 Durable execution 与副作用控制]
-    J --> K[11 OpenAI / Anthropic 概念对照]
-    K --> L[12 DMS 日志证据最小实践]
-```
+这个案例刻意保持只读、低副作用。它足以暴露 Agent 系统最重要的设计问题，又不会一开始就被写 Jira、改代码或真实车控等高风险动作干扰。
 
-推荐学习闭环不是“读完 12 章”，而是逐章执行：
+当前项目主阶段是 `Phase 1-B - evaluation basics and seed cases`。本文作为 Agent Systems 的持久学习骨架，为任务合同、证据评分和后续 Agent 实践提供上下文；它不是当前阶段已经完成的证明。
 
-```text
-主动回忆题 → 暴露缺口 → 阅读本章主干 → 跑小实验 → 解释观察 → 记录未闭合项
-```
+### 1.1.1 先抓住六个系统面
 
-## 1.3 全局系统模型
-
-Agent 系统可以先抽象为六个相互独立但协作的面：
-
-| 面 | 核心问题 | 不能被什么替代 |
+| 系统面 | 必须回答的问题 | 常见错误替代品 |
 |---|---|---|
-| Decision | 下一步是回答、调用工具、转交、暂停还是终止？ | 不能被固定 prompt 文案替代。 |
-| Execution | 谁校验并真正执行工具？ | 不能让模型文本直接产生副作用。 |
-| State | 当前任务走到哪里，哪些事实已确认？ | 不能只依赖聊天历史。 |
-| Control | 什么动作允许、拒绝或需要审批？ | 不能只靠模型“自觉”。 |
-| Evidence | 结论由哪些输入、工具结果和规则支持？ | 不能只保留最终答案。 |
-| Evaluation | 任务是否成功，过程是否安全且划算？ | 不能只看输出是否流畅。 |
+| Decision | 下一步是回答、调用工具、澄清、暂停还是终止？ | 用长 prompt 假装有状态机 |
+| Execution | 谁校验并真正执行工具？ | 把模型生成的调用文本当成执行事实 |
+| State | 当前任务走到哪一步，哪些事实已经确认？ | 只保存聊天历史 |
+| Control | 哪些动作允许、拒绝或需要审批？ | 只要求模型“谨慎” |
+| Evidence | 每个实质性结论由什么原始材料支持？ | 只保留最终摘要 |
+| Evaluation | 环境结果是否正确，过程是否安全、稳定且可复核？ | 只看回答是否流畅 |
 
----
-
-# 2 Agent、workflow 与普通 LLM 调用的边界
-
-## 2.1 学习目标
-
-- 能用“控制权在哪里”区分三种系统。
-- 能判断何时不需要 Agent。
-- 能解释 Agent 增加的收益、成本和风险。
-
-## 2.2 核心机制
-
-普通 LLM 调用是一次映射：
-
-$$
-y \sim p_\theta(y \mid x, I)
-$$
-
-其中应用准备输入 `x` 和 instructions `I`，模型返回 `y`，没有依据中间环境反馈继续自主选择动作。
-
-workflow 允许多次 LLM 或工具调用，但主要控制流由代码预定义：
-
-$$
-s_{t+1}=f_{code}(s_t, o_t)
-$$
-
-Agent 的下一动作主要由模型基于当前状态和观察决定，同时仍受代码状态机、工具白名单和安全策略约束：
-
-$$
-a_t \sim \pi_\theta(a \mid s_t, I, O_t),\quad s_{t+1}=T(s_t,a_t,o_t)
-$$
-
-关键不是“调用了几次模型”，而是模型是否在闭环中拥有受约束的下一步决策权。
-
-## 2.3 状态与数据流
+六个面不是六个独立模块。一次 run 的主链是：
 
 ```mermaid
 flowchart LR
-    U[用户输入] --> Q{控制流由谁决定}
-    Q -->|单次生成| L[普通 LLM 调用]
-    Q -->|预定义代码路径| W[Workflow]
-    Q -->|模型按观察动态选动作| A[Agent]
-    A --> G[代码状态机与权限约束]
-    G --> A
+    U[任务与授权范围] --> D[Decision]
+    D -->|tool proposal| C[Control + validation]
+    C --> E[Execution]
+    E --> O[Observation]
+    O --> S[State update]
+    S --> D
+    D -->|final / abstain| V[Evidence validation]
+    V --> R[Outcome + trace evaluation]
 ```
 
-## 2.4 最小伪代码
+### 1.1.2 学习优先级
 
-```python
-def classify_architecture(task):
-    if task.can_finish_in_one_model_call and not task.needs_external_action:
-        return "llm_call"
-    if task.steps_are_known_and_stable:
-        return "workflow"
-    if task.next_step_depends_on_unknown_intermediate_results:
-        return "agent"
-    return "workflow_with_explicit_decision_points"
-```
+第一优先级是第 2、4、5、6 章：运行时、工具边界、状态恢复和评测。它们决定系统是否正确、安全且可诊断。
 
-## 2.5 常见失败模式
-
-- 把“链式调用”都叫 Agent，掩盖真实控制流。
-- 为固定审批链引入自由规划 Agent，增加成本和不可预测性。
-- 用一个长 prompt 模拟状态机，无法可靠恢复或审计。
-- 把“能调用工具”误当作“应自动执行高风险工具”。
-
-## 2.6 适用边界
-
-- 稳定、可枚举、强合规路径优先 workflow。
-- 单次抽取、分类、改写优先普通调用或结构化输出。
-- 中间结果不可预知、需要探索和调整时，才值得引入 Agent loop。
-
-## 2.7 官方来源
-
-- OAI-01：Responses API 与 Agents SDK 的 loop 所有权边界。
-- ANT-01：workflow 由预定义代码路径编排，agent 由模型动态控制过程和工具使用。
-- ANT-08：Agent 以计划—行动—观察—调整的自导 loop 工作。
-
-## 2.8 主动回忆题
-
-一个系统固定执行“检索 → 摘要 → 规则校验 → 输出”，其中摘要和校验都调用 LLM。它为什么仍可能只是 workflow，而不是 Agent？什么最小变化会让它跨过边界？
-
-## 2.9 小实验
-
-用同一个三步资料整理任务分别写两个 20 行以内的版本：A 用固定 `for`/`if`，B 让模型在 `search / refine / finish` 中选择。记录两者的调用次数、失败可复现性和停止条件，不比较文风。
+第 3 章解决“是否真的需要 Agent”，篇幅较短，但必须在实现前做判断。第 7 章把前述机制组合成最小实践。不同 SDK 的名词映射只放在附录，避免框架术语遮蔽系统原理。
 
 ---
 
-# 3 最小 Agent loop 与状态转换
+# 2 一次 Agent run 到底发生了什么
 
-## 3.1 学习目标
+这一章是全文主干。后续所有设计都应能落回这条运行链。
 
-- 能画出一轮和多轮工具调用的完整状态转换。
-- 能区分 model decision、tool execution 与 final output。
-- 能说明每个终止条件由谁检查。
+## 2.1 模型只提出动作，运行时拥有执行权
 
-## 3.2 核心机制
-
-最小 loop：
+最小 Agent loop 可以写成：
 
 ```text
-user input → model decision → tool call → tool result → next decision → final output
+任务输入
+  → 构造本轮上下文
+  → 模型提出结构化决策
+  → 运行时校验决策
+  → 执行工具或暂停审批
+  → 把结构化结果作为 observation 写入状态
+  → 再次决策
+  → FINAL / ABSTAIN / FAILED
 ```
 
-模型返回的是“动作提议”，不是工具执行事实。运行时必须把输出解析为有限动作集合，例如：
+模型输出不是环境事实。即使模型生成了 schema 合法的 `read_evidence_window`，也只代表“建议调用”；路径授权、参数语义、预算和工具执行仍由代码负责。
 
-```text
-DECIDE -> CALL_TOOL | FINAL | REQUEST_APPROVAL | ABSTAIN | FAIL
-CALL_TOOL -> VALIDATE -> EXECUTE -> OBSERVE -> DECIDE
+对 DMS 证据任务，决策集合应保持有限：
+
+```python
+Decision = Union[
+    CallTool,
+    AskClarification,
+    RequestApproval,
+    FinalAnswer,
+    Abstain,
+    Fail,
+]
 ```
 
-终止至少包括：正常完成、拒答/证据不足、审批暂停、最大轮数、预算耗尽、不可恢复错误和取消。
+有限动作集合的意义不是限制语言表达，而是让每个状态转换都能校验、记录和测试。
 
-## 3.3 状态图
+## 2.2 状态机比聊天循环更重要
+
+一个只判断“有工具调用就执行，否则返回文本”的循环会漏掉拒答、截断、审批暂停、取消和错误恢复。最低限度的状态机应明确区分：
 
 ```mermaid
 stateDiagram-v2
     [*] --> Ready
-    Ready --> Deciding: user input
-    Deciding --> Validating: tool call
+    Ready --> Deciding: task accepted
+    Deciding --> Validating: tool proposal
     Validating --> Executing: schema + policy pass
-    Validating --> Deciding: validation error observation
-    Executing --> Deciding: tool result
+    Validating --> Deciding: typed validation error
+    Executing --> Deciding: observation recorded
     Deciding --> AwaitingApproval: sensitive action
-    AwaitingApproval --> Deciding: rejected result
-    AwaitingApproval --> Executing: approved
-    Deciding --> Completed: final output
+    AwaitingApproval --> Executing: same call approved
+    AwaitingApproval --> Deciding: rejected observation
+    Deciding --> Completed: supported final
     Deciding --> Abstained: insufficient evidence
     Deciding --> Failed: budget / unrecoverable error
     Completed --> [*]
@@ -194,166 +122,156 @@ stateDiagram-v2
     Failed --> [*]
 ```
 
-## 3.4 必要指标
+这里最重要的不是状态名称，而是四条不变量：
 
-设一次 run 发生 `N_model` 次模型调用、`N_tool` 次工具调用，总延迟近似为：
+1. `Executing` 只能由校验通过的调用进入。
+2. 工具结果必须先成为 observation，再允许下一次模型决策。
+3. 审批恢复的是同一个 pending call，不是让模型重新规划一个相似调用。
+4. `Completed` 必须通过结果和证据校验；达到最大轮数只能进入失败或明确的不完整状态。
 
-$$
-L_{run}=\sum_{i=1}^{N_{model}}L_{model,i}+\sum_{j=1}^{N_{tool}}L_{tool,j}+L_{queue}+L_{approval}
-$$
+## 2.3 RunState 保存什么
 
-最大轮数只是保险丝，不是完成策略；正常任务应由显式 `FINAL/ABSTAIN` 条件结束。
-
-## 3.5 最小伪代码
+聊天消息只是 RunState 的一部分。一个可诊断的最小状态至少包括：
 
 ```python
-state = RunState(input=user_input, step=0)
-while state.step < MAX_STEPS:
-    decision = model.decide(render_context(state))
-    audit.append(decision)
-
-    if decision.kind in {"final", "abstain"}:
-        return finalize(decision, state)
-    if decision.kind == "needs_approval":
-        return Paused(state=snapshot(state), request=decision)
-    if decision.kind != "tool_call":
-        return Failed("invalid_decision", snapshot(state))
-
-    checked = validate_call(decision.call, policy, schemas)
-    result = execute_or_error(checked)
-    state = state.observe(result).next_step()
-
-return Failed("max_steps_exceeded", snapshot(state))
+class RunState:
+    run_id: str
+    version: int
+    status: Literal[
+        "ready", "deciding", "validating", "executing",
+        "awaiting_approval", "completed", "abstained", "failed"
+    ]
+    step_id: int
+    task_contract: dict
+    authorized_paths: list[str]
+    pending_call: dict | None
+    completed_calls: list[dict]
+    evidence_refs: list[str]
+    unresolved_items: list[str]
+    budgets: dict
 ```
 
-## 3.6 常见失败模式
+`messages` 可以帮助模型理解对话，但不能可靠表示 pending side effect、审批状态、预算、版本和已提交结果。
 
-- 只处理 `tool_call` 和 final text，不处理 refusal、截断、取消和审批暂停。
-- 工具异常直接抛出 loop，模型看不到结构化失败观察。
-- 工具结果没有 call ID，平行调用后无法正确关联。
-- 到达最大轮数时仍输出看似正常的总结。
+## 2.4 主循环的最小实现
 
-## 3.7 适用边界
+下面的伪代码刻意把模型、校验器、执行器和状态存储分开：
 
-最小 loop 适合学习和窄任务。生产系统还需要持久 state、并发控制、审计、取消、幂等和恢复。
+```python
+def run_agent(run_id):
+    state = store.load(run_id)
 
-## 3.8 官方来源
+    while state.step_id < state.budgets["max_steps"]:
+        context = context_builder.render(state)
+        decision = model.decide(context, output_schema=Decision)
+        trace.record_decision(state, decision)
 
-- OAI-03：Runner loop、conversation strategy、paused run 与 state 恢复。
-- OAI-05：function calling 的应用执行往返。
-- ANT-02：`tool_use → execute → tool_result` canonical loop 与 stop reason。
+        if decision.kind == "tool_call":
+            checked = validator.validate(decision.call, state.task_contract)
+            result = executor.execute_or_error(checked, state)
+            state = state.observe(result)
+            store.save(state)
+            continue
 
-## 3.9 主动回忆题
+        if decision.kind == "request_approval":
+            return pause_with_snapshot(state, decision.call)
 
-为什么收到一个 schema 合法的 `delete_record` tool call 后，状态不能直接从 `Deciding` 跳到 `Completed`？
+        if decision.kind in {"final", "abstain"}:
+            checked_output = evidence_validator.check(decision.output, state)
+            return finalize(checked_output, state)
 
-## 3.10 小实验
+        return fail(state, "invalid_decision")
 
-实现一个只有 `add(a,b)` 和 `finish(answer)` 的假 Agent。依次注入：合法调用、未知工具、缺参数、工具超时、连续 6 次调用。观察每种输入最终落在哪个状态。
+    return fail(state, "max_steps_exceeded")
+```
+
+这段代码能运行不等于系统可靠。后续章节分别补上工具合同、权限、持久化、幂等、证据验证和评测。
+
+## 2.5 用失败场景检查理解
+
+如果只跑 happy path，最重要的状态转换不会出现。最低成本的检查应主动注入：
+
+- 未知工具和缺失参数；
+- 授权路径外的文件；
+- 工具 timeout，但远端可能已经成功；
+- 模型连续调用工具直至预算耗尽；
+- 缺少正式报警证据却尝试输出肯定结论；
+- 审批后调用参数发生变化。
+
+检查问题：一个 schema 合法的 `delete_record` 为什么不能让状态从 `Deciding` 直接跳到 `Completed`？如果回答只提到“需要用户同意”，还缺少执行结果、状态提交和证据校验三层。
 
 ---
 
-# 4 Instructions、structured output 与上下文管理
+# 3 什么时候需要 Agent
 
-## 4.1 学习目标
+这一章只解决架构选择，不展开实现细节。
 
-- 区分 instructions、输入数据、structured output 和运行时上下文。
-- 理解“输出符合 schema”不等于“结论正确或动作获准”。
-- 能设计最小而高信号的上下文。
+## 3.1 LLM 调用、workflow 与 Agent 的边界
 
-## 4.2 核心机制
+| 形态 | 控制流 owner | 适合 | 不适合 |
+|---|---|---|---|
+| 单次 LLM 调用 | 应用发起一次生成 | 抽取、分类、改写、一次性结构化输出 | 需要依据环境反馈连续调整的任务 |
+| Workflow | 代码预定义路径 | 步骤稳定、强合规、可枚举的业务流程 | 中间结果决定未知下一步的探索任务 |
+| Agent | 模型在代码约束内选择下一动作 | 需要搜索、观察、调整和动态停止的任务 | 固定审批链或可直接编码的确定性流程 |
 
-`instructions` 定义职责、约束和决策启发式；structured output 定义机器可消费的数据形状；context 决定本轮模型实际能看到什么。
-
-建议把信息分成四层：
-
-1. 稳定规则：角色、边界、优先级、终止/拒答规则。
-2. 当前输入：用户目标与本轮数据。
-3. 运行观察：必要的工具结果、错误和阶段摘要。
-4. 代码私有上下文：认证主体、数据库 client、logger、policy engine，不自动暴露给模型。
-
-上下文效用可用一个设计目标表达：
-
-$$
-\max_C\; U(C)=Signal(C)-\lambda_1 Tokens(C)-\lambda_2 Conflict(C)-\lambda_3 LeakageRisk(C)
-$$
-
-它不是可直接测量的物理公式，而是提醒：上下文越多不等于越好。
-
-## 4.3 数据流图
-
-```mermaid
-flowchart LR
-    I[Stable instructions] --> M[Model context]
-    U[User input] --> M
-    R[Selected history/tool results] --> M
-    K[Retrieved external knowledge] --> M
-    P[Private runtime context] --> X[Executor / policy]
-    M --> S[Structured decision/output]
-    S --> V[Schema validation]
-    V --> X
-```
-
-## 4.4 最小伪代码
+判断标准不是“调用几次模型”或“有没有工具”，而是下一步控制权在哪里。
 
 ```python
-context = ContextBuilder(token_budget=12_000)
-context.add_stable(instructions)
-context.add_current(user_input)
-context.add_recent(select_recent_turns(history, n=4))
-context.add_evidence(retrieve(query=user_input, limit=5))
-
-decision = model.generate(
-    input=context.render(),
-    output_schema=DecisionSchema,
-)
-validated = DecisionSchema.validate(decision)
-authorized = policy.check(validated, private_run_context)
+def choose_architecture(task):
+    if task.can_finish_in_one_model_call and not task.needs_external_action:
+        return "llm_call"
+    if task.steps_are_known_and_stable:
+        return "workflow"
+    if task.next_step_depends_on_unknown_observations:
+        return "constrained_agent"
+    return "workflow_with_explicit_decision_points"
 ```
 
-## 4.5 常见失败模式
+## 3.2 不要默认拆成 multi-agent
 
-- 把不可信网页或工具结果拼进高优先级 instructions。
-- 只要求“返回 JSON”，却不校验 schema、refusal 和 incomplete 状态。
-- 将认证 token、内部对象或敏感路径放进模型上下文。
-- 历史无限累积，旧目标覆盖新目标，tool result 占满窗口。
-- summary 把“推测”压成“事实”，形成记忆漂移。
+单 Agent 加确定性工具是默认起点。只有出现可观察证据时才增加 manager、handoff 或并行 worker：
 
-## 4.6 适用边界
+- specialist 的权限、工具或策略确实不同；
+- 子任务能够独立完成，并有明确合并合同；
+- 单一上下文无法容纳必要信息，但子结果可以有损可控地压缩；
+- trace 显示一套 instructions 持续造成责任混淆；
+- 并行节省的墙钟时间大于协调、重复和合并成本。
 
-- schema 适合稳定下游合同，不适合表达无法枚举的全部自然语言质量。
-- context trimming 适合丢弃低价值旧细节；关键承诺、审批和任务状态应另行持久化。
+| 模式 | 最终答复 owner | 关键适用条件 |
+|---|---|---|
+| 单 Agent | 单 Agent | 一套策略和工具即可完成 |
+| Manager + agents-as-tools | manager | specialist 是有界能力，仍需统一综合 |
+| Handoff | 接管的 specialist | 分支需要新的责任和对话所有权 |
+| Orchestrator-worker | orchestrator | 子任务独立、可并行、结果可合并 |
 
-## 4.7 官方来源
+对 DMS 证据任务，第一版不因存在 A 核、R 核和报告三个名词就拆成三个 Agent。先用一个 Agent 调用三个确定性工具；再用延迟、上下文冲突、权限隔离和错误率证明拆分价值。
 
-- OAI-02：instructions、structured output 与 local run context 的边界。
-- OAI-06：Structured Outputs 与 JSON mode 的差异及异常分支。
-- OAI-12：不可信变量、结构化数据流与 prompt injection 风险。
-- ANT-05：context 是有限 attention budget，需要选择、压缩和外部 note。
-
-## 4.8 主动回忆题
-
-某模型稳定返回符合 schema 的 `{conclusion, evidence_ids}`，为什么系统仍可能产生 unsupported claim？
-
-## 4.9 小实验
-
-固定一个问答任务，运行三组上下文：完整 50 条历史、最近 5 条、最近 5 条加结构化任务摘要。记录输入 token、是否引用正确 evidence ID、延迟和错误类型。
+相关来源：OAI-01/OAI-02/OAI-07，ANT-01/ANT-06/ANT-08。
 
 ---
 
-# 5 Tool schema、校验、执行器与错误语义
+# 4 工具是跨越信任边界的合同
 
-## 5.1 学习目标
+工具层是 Agent 系统最值得深入设计的部分之一。模型从“生成文本”跨越到“读取数据或改变外部世界”，风险就在这里发生。
 
-- 能把工具看成跨越信任边界的 typed contract。
-- 能设计参数校验、超时、重试、幂等和错误返回。
-- 能判断哪些错误可重试，哪些必须停止或审批。
+## 4.1 一个工具合同必须说清什么
 
-## 5.2 核心机制
+工具不能只有名称和 JSON schema。完整合同至少包含：
 
-一个可靠工具至少包含：名称、用途、输入 schema、业务前置条件、执行权限、timeout、幂等策略、错误 taxonomy、输出 schema 和审计字段。
+| 维度 | 需要定义的内容 |
+|---|---|
+| 语义 | 工具做什么、不做什么，成功意味着什么 |
+| 输入 | 字段类型、业务前置条件、允许范围 |
+| 权限 | 调用主体、能力、目标资源、是否需要审批 |
+| 执行 | timeout、取消、并发和资源限制 |
+| 重试 | 哪些错误瞬态可重试，最大次数和退避 |
+| 幂等 | 同一业务动作如何识别，重复调用返回什么 |
+| 输出 | 成功结果、部分成功和 typed error 的 schema |
+| 审计 | run/call ID、参数 hash、版本、时延和 outcome |
 
-工具处理链：
+schema 只验证数据形状。`path: string` 合法，不代表该路径在授权范围内；`amount: 100` 合法，也不代表用户拥有支付权限。
+
+## 4.2 执行链必须由代码控制
 
 ```text
 model arguments
@@ -362,626 +280,154 @@ model arguments
   → authorization / approval
   → idempotency check
   → execution with timeout
-  → normalized result or error
-  → observation returned to loop
+  → normalized result or typed error
+  → observation returned to the loop
 ```
 
-重试只适合瞬态失败。若每次独立尝试成功概率为 `p`，最多 `r` 次尝试的理论成功概率为：
-
-$$
-P(success\le r)=1-(1-p)^r
-$$
-
-但副作用工具若没有幂等键，重试会把“提高可用性”变成“重复执行”。
-
-## 5.3 数据流图
-
-```mermaid
-flowchart LR
-    C[Tool call] --> SV[Schema validate]
-    SV --> BV[Business validate]
-    BV --> AU[Authorize / approve]
-    AU --> IK[Idempotency check]
-    IK --> EX[Executor + timeout]
-    EX --> NR[Normalized result]
-    EX --> ER[Typed error]
-    NR --> O[Observation]
-    ER --> O
-```
-
-## 5.4 最小伪代码
+不要把多个层次压进一个 `try/except`。否则系统无法区分“模型参数错了”“用户没权限”“服务暂时不可用”和“远端可能已经成功”。
 
 ```python
-def run_tool(call, principal, deadline):
+def run_tool(call, principal, run_state):
     spec = registry.require(call.name)
-    args = spec.schema.validate(call.arguments)
+    args = spec.input_schema.validate(call.arguments)
     spec.validate_business(args)
-    policy.authorize(principal, spec.capability, args)
+    policy.authorize(principal, spec.capability, args, run_state)
 
-    key = idempotency_key(call.run_id, call.call_id, args)
-    if cached := result_store.get(key):
-        return cached
+    key = spec.idempotency_key(run_state.run_id, call.call_id, args)
+    if previous := result_store.get(key):
+        return previous
 
-    for attempt in range(spec.max_attempts):
-        try:
-            result = with_timeout(deadline, spec.execute, args)
-            normalized = spec.output_schema.validate(result)
-            result_store.commit_once(key, normalized)
-            return ToolResult.ok(call.id, normalized)
-        except TransientError as exc:
-            if attempt + 1 == spec.max_attempts:
-                return ToolResult.error(call.id, "transient_exhausted", str(exc))
-        except (ValidationError, PermissionError) as exc:
-            return ToolResult.error(call.id, "non_retryable", str(exc))
+    try:
+        raw = with_timeout(spec.timeout, spec.execute, args, key)
+        result = spec.output_schema.validate(raw)
+        result_store.commit_once(key, result)
+        return ToolResult.ok(call.call_id, result)
+    except ValidationError as exc:
+        return ToolResult.error(call.call_id, "invalid_arguments", details(exc))
+    except PermissionError as exc:
+        return ToolResult.error(call.call_id, "permission_denied", details(exc))
+    except TimeoutError:
+        return ToolResult.error(call.call_id, "timeout_unknown_outcome")
 ```
 
-## 5.5 错误分类
+## 4.3 错误语义决定下一步
 
-| 错误 | 默认动作 | 是否重试 |
+| 错误 | 默认动作 | 能否原样重试 |
 |---|---|---|
-| schema_invalid | 返回精确字段错误 | 否，除非让模型修参后形成新调用 |
-| precondition_failed | 返回当前状态与缺失前置条件 | 通常否 |
-| permission_denied | 拒绝或申请审批 | 否 |
-| rate_limited / unavailable | 退避并限制次数 | 是 |
-| timeout_unknown_outcome | 先查幂等记录/远端状态 | 禁止盲重试 |
-| partial_success | 返回已完成子项和补偿需求 | 按业务合同 |
-| internal_bug | fail closed，保留 trace | 否 |
+| `schema_invalid` | 返回精确字段错误，让模型形成新调用 | 否 |
+| `precondition_failed` | 返回当前状态和缺失前置条件 | 通常否 |
+| `permission_denied` | 拒绝或申请审批 | 否 |
+| `rate_limited/unavailable` | 有限退避 | 可以 |
+| `timeout_unknown_outcome` | 查询幂等记录或远端状态 | 禁止盲重试 |
+| `partial_success` | 返回已完成子项和补偿需求 | 由业务合同决定 |
+| `internal_bug` | fail closed，保存 trace | 否 |
 
-## 5.6 常见失败模式
+“最多重试三次”不是可靠性策略。它只对独立、无副作用且瞬态失败的操作近似成立。对创建工单、发送消息或写文件，timeout 后的关键问题是远端是否已经成功。
 
-- schema 过宽，例如任意字符串命令或任意文件路径。
-- 校验只做类型检查，不做路径、租户、状态和业务范围检查。
-- 把 exception 文本直接作为成功 tool result。
-- 对所有错误统一重试，造成雪崩或重复副作用。
-- timeout 后不知道远端是否成功，却立即再调用一次。
+## 4.4 权限和审批不属于 prompt
 
-## 5.7 适用边界
+可靠控制至少分四层：
 
-- 幂等键只能阻止同一业务动作重复提交，不能自动撤销已产生的外部影响。
-- strict schema 提高参数可靠性，但不判断用户是否授权或事实是否充分。
+1. 输入层识别越权目标、注入、敏感数据和缺失授权。
+2. 决策层限制可用工具、预算和允许状态转换。
+3. 执行层校验 schema、业务范围、主体权限、审批和幂等。
+4. 输出层检查证据、敏感信息和 unsupported claim。
 
-## 5.8 官方来源
+审批必须绑定主体、工具名、参数 hash、资源和过期时间。审批后执行的是原 pending call；如果参数变化，必须重新校验和审批。
 
-- OAI-04/OAI-05：工具语义和 function-calling 往返。
-- OAI-06：strict schema 与异常处理边界。
-- ANT-02/ANT-03/ANT-04：工具契约、严格输入、call/result 关联与结构化错误。
+```python
+decision = policy.evaluate(principal, tool_call, state)
+if decision.kind == "deny":
+    return ToolResult.error(tool_call.id, "permission_denied")
+if decision.kind == "approval_required":
+    return pause(state, approval_request(tool_call, decision))
+return executor.run(tool_call)
+```
 
-## 5.9 主动回忆题
+最小实验：让 mock `create_ticket` 在远端创建成功后、返回结果前 timeout。分别使用随机 call ID 和持久 idempotency key 恢复，比较最终工单数量。这个实验比再写一段工具调用示例更能暴露设计是否闭合。
 
-一个支付工具返回 timeout。为什么“最多重试 3 次”不是完整可靠性策略？你还需要观察什么状态？
-
-## 5.10 小实验
-
-写一个 mock `create_ticket` 工具：第一次执行成功但故意在返回前 timeout。分别用“无幂等键”和“持久 idempotency key”重试，观察最终创建数量。
+相关来源：OAI-04/OAI-05/OAI-06/OAI-08/OAI-12，ANT-02/ANT-03/ANT-04/ANT-08。
 
 ---
 
-# 6 会话状态、短期上下文、持久记忆与外部知识
+# 5 状态、上下文与可靠恢复
 
-## 6.1 学习目标
+工具合同决定一次动作怎样执行；状态设计决定系统崩溃或暂停后是否知道下一步该做什么。
 
-- 能区分四种经常被混称为 memory 的数据。
-- 能为每种数据指定 owner、生命周期和一致性策略。
-- 能解释恢复 state 不等于重新塞入完整聊天记录。
+## 5.1 不要把四种数据都叫 memory
 
-## 6.2 核心机制
+| 数据 | 典型内容 | 生命周期 | 真相责任 |
+|---|---|---|---|
+| RunState | step、pending call、approval、budget | 一次 run | 状态存储 |
+| 模型上下文 | instructions、近期消息、选中观察 | 一次推理 | context builder |
+| 持久记忆 | 经治理的偏好、任务摘要、长期计划 | 跨会话 | memory store + 审核策略 |
+| 外部知识 | 文档、数据库、证据卡、日志 | 资料生命周期 | 原始知识系统 |
 
-| 层 | 含义 | 典型内容 | 生命周期 | 真相责任 |
-|---|---|---|---|---|
-| 会话状态 | workflow 当前执行位置 | step、pending call、approval、budget | 一次 run/会话 | 状态存储 |
-| 短期上下文 | 本轮模型可见 token | instructions、近期消息、选中 tool results | 一次推理 | context builder |
-| 持久记忆 | 跨会话复用的提炼状态 | 用户偏好、任务摘要、长期计划 | 多会话 | memory store + 审核策略 |
-| 外部知识 | 独立于会话的领域资料 | 文档、数据库、证据卡、索引 | 资料生命周期 | 原始知识系统 |
+它们可以互相引用，但不能互相替代：
 
-检索到上下文的过程应保留来源：
+- 将聊天历史恢复给模型，不等于恢复 pending side effect。
+- 检索摘要进入上下文，不会成为新的事实源。
+- 模型生成的 summary 不应自动写成长期事实。
+- 外部知识的向量命中不能替代原文位置和版本。
 
-$$
-Context_t = I + Recent_t + Retrieve(K, q_t) + Recall(M, q_t) + StateSummary_t
-$$
-
-其中 `K` 与 `M` 不应因为被召回就复制成新的事实源。
-
-## 6.3 状态图
-
-```mermaid
-flowchart TB
-    S[(Run state)] --> CB[Context builder]
-    H[(Recent history)] --> CB
-    M[(Persistent memory)] --> R[Recall]
-    K[(External knowledge)] --> R
-    R --> CB
-    CB --> L[LLM decision]
-    L --> S
-    L --> MW[Memory proposal]
-    MW --> MR{Review / policy}
-    MR -->|allow| M
-```
-
-## 6.4 最小伪代码
+## 5.2 Context builder 只选择本轮需要看到的内容
 
 ```python
-def build_model_context(run_id, query):
+def build_context(run_id, query):
     state = run_store.load(run_id)
     return {
-        "instructions": POLICY_PROMPT,
+        "instructions": stable_policy_instructions,
         "task_state": state.compact_summary(),
         "recent_messages": history.tail(run_id, 6),
+        "tool_observations": state.relevant_observations(),
         "memory_hits": memory.search(query, limit=3),
         "knowledge_hits": kb.retrieve(query, limit=5, with_citations=True),
     }
 ```
 
-## 6.5 常见失败模式
+认证 token、数据库 client、logger 和 policy engine 属于代码私有上下文，不应因为模型要调用工具就暴露给模型。
 
-- 把模型生成的 summary 自动写成长期事实。
-- 混用 SDK session 与应用自带完整历史，导致上下文重复。
-- 记忆没有租户/用户隔离或删除策略。
-- 外部知识只保留向量摘要，不保留原文定位。
-- 恢复时只加载聊天文本，不加载 pending side effect 和审批状态。
+## 5.3 Durable execution 处理的不是“永不失败”
 
-## 6.6 适用边界
+可靠恢复要求系统在失败后回答四个问题：
 
-- 对高风险事实，持久记忆应存“引用与状态”，不静默复制原文结论。
-- 对短任务，内存 session 足够；跨进程、跨天或带审批的任务需要持久 state。
+1. 哪些步骤已经完成并提交？
+2. 当前是否存在 outcome 未知的 pending call？
+3. 哪些动作可以安全重放？
+4. 哪些动作必须查询远端、补偿或人工处理？
 
-## 6.7 官方来源
-
-- OAI-02：conversation history 与 local run context。
-- OAI-03：history、session、conversation 和 previous response 的选择边界。
-- ANT-05：context trimming、tool result clearing 与 structured note-taking。
-
-## 6.8 主动回忆题
-
-“用户偏好简洁回答”“当前正在等待审批”“某份规范的正文”分别属于哪一层？为什么不能存进同一个 messages 数组就算完成？
-
-## 6.9 小实验
-
-设计一个跨两次进程启动的任务：第一次停在审批前，第二次恢复。只持久化聊天历史运行一次，再持久化显式 RunState 运行一次，比较是否会重复工具调用。
-
----
-
-# 7 单 Agent、manager、handoff 与 multi-agent
-
-## 7.1 学习目标
-
-- 能从“最终答复所有权”和“上下文/策略隔离”选择编排模式。
-- 能识别过早拆分 multi-agent 的协调税。
-- 能说明并行成立的必要条件。
-
-## 7.2 核心机制
-
-选择顺序：
-
-1. 单 Agent + 清晰工具能否完成？
-2. 固定步骤能否用 workflow 更可靠地完成？
-3. manager 是否需要保持最终答复和全局策略所有权？
-4. specialist 是否应真正接管该分支的用户对话？
-5. 子任务是否独立到可以并行，且合并合同清楚？
-
-| 模式 | 最终答复 owner | 适合 | 主要代价 |
-|---|---|---|---|
-| 单 Agent | 单 Agent | 一套规则/工具、上下文可容纳 | prompt 可能膨胀 |
-| Manager + agents-as-tools | manager | specialist 是有界能力，需统一综合 | nested calls、成本与 trace 复杂度 |
-| Handoff | 接管的 specialist | 不同责任/工具/策略，应转移对话所有权 | 用户体验和状态延续更复杂 |
-| Orchestrator-worker | orchestrator | 可并行探索、结果可压缩合并 | 协调、重复、token 与失败聚合 |
-
-## 7.3 数据流图
-
-```mermaid
-flowchart LR
-    U[User] --> M[Manager]
-    M -->|bounded tool call| S1[Specialist A]
-    M -->|bounded tool call| S2[Specialist B]
-    S1 --> M
-    S2 --> M
-    M --> F[Final answer]
-    U2[User] --> T[Triage]
-    T -->|handoff ownership| S3[Specialist C]
-    S3 --> F2[Specialist reply]
-```
-
-## 7.4 指标与判断
-
-并行理论加速比可粗略写为：
-
-$$
-Speedup \approx \frac{\sum_i L_i}{\max_i L_i + L_{coord}+L_{merge}}
-$$
-
-若共享依赖多、协调/合并成本高，`Speedup` 可能小于 1。
-
-## 7.5 最小伪代码
-
-```python
-def choose_pattern(task):
-    if one_policy_toolset_context(task):
-        return "single_agent"
-    if task.fixed_steps:
-        return "workflow"
-    if task.specialists_are_bounded and task.needs_one_final_owner:
-        return "manager_agents_as_tools"
-    if task.branch_requires_new_owner:
-        return "handoff"
-    if task.subtasks_independent and task.merge_contract_is_explicit:
-        return "orchestrator_worker"
-    return "single_agent_with_better_tools"
-```
-
-## 7.6 常见失败模式
-
-- 为角色名字而拆 Agent，实际 instructions、工具和策略没有差异。
-- 子 Agent 没有任务边界和输出 schema，结果重复或遗漏。
-- 并行子任务共享可变状态，产生竞态和相互覆盖。
-- manager 只拼接结果，不做证据去重、冲突处理和最终责任判断。
-- handoff 后丢失用户约束或审批状态。
-
-## 7.7 适用边界
-
-- 高依赖、需共享全部上下文的任务不适合当前多 Agent 并行。
-- 低价值任务不值得支付显著 token 和协调成本。
-
-## 7.8 官方来源
-
-- OAI-07：handoff 与 agents-as-tools 的答复所有权。
-- OAI-02：只有责任、工具、策略或模型实质变化时再拆分。
-- ANT-01：优先简单可组合模式。
-- ANT-06：orchestrator-worker 的适用条件、成本与失败模式。
-
-## 7.9 主动回忆题
-
-一个 DMS 证据任务需要日志解析、规则核验和最终报告。什么证据能证明应该拆成三个 Agent，而不是一个 Agent 调三个确定性工具？
-
-## 7.10 小实验
-
-对同一合成研究任务分别运行单 Agent 与 3 个并行 specialist。记录 token、墙钟时间、重复事实数、冲突数和最终缺失项；不以“用了 multi-agent”作为成功指标。
-
----
-
-# 8 Guardrails、权限、审批、拒答与 human-in-the-loop
-
-## 8.1 学习目标
-
-- 能把安全控制放到正确层，而不是只写在 prompt。
-- 能区分自动 guardrail、授权、审批、拒答和澄清。
-- 能设计 paused run 的恢复合同。
-
-## 8.2 核心机制
-
-四层控制：
-
-1. 输入层：检测越权目标、注入、敏感数据和缺失授权。
-2. 决策层：限制可用工具、目标路径、预算和终止条件。
-3. 执行层：schema、业务校验、最小权限、sandbox、审批和幂等。
-4. 输出层：证据完整性、敏感信息、unsupported claim 和格式校验。
-
-风险分级可用于审批策略：
-
-$$
-Risk = Impact \times Irreversibility \times Uncertainty \times Exposure
-$$
-
-它用于排序，不应伪装成精确概率。高风险动作应优先 dry-run、缩小权限或人工审批。
-
-## 8.3 状态图
-
-```mermaid
-stateDiagram-v2
-    [*] --> Proposed
-    Proposed --> Denied: policy reject
-    Proposed --> Approved: low risk auto allow
-    Proposed --> Paused: human approval required
-    Paused --> Approved: approve same state
-    Paused --> Denied: reject same state
-    Approved --> Executed
-    Denied --> FinalRefusal
-    Executed --> [*]
-    FinalRefusal --> [*]
-```
-
-## 8.4 最小伪代码
-
-```python
-decision = policy.evaluate(principal, tool_call, evidence)
-if decision.kind == "deny":
-    return observation("permission_denied", decision.reason)
-if decision.kind == "approve_required":
-    return pause(snapshot(run_state), approval_request(decision))
-if decision.kind == "allow":
-    return executor.run(tool_call)
-```
-
-## 8.5 常见失败模式
-
-- guardrail 与主模型同样依赖模糊自然语言，却被当作绝对安全边界。
-- 只在 UI 显示确认，后端执行器不验证 approval token 和调用参数是否一致。
-- 审批后新开一轮，导致原 pending call 被重新规划或重复执行。
-- 对所有失败统一拒答，丢失可澄清和可降级路径。
-- trace 默认记录敏感 prompt、工具参数和凭证。
-
-## 8.6 适用边界
-
-- HITL 不能替代最小权限；频繁无差别确认会造成 approval fatigue。
-- 拒答适用于目标禁止或证据不足；信息缺失但可安全补齐时优先澄清。
-
-## 8.7 官方来源
-
-- OAI-08：input/output/tool guardrails 与 resumable approval。
-- OAI-12：prompt injection、structured data flow、工具确认和组合防护。
-- ANT-08：model、harness、tools、environment 四层与 meaningful human control。
-
-## 8.8 主动回忆题
-
-为什么“模型在 instructions 中被要求写文件前询问用户”仍不构成可靠审批机制？
-
-## 8.9 小实验
-
-构造一个 `write_report(path, content)` 工具。测试：授权路径、越权路径、同意后参数被篡改、拒绝后重放 approval token。验证执行器能否全部 fail closed。
-
----
-
-# 9 Tracing、日志、轨迹、可观测性与故障定位
-
-## 9.1 学习目标
-
-- 区分业务日志、结构化事件、trace/span 和完整 trajectory。
-- 能从最终失败反向定位到决策、工具、状态或策略层。
-- 能设计隐私安全且可关联的最小观测字段。
-
-## 9.2 核心机制
-
-| 观测物 | 回答的问题 |
-|---|---|
-| log | 某组件报告了什么事件？ |
-| metric | 一段时间内发生了多少、多久、成功率怎样？ |
-| trace/span | 一次 run 跨模型、工具和服务怎样传播？ |
-| trajectory/transcript | 模型看到了什么、决定了什么、环境如何变化？ |
-| artifact/evidence | 哪个输入和输出可供复核？ |
-
-最小关联键：`run_id`、`step_id`、`call_id`、`parent_span_id`、`tool_name`、`state_before/after`、`attempt`、`latency_ms`、`outcome`、版本与证据引用。
-
-## 9.3 数据流图
-
-```mermaid
-flowchart LR
-    UI[User input] --> D1[Decision span]
-    D1 --> T1[Tool span]
-    T1 --> D2[Decision span]
-    D2 --> F[Final span]
-    D1 --> E[(Event store)]
-    T1 --> E
-    D2 --> E
-    F --> E
-    E --> DBG[Failure localization]
-    E --> EV[Trace evaluation]
-```
-
-## 9.4 指标
-
-$$
-ToolSuccessRate=\frac{N_{successful\ tool\ calls}}{N_{attempted\ tool\ calls}}
-$$
-
-$$
-TraceCompleteness=\frac{N_{required\ events\ present}}{N_{required\ events}}
-$$
-
-日志完整不等于任务正确；它只说明你有机会解释发生了什么。
-
-## 9.5 最小伪代码
-
-```python
-with trace(run_id, versions=current_versions()) as run:
-    with run.span("model_decision", step=state.step) as span:
-        decision = model.decide(context)
-        span.record(kind=decision.kind, token_usage=decision.usage)
-    with run.span("tool", call_id=decision.call_id) as span:
-        result = executor.run(decision.call)
-        span.record(outcome=result.status, latency_ms=result.latency_ms)
-```
-
-## 9.6 故障定位顺序
-
-1. 最终 outcome 是否真的失败，还是只说失败/成功？
-2. state transition 是否合法，是否错误恢复或重复执行？
-3. tool call 选择和参数是否正确？
-4. tool result 是否完整、关联正确、被正确解释？
-5. instructions/context 是否包含冲突或缺失证据？
-6. 模型、prompt、tool、policy 和数据版本是否变化？
-
-## 9.7 常见失败模式
-
-- 只记最终文本，不记工具参数、结果与状态转移。
-- 每个组件各自生成 ID，无法拼接一次 run。
-- trace 采集敏感原文但没有脱敏、访问控制和保留期。
-- 用日志存在证明功能正确。
-- 先聚合平均值，丢失失败样本和长尾步骤。
-
-## 9.8 适用边界
-
-完整 payload tracing 与隐私/成本冲突；生产环境应按风险采样、脱敏，并保留必要 hash/引用而非全部正文。
-
-## 9.9 官方来源
-
-- OAI-09：模型、工具、handoff、guardrail 和 custom spans 的 SDK tracing。
-- OAI-11：对 trace 中的步骤做结构化 grading。
-- ANT-07：transcript/trace 与 outcome 的区别。
-
-## 9.10 主动回忆题
-
-Agent 最终回答“工单已创建”，但数据库中没有工单。你至少需要哪三类观测才能定位问题属于模型、工具还是状态层？
-
-## 9.11 小实验
-
-为第 5 章 mock 工具加 JSONL event log。故意制造错误参数、超时后成功和重复调用，写一个脚本只根据事件重建每次 run 的状态路径。
-
----
-
-# 10 Agent 评测
-
-## 10.1 学习目标
-
-- 能从 task contract 定义 outcome 与过程指标。
-- 能区分 task、trial、grader、trace、outcome 和 harness。
-- 能报告 task success、tool success、证据完整性、unsupported claim、成本与延迟。
-
-## 10.2 核心机制
-
-评测对象不是裸模型，而是：
+状态快照至少要保存：
 
 ```text
-model + instructions + tools + executor + state + policy + context + environment
-```
-
-任务成功应优先读取环境 outcome，而不是相信最终声明。一个 case 至少定义：输入、初始环境、允许动作、成功条件、证据要求、拒答条件、失败标签和预算。
-
-## 10.3 指标
-
-$$
-TaskSuccessRate=\frac{N_{successful\ outcomes}}{N_{trials}}
-$$
-
-$$
-EvidenceCompleteness=\frac{N_{required\ evidence\ items\ present}}{N_{required\ evidence\ items}}
-$$
-
-$$
-UnsupportedClaimRate=\frac{N_{unsupported\ material\ claims}}{N_{material\ claims}}
-$$
-
-$$
-CostPerSuccess=\frac{TotalCost}{N_{successful\ outcomes}}
-$$
-
-延迟至少报告 p50/p95，而不是只报均值：
-
-$$
-p95 = Q_{0.95}(L_{run})
-$$
-
-## 10.4 评测数据流
-
-```mermaid
-flowchart LR
-    C[Task contract + seed case] --> H[Eval harness]
-    H --> A[Agent harness]
-    A --> TR[Trace]
-    A --> O[Environment outcome]
-    TR --> PG[Process graders]
-    O --> OG[Outcome graders]
-    PG --> R[Failure report]
-    OG --> R
-    R --> CH[Prompt/tool/policy change]
-    CH --> H
-```
-
-## 10.5 最小伪代码
-
-```python
-for case in dataset:
-    for trial in range(case.n_trials):
-        env = case.reset_environment()
-        run = agent_harness.run(case.input, env)
-        scores = {
-            "task_success": grade_outcome(env, case.success_criteria),
-            "tool_success": grade_tool_calls(run.trace),
-            "evidence": grade_evidence(run.output, case.required_evidence),
-            "unsupported": grade_claim_support(run.output, run.artifacts),
-            "cost": run.cost,
-            "latency": run.latency,
-        }
-        save_trial(case.id, trial, run.trace, scores)
-```
-
-## 10.6 常见失败模式
-
-- 只看最终文本，没有检查环境最终状态。
-- 单次 trial 代表随机系统总体表现。
-- LLM judge 未经人工/确定性样本校准。
-- 成功率上涨但成本、延迟或危险工具调用显著恶化。
-- 为当前模型调整 rubric，造成指标漂移。
-- 把 3 至 5 个 seed cases 称为 benchmark。
-
-## 10.7 适用边界
-
-- 确定性 outcome 优先用程序 grader；开放质量可用 rubric + LLM judge + 人工校准。
-- trace grader 能定位过程，但不能替代真实环境的 end-state 检查。
-
-## 10.8 官方来源
-
-- OAI-10/OAI-11：从单 trace 调试到可重复 eval run 与 trace grading。
-- ANT-07：task、trial、grader、trace、outcome、eval harness 和 agent harness 的定义。
-
-## 10.9 主动回忆题
-
-为什么“最终答案准确率 90%”不足以评价一个会写文件和调用外部系统的 Agent？请给出至少三个可能被掩盖的失败维度。
-
-## 10.10 小实验
-
-为一个证据问答 Agent 写 5 个 seed cases：正常、缺证据、冲突证据、工具失败、越权请求。每个跑 3 次，输出分 case 的 outcome、unsupported claim、工具错误和延迟，不先求单一总分。
-
----
-
-# 11 Durable execution、恢复、重复执行与副作用控制
-
-## 11.1 学习目标
-
-- 能解释进程恢复与模型会话延续的区别。
-- 能处理 at-least-once 执行带来的重复风险。
-- 能设计 checkpoint、lease、幂等和补偿边界。
-
-## 11.2 核心机制
-
-Durable execution 的核心不是“永不失败”，而是失败后知道：已完成什么、正在等待什么、什么可以安全重放、什么必须查询或人工处理。
-
-状态快照至少包含：
-
-```text
-run_id, version, current_state, step_id,
+run_id, version, status, step_id,
 pending_call, completed_calls, idempotency_keys,
 approval_state, evidence_refs, budgets, retry_counters
 ```
 
-现实系统常是 at-least-once delivery。若外部系统不支持幂等，必须用业务唯一键、结果查询或补偿操作控制副作用。
+现实系统常是 at-least-once delivery。如果状态提交和副作用不是一个原子事务，就存在两个关键崩溃窗口：
 
-## 11.3 状态图
+1. 先执行副作用、后保存结果：恢复后可能重复执行。
+2. 先标记完成、后执行副作用：恢复后可能永久漏执行。
 
-```mermaid
-stateDiagram-v2
-    [*] --> Loaded
-    Loaded --> Ready: no pending call
-    Loaded --> Reconcile: pending / unknown outcome
-    Ready --> PersistIntent
-    PersistIntent --> Execute
-    Execute --> PersistResult: success
-    Execute --> Reconcile: timeout / crash
-    Reconcile --> PersistResult: remote confirms success
-    Reconcile --> Execute: safe retry
-    Reconcile --> Manual: ambiguous side effect
-    PersistResult --> Ready
-    Ready --> Completed
+常见处理顺序是：
+
+```text
+持久化 intent
+  → 带稳定幂等键执行
+  → 查询或接收结果
+  → 持久化 result
+  → 原子推进状态
 ```
-
-## 11.4 可靠性关系
-
-如果状态提交和副作用不是一个原子事务，就存在两个危险窗口：
-
-1. 先执行副作用、后写状态：崩溃后可能重复执行。
-2. 先写完成、后执行副作用：崩溃后可能漏执行。
-
-常用模式是“先持久化 intent → 带幂等键执行 → 查询/提交 result → 推进状态”。
-
-## 11.5 最小伪代码
 
 ```python
 def execute_step(run, call):
-    tx.save_intent(run.id, call.id, call.args_hash)
-    previous = tx.get_result(call.id)
-    if previous:
+    store.save_intent(run.id, call.id, hash_args(call.args))
+    if previous := store.get_result(call.id):
         return previous
 
     result = remote.execute(call.args, idempotency_key=call.id)
-    tx.save_result_once(run.id, call.id, result)
-    tx.advance_state(run.id, expected_step=run.step)
+    store.save_result_once(run.id, call.id, result)
+    store.advance_state(run.id, expected_version=run.version)
     return result
 
 def recover(run_id):
@@ -991,167 +437,52 @@ def recover(run_id):
     return continue_loop(run)
 ```
 
-## 11.6 常见失败模式
+## 5.4 恢复还需要并发和版本边界
 
-- checkpoint 只保存 messages，不保存 pending side effect。
-- 恢复后生成新 call ID，使幂等保护失效。
-- worker 没有 lease/fencing token，两个实例同时恢复同一 run。
-- 版本升级后直接读取旧 state，没有 migration 或兼容性检查。
-- 把“重试成功”误当作“第一次没有产生副作用”。
+仅保存 checkpoint 仍不够：
 
-## 11.7 适用边界
+- 两个 worker 同时恢复同一 run，需要 lease 或 fencing token。
+- 恢复后生成新的 call ID，会绕过原幂等保护。
+- state schema 升级后需要 migration 或兼容检查。
+- 补偿不是回滚；外部世界可能已经观察到原动作。
+- 只读工具恢复较简单，资金、消息、写文件和删除操作需要更强合同。
 
-- 只读、纯函数工具恢复简单；写外部系统、资金、消息、文件删除等需更强事务与审批策略。
-- 补偿不是回滚；外部世界可能已观察到原动作。
+建议的故障注入不是只测试“重启后还能继续”，而是在 save intent 前、远端成功后、save result 后分别崩溃，验证外部对象数、状态版本和 trace 是否一致。
 
-## 11.8 官方来源
-
-- OAI-03：session、resumable run state、审批暂停和继续同一 turn。
-- OAI-08：approval lifecycle 与从 state 恢复。
-- ANT-04：tool call/result ID 关联和错误返回。
-- 注：事务、幂等和补偿的具体实现属于应用工程责任，不能由上述 SDK 文档自动保证。
-
-## 11.9 主动回忆题
-
-系统在远端创建工单成功后、本地保存 result 前崩溃。恢复时最危险的错误是什么？需要哪些持久字段才能安全判断下一步？
-
-## 11.10 小实验
-
-在第 5 章 mock 工具中加入随机崩溃点：save intent 前、远端成功后、save result 后。自动重启 100 次，验证最终外部对象数与期望值一致，并列出无法自动判定的窗口。
+相关来源：OAI-02/OAI-03/OAI-08，ANT-04/ANT-05。事务、幂等、lease 和补偿的具体实现属于应用工程责任，不能由 SDK 自动保证。
 
 ---
 
-# 12 OpenAI 与 Anthropic 概念对照
+# 6 证据、可观测性与评测
 
-## 12.1 学习目标
+Agent 最终说“任务完成”不是成功证据。系统需要同时判断环境发生了什么、结论由什么支持，以及失败发生在哪一步。
 
-- 能识别共同系统原理与框架专有类型。
-- 避免把一个 SDK 的名词当作通用 Agent 定义。
-- 能基于同一抽象模型迁移实现。
+## 6.1 先定义任务合同，再运行模型
 
-## 12.2 核心对照
+一个可评测 case 至少包含：
 
-| 系统概念 | OpenAI | Anthropic | 共同本质 |
-|---|---|---|---|
-| Agent unit | Agent definition | model + agent harness | 模型、instructions、工具与运行约束的组合。 |
-| Loop | Agents SDK Runner 或 Responses 自管 loop | client tool loop 或 Tool Runner | decision → execute → observe → next decision。 |
-| Tool request/result | function call / tool output | `tool_use` / `tool_result` | 模型提议结构化动作，运行时执行并回传。 |
-| Structured data | output type / Structured Outputs / strict function schema | `input_schema` / strict tool use / structured outputs | grammar/schema 约束数据形状。 |
-| Conversation state | history、session、conversation ID、previous response ID | messages、SDK runner state、context management | 让后续推理获得必要连续性。 |
-| Manager pattern | agents-as-tools | orchestrator-worker / subagent tool | 主 Agent 保持综合和最终责任。 |
-| Ownership transfer | handoff | 通常由 harness/router 自定义 | 把分支控制权交给 specialist。 |
-| Automatic checks | input/output/tool guardrails | harness checks、hooks、validators | 在模型前后或工具周围验证。 |
-| Human review | resumable approvals/interruption | manual loop、permissions/HITL | 有副作用动作暂停，审核后继续同一状态。 |
-| Trace | SDK trace/spans | transcript/trajectory/logging | 保存一次 run 的因果路径。 |
-| Eval | trace grading、datasets/eval runs | task/trial/grader/outcome/eval harness | 同时检查过程与最终环境结果。 |
-
-## 12.3 数据流映射
-
-```mermaid
-flowchart TB
-    C[通用 Agent 抽象] --> D[Decision]
-    C --> E[Execution]
-    C --> S[State]
-    C --> P[Policy]
-    C --> T[Trace]
-    D --> OAI[OpenAI SDK/API types]
-    D --> ANT[Anthropic Messages/SDK types]
-    E --> OAI
-    E --> ANT
-    S --> OAI
-    S --> ANT
-    P --> OAI
-    P --> ANT
-    T --> OAI
-    T --> ANT
+```yaml
+input: 用户问题与输入材料
+initial_environment: 初始文件、数据库或 mock 服务状态
+authorized_actions: 允许的工具和路径
+expected_behavior: 预期过程与终止方式
+success_criteria: 可由环境或确定性规则检查的结果
+acceptable_answers: 允许的表达差异
+evidence_requirements: 必须引用的原文或对象
+abstain_conditions: 证据不足或权限不足时何时停止
+failure_labels: 可复用的失败分类
+budgets: 步数、时间、token 和成本上限
 ```
 
-## 12.4 迁移伪代码
+任务合同必须先于基线和评分规则冻结。根据当前模型输出反向修改 rubric，会造成指标漂移和不可比较。
 
-```python
-class ProviderAdapter(Protocol):
-    def decide(self, context, tools, output_schema) -> Decision: ...
+## 6.2 Evidence 是结论与原始材料之间的合同
 
-class AgentRuntime:
-    def __init__(self, provider, executor, state_store, policy, tracer): ...
-    # Runtime invariants stay stable; provider wire formats stay in adapter.
-```
-
-## 12.5 常见失败模式
-
-- 把 OpenAI handoff 与任意“调用另一个模型”画等号。
-- 把 Anthropic `tool_result` wire format复制到 OpenAI executor。
-- 迁移 provider 时同时改状态机、工具合同和 rubric，无法归因回归。
-- 只比较模型答案，不比较工具/审批/状态的行为差异。
-
-## 12.6 适用边界
-
-通用抽象适合设计和评测；具体实现必须服从当前 provider API、SDK 版本、数据保留和安全边界。
-
-## 12.7 官方来源
-
-- OpenAI：OAI-01 至 OAI-12。
-- Anthropic：ANT-01 至 ANT-08。
-- 详细链接、访问日期和版本风险见本项目引用的来源证据卡。
-
-## 12.8 主动回忆题
-
-哪些部分可以在 OpenAI 与 Anthropic 之间保持为应用层 invariant？哪些部分必须放进 provider adapter？
-
-## 12.9 小实验
-
-定义 provider-neutral 的 `Decision`、`ToolCall`、`ToolResult` 和 `RunState`。用两个纯 mock adapter 分别模拟 OpenAI/Anthropic wire format，确认同一 runtime 状态测试无需改动。
-
----
-
-# 13 与 DMS 日志证据任务结合的最小实践路线
-
-## 13.1 学习目标
-
-- 把 Agent Systems 原理落到一个可复核、低副作用的领域任务。
-- 先建立单 Agent + 确定性工具闭环，再判断是否需要 multi-agent。
-- 用证据完整性和 unsupported claim 约束结论。
-
-## 13.2 最小任务合同
-
-建议首个练习只处理合成或明确授权的 DMS 日志证据包，目标是：
-
-```text
-输入：一个任务问题、日志文件清单、允许读取范围、事件/规则配置
-输出：结构化事件时间线、证据引用、受约束结论、未知项和拒答状态
-非目标：自动修改业务代码、写 Jira/飞书、声称未被日志支持的根因
-副作用：第一阶段全部关闭，只生成本地报告草案
-```
-
-## 13.3 最小架构
-
-```mermaid
-flowchart TB
-    U[问题 + 授权路径] --> A[单 Evidence Agent]
-    A --> L[list_files 确定性工具]
-    A --> S[search_events 确定性工具]
-    A --> R[read_evidence_window 确定性工具]
-    A --> V[validate_claims 确定性工具]
-    L --> ES[(Evidence store)]
-    S --> ES
-    R --> ES
-    ES --> V
-    V --> A
-    A --> O[结构化分析草案]
-    O --> G[Outcome + trace graders]
-```
-
-第一版不使用 multi-agent。只有出现以下证据之一再拆分：
-
-- A/R 或不同日志域需要严格不同的授权与工具面。
-- 单上下文无法容纳必要证据，且子任务可独立压缩后合并。
-- trace 显示一套 instructions 持续造成责任混淆，拆分能形成可测合同。
-- 可并行子任务的延迟收益大于协调和重复成本。
-
-## 13.4 数据合同
+对 DMS 日志任务，证据引用不能只有一句摘要。最小结构应能重新定位并验证原文：
 
 ```python
 class EvidenceRef:
+    id: str
     file: str
     line_start: int
     line_end: int
@@ -1160,117 +491,248 @@ class EvidenceRef:
 class Claim:
     text: str
     evidence_ids: list[str]
-    confidence: Literal["high", "medium", "low"]
     status: Literal["supported", "unsupported", "conflicted", "unknown"]
-
-class AnalysisResult:
-    task_id: str
-    timeline: list[dict]
-    claims: list[Claim]
-    unresolved_items: list[str]
-    abstained: bool
+    confidence: Literal["high", "medium", "low"]
 ```
 
-## 13.5 最小 loop 伪代码
+`confidence=high` 不能把 `unsupported` 变成 `supported`。缺少正式报警或必要输入链时，正确结果是保留未知项或 abstain，不是从相似 marker 推断根因。
 
-```python
-state = init_task(contract, authorized_paths)
-while not state.terminal:
-    decision = model.decide(context_from(state))
-    if decision.tool_call:
-        result = executor.run_read_only(decision.tool_call)
-        state.observe(result)
-    elif decision.final:
-        checked = validate_claims(decision.output, state.evidence_store)
-        return checked if checked.all_material_claims_supported else abstain(checked)
-    else:
-        state.fail("invalid_or_budget_exhausted")
+## 6.3 Trace 用来重建因果链
+
+| 观测物 | 回答的问题 |
+|---|---|
+| log | 某个组件报告了什么？ |
+| metric | 一段时间内发生了多少、多久、成功率如何？ |
+| trace/span | 一次 run 如何跨越模型、工具和服务？ |
+| trajectory/transcript | 模型看到了什么、决定了什么、环境怎样变化？ |
+| artifact/evidence | 哪个输入和输出可供复核？ |
+
+最小关联字段包括：`run_id`、`step_id`、`call_id`、`parent_span_id`、`tool_name`、`state_before/after`、`attempt`、`latency_ms`、`outcome`、模型/工具/policy 版本和 evidence ID。
+
+```mermaid
+flowchart LR
+    UI[Task input] --> D1[Decision span]
+    D1 --> T1[Tool span]
+    T1 --> D2[Decision span]
+    D2 --> F[Final span]
+    D1 --> E[(Event store)]
+    T1 --> E
+    D2 --> E
+    F --> E
+    E --> DBG[Failure localization]
+    E --> EV[Process grading]
 ```
 
-## 13.6 练习集路线
+日志完整只意味着“有机会解释”，不意味着任务正确。trace 还要处理敏感字段、访问控制、采样和保留期。
 
-先做 5 个 seed cases，不称 benchmark：
+## 6.4 Outcome grader 与 process grader 分工
 
-| Case | 目的 | 预期行为 |
+评测对象是整个系统：
+
+```text
+model + instructions + tools + executor + state
+      + policy + context + environment
+```
+
+- Outcome grader 检查环境最终状态和任务成功条件。
+- Process grader 检查工具选择、参数、证据、权限和状态转换。
+- 最终文本评分只覆盖其中一部分。
+
+| 指标 | 回答的问题 | 不能证明什么 |
 |---|---|---|
-| 1 单一明确事件 | 验证 happy path | 产生带行号/hash 的受支持结论。 |
-| 2 缺关键日志 | 验证 abstain | 明确缺失证据，不猜根因。 |
-| 3 冲突事件 | 验证冲突表达 | 保留两侧证据，标记 conflicted。 |
-| 4 工具 timeout | 验证错误与恢复 | 有限重试或停止，不伪造结果。 |
-| 5 越权路径 | 验证授权门禁 | 拒绝读取并记录 policy outcome。 |
+| Task success | 环境 outcome 是否满足合同？ | 过程是否安全、成本是否合理 |
+| Tool-call success | 工具选择、参数和关联是否正确？ | 最终业务目标是否完成 |
+| Evidence completeness | 必要结论是否都有证据？ | 证据本身是否正确解释 |
+| Unsupported-claim rate | 实质性结论是否越过证据？ | 系统是否找全了证据 |
+| Abstain correctness | 缺证据或越权时是否正确停止？ | 正常 case 的完成质量 |
+| p50/p95 latency | 常态和长尾延迟如何？ | 正确性 |
+| Cost per success | 每次成功的资源成本如何？ | 失败类型分布 |
 
-## 13.7 指标
+随机系统不能用单次 trial 代表总体表现。开放质量的 LLM judge 也需要用确定性样本或人工评分校准。
 
-- task success：是否满足 case 的结构化 outcome。
-- tool-call success：工具选择、参数、执行和结果关联是否正确。
-- evidence completeness：每个必要结论是否有可复核引用。
-- unsupported claim：实质性结论是否超出 evidence store。
-- abstain correctness：缺证据/越权时是否正确停止。
-- p50/p95 latency、总工具调用数、token 和单次成功成本。
+## 6.5 从失败结果反向定位
 
-## 13.8 常见失败模式
+出现错误时按下面顺序检查，通常比先改 prompt 更有效：
 
-- 让 LLM 直接读任意目录或执行 shell，而不是提供受限只读工具。
-- 搜索结果摘要代替原始日志窗口。
-- 时间线和结论使用不同事件 ID，无法追溯。
-- 发现一个相似 marker 就断言根因。
-- 把“报告生成成功”当作“分析正确”。
-- 过早拆 A 核/R 核多个 Agent，却没有各自输入合同和合并规则。
+1. 环境 outcome 是否真的失败，还是 Agent 只声称成功或失败？
+2. 状态转换是否合法，是否发生错误恢复或重复执行？
+3. 工具选择和参数是否正确？
+4. tool result 是否完整、关联正确并被正确解释？
+5. 证据引用能否定位原文，必要证据是否缺失或冲突？
+6. instructions/context 是否有冲突或摘要漂移？
+7. 模型、工具、policy、数据和 grader 版本是否变化？
 
-## 13.9 适用边界
+最小实验应包含正常、缺证据、冲突证据、工具失败和越权请求五类 case，每个重复运行。先输出逐 case 结果和失败标签，不急着汇总成一个总分。
 
-- 初期只使用合成或明确授权数据，报告为 draft。
-- 任何外部写回、代码修改和高风险结论都另设审批，不属于最小练习。
-- 本章不替代具体 DMS 分析规则；进入真实 case 前必须读取该任务明确授权的原始资料和模块入口。
-
-## 13.10 官方来源
-
-- OAI-03/OAI-05：最小 loop 与工具往返。
-- OAI-08/OAI-09：审批、trace 与故障定位。
-- OAI-10/OAI-11、ANT-07：过程与 outcome 联合评测。
-- ANT-01/ANT-06：先单 Agent，按真实并行和责任证据再拆分。
-
-## 13.11 主动回忆题
-
-若 Agent 找到一个与问题时间接近的日志 marker，但缺少正式报警和输入链证据，它应如何组织 `Claim.status`、`confidence`、`unresolved_items` 与最终输出？
-
-## 13.12 小实验
-
-生成 30 行合成日志，包含一个真实事件、一个误导 marker 和一个缺失字段。实现 `search_events` 与 `read_evidence_window` 两个只读工具，让 Agent 输出 3 个 Claim；用确定性脚本检查每个 evidence ID 的文件、行号和 hash。
+相关来源：OAI-09/OAI-10/OAI-11，ANT-07。
 
 ---
 
-# 14 连续学习与实践计划
+# 7 DMS 日志证据任务：最小实践路线
 
-## 14.1 覆盖区
+这一章不是又一个平行概念，而是把前六章组合成可验证系统。
 
-主动学习按六个覆盖区推进，每轮一次只问一个问题：
+## 7.1 冻结问题定义
 
-1. 边界与 loop：第 2 至 3 章。
-2. contract 与 state：第 4 至 6 章。
-3. 编排与控制：第 7 至 8 章。
-4. 可观测与评测：第 9 至 10 章。
-5. 恢复与跨框架抽象：第 11 至 12 章。
-6. DMS 迁移实践：第 13 章。
+第一版只处理合成或明确授权的日志证据包：
 
-## 14.2 建议交付顺序
+```text
+输入：任务问题、日志文件清单、授权读取范围、事件/规则配置
+输出：结构化事件时间线、证据引用、受约束结论、未知项和拒答状态
+非目标：自动修改业务代码、写 Jira/飞书、声称日志未支持的真实根因
+副作用：全部关闭，只生成本地报告草案
+```
 
-| 阶段 | 交付物 | 通过证据 |
-|---|---|---|
-| A | 纸面最小状态机 + 假工具 | 能解释每条 transition 和终止条件。 |
-| B | typed tool executor | 参数、权限、timeout、错误、幂等测试通过。 |
-| C | persistent RunState | 崩溃注入后不重复副作用。 |
-| D | trace + 5 个 seed cases | 可重建状态，过程与 outcome 均可评分。 |
-| E | 合成 DMS 证据 Agent | 证据引用可校验，缺证据正确 abstain。 |
-| F | 单 Agent 与候选 multi-agent 对照 | 只有指标证明收益后才拆分。 |
+第一版是 retrieval/evidence task，不因基线使用 Regex 还是 LLM 改变任务类型。结论正确、证据有效和拒答正确必须分开评分。
 
-## 14.3 学习完成的证据边界
+## 7.2 最小架构
 
-阅读本文、回答一次问题或运行一条 happy path 都不构成掌握。一个覆盖区至少需要：
+```mermaid
+flowchart TB
+    U[Question + authorized paths] --> A[Single Evidence Agent]
+    A --> L[list_files]
+    A --> S[search_events]
+    A --> R[read_evidence_window]
+    A --> V[validate_claims]
+    L --> ES[(Evidence store)]
+    S --> ES
+    R --> ES
+    ES --> V
+    V --> A
+    A --> O[Structured draft]
+    O --> G[Outcome + process graders]
+```
 
-- 能闭卷解释机制与反例；
-- 完成一个可观察实验；
-- 能定位一次故意注入的失败；
-- 清楚写出尚未验证的边界。
+四个工具都是受限的确定性工具：
 
-本文保持 `draft`，直到后续学习与实践产生独立证据；即使完成，也需另行评审是否形成可提升的通用知识。
+- `list_files` 只列授权根目录内的文件。
+- `search_events` 返回候选位置，不把摘要当结论。
+- `read_evidence_window` 返回原文、行号和 hash。
+- `validate_claims` 校验 evidence ID、范围和内容 hash。
+
+## 7.3 输出数据合同
+
+```python
+class AnalysisResult:
+    task_id: str
+    timeline: list[dict]
+    evidence: list[EvidenceRef]
+    claims: list[Claim]
+    unresolved_items: list[str]
+    abstained: bool
+    failure_labels: list[str]
+```
+
+一个结论进入最终输出前至少经过：
+
+```text
+候选 marker
+  → 读取原始 evidence window
+  → 确认事件身份与时间关系
+  → 检查任务合同要求的证据是否齐全
+  → 绑定 Claim 与 evidence IDs
+  → validate_claims
+  → supported / conflicted / unknown / abstain
+```
+
+## 7.4 五个 seed cases
+
+这些只是练习集，不称 benchmark：
+
+| Case | 注入条件 | 预期行为 | 主要失败标签 |
+|---|---|---|---|
+| 1 明确事件 | 所需日志和字段齐全 | 输出带行号/hash 的 supported claim | `wrong_conclusion` |
+| 2 缺关键日志 | 必要证据源不存在 | 明确缺失项并 abstain | `unsupported_answer` |
+| 3 冲突事件 | 两侧证据无法同时成立 | 保留两侧引用并标记 conflicted | `conflict_suppressed` |
+| 4 工具 timeout | 读取工具瞬态失败 | 有限重试或停止，不伪造结果 | `retrieval_failure` |
+| 5 越权路径 | 证据位于未授权目录 | 拒绝读取并记录 policy outcome | `authorization_failure` |
+
+每个 case 需要写清输入、预期行为、acceptable answer、evidence requirement、abstain 条件和失败标签。隔天重复评分；如果评分不一致，先修订合同或 rubric，不扩数据。
+
+## 7.5 实现顺序
+
+1. 先写任务合同和五个 seed cases。
+2. 实现确定性 Regex/parser 基线，输出值和原始证据行。
+3. 实现受限只读工具和 Evidence Store。
+4. 实现单 Agent loop，不加入 multi-agent。
+5. 加 trace，并能从事件重建状态路径。
+6. 注入缺证据、timeout、越权和崩溃。
+7. 重复评分，处理 rubric 不一致。
+8. 只有指标证明单 Agent 存在责任或上下文瓶颈时，才设计拆分实验。
+
+## 7.6 完成证据
+
+阅读本文、回答一次问题或跑通 happy path 都不构成掌握。这个实践至少需要：
+
+- 能闭卷解释模型决策、代码校验和环境事实的边界；
+- 五个 seed cases 均有可复核任务合同；
+- 最简单基线有逐 case 结果；
+- 缺证据和越权 case 能正确 abstain；
+- trace 可以重建决策、工具和状态路径；
+- 至少定位一次故意注入的失败；
+- 记录未验证边界，不把练习集称为 benchmark。
+
+本文继续保持 `draft`。完成上述练习也只证明这一受控任务上的实践证据，不自动证明生产可用或通用 Agent 能力。
+
+---
+
+# 8 附录 A：OpenAI 与 Anthropic 概念速查
+
+框架名词只用于实现映射，不定义系统原理。
+
+| 通用概念 | OpenAI | Anthropic | 应用层不变量 |
+|---|---|---|---|
+| Agent unit | Agent definition | model + agent harness | 模型、instructions、工具和运行约束的组合 |
+| Loop | Agents SDK Runner / Responses 自管 loop | client tool loop / Tool Runner | decision → execute → observe |
+| Tool request/result | function call / tool output | `tool_use` / `tool_result` | 模型提议、运行时执行并回传 |
+| Structured data | output type / strict schema | input schema / structured output | schema 约束数据形状，不证明语义正确 |
+| Conversation state | history/session/conversation | messages/runner state | 只提供推理连续性，不替代 RunState |
+| Manager pattern | agents-as-tools | orchestrator-worker/subagent tool | 主 Agent 保持综合责任 |
+| Ownership transfer | handoff | harness/router 自定义 | specialist 接管分支控制权 |
+| Human review | resumable approval | manual loop/HITL | 同一 pending action 暂停后恢复 |
+| Trace/Eval | trace grading/eval runs | trajectory/grader/outcome | 同时检查过程和环境结果 |
+
+provider wire format 应封装在 adapter 中；状态机、工具业务合同、权限策略和 rubric 不应在迁移 provider 时同时改变。
+
+```python
+class ProviderAdapter(Protocol):
+    def decide(self, context, tools, output_schema) -> Decision: ...
+
+class AgentRuntime:
+    def __init__(self, provider, executor, state_store, policy, tracer): ...
+```
+
+---
+
+# 9 附录 B：来源编号与复核边界
+
+详细链接、访问日期、摘录和版本风险见：
+
+`04_Sources/Agent工程化/2026-08-06_OpenAI与Anthropic_Agent官方文档来源证据卡.md`
+
+本文使用的来源编号范围：
+
+- OAI-01 至 OAI-12：Agent/Runner、tool calling、structured output、handoff、guardrail、tracing 和 eval。
+- ANT-01 至 ANT-08：workflow/agent 模式、tool loop、context、orchestrator-worker、evaluation 和 human control。
+
+来源卡只能支持文档中对应机制的设计依据，不证明本地实现已经运行。SDK/API 可能变化，编码前必须重新核对官方文档当前版本。
+
+---
+
+# 10 附录 C：主动学习恢复点
+
+建议按下面顺序继续，每次只诊断一个问题：
+
+1. 解释为什么模型输出是动作提议，不是执行事实。
+2. 画出一次 tool call 从提议到 observation 的状态转换。
+3. 判断 timeout 后是否可以重试，并指出缺少的环境状态。
+4. 区分 RunState、模型上下文、持久记忆和外部知识。
+5. 给一个环境 outcome 成功但过程不安全的反例。
+6. 为一个 DMS evidence case 写出 success、evidence 和 abstain 条件。
+
+每个覆盖区采用同一学习闭环，但不要求文档机械重复同一章节模板：
+
+```text
+主动回忆 → 暴露最小缺口 → 阅读相关主干
+→ 故障注入或迁移题 → 解释观察 → 记录未验证边界
+```
