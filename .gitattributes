@@ -1,0 +1,50 @@
+# Text normalization
+* text=auto eol=lf
+
+# Markdown
+*.md text eol=lf
+
+# Config and structured text
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+
+# Plain text and data
+*.txt text eol=lf
+*.csv text eol=lf
+*.tsv text eol=lf
+
+# Scripts
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+*.ps1 text eol=lf
+*.bat text eol=lf
+*.cmd text eol=lf
+
+# Repository metadata
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.svg text eol=lf
+
+# Documents and archives
+*.pdf binary
+*.doc binary
+*.docx binary
+*.ppt binary
+*.pptx binary
+*.xls binary
+*.xlsx binary
+*.zip binary
+*.7z binary
+*.tar binary
+*.gz binary
