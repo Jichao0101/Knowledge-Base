@@ -12,6 +12,7 @@ sources:
   - 2026-08-01 TinyCausalLM 单步训练运行与训练恢复主动学习续测
   - 2026-08-04 TinyCausalLM 单 batch 过拟合、确定性评估、checkpoint 轨迹恢复与阶段收尾
   - 2026-08-06 Phase 1-A closure 续测、范围豁免决定与 Phase 1-B 切换确认
+  - 2026-08-09 Phase 1-B 主动学习、传统评测实践范围豁免与 Phase 1-C 切换确认
   - 02_Projects/DMS/03_Model_Training/model_training_overview_current.md
   - 02_Projects/DMS/08_EyeStatus/eyestatus_overview_current.md
   - 02_Projects/agent-trajectory/agent_trajectory_overview_current.md
@@ -20,7 +21,7 @@ scope: 职业方向、能力补齐、学习路线、作品建设、阶段验证�
 risks:
   - 学习范围横跨模型、系统和 Agent，若缺少阶段性交付，容易再次退化为零散学习或 vibe coding。
   - 本项目记录的是规划和阶段证据，不代表目标能力已经掌握或项目已经完成生产验证。
-updated_at: 2026-08-06
+updated_at: 2026-08-09
 ---
 
 # 1 AI 职业转型项目总览
@@ -72,6 +73,7 @@ DMS/OMS 视觉感知与端侧部署项目基础
 - Phase 0 系统学习文档：[[02_Projects/AI-Career-Transition/LLM最小推理机制系统学习文档]]
 - 当前阶段固定检查点：[[02_Projects/AI-Career-Transition/当前阶段学习检查点]]
 - Phase 1 训练机制系统学习文档：[[02_Projects/AI-Career-Transition/LLM训练机制系统学习文档]]
+- Phase 1-B 评测基本功系统学习文档：[[02_Projects/AI-Career-Transition/AI评测基本功系统学习文档]]
 - Agent Systems 系统学习骨架：[[02_Projects/AI-Career-Transition/Agent开发系统学习文档]]
 
 后续阶段实验、作品和求职记录优先留在本项目目录。只有形成长期稳定、经过审核并具有明确适用边界的可复用结论后，才评估是否提升到正式知识区。
@@ -86,8 +88,10 @@ DMS/OMS 视觉感知与端侧部署项目基础
 - 2026-08-04 用户运行报告确定性 eval loss 为 `0.0916125476360321`、有效 token accuracy 为 `3/3`；checkpoint 恢复分支与参考分支的 loss、gradient norm、LM Head delta 和最终参数最大差值均为 0。本结论同时经过静态代码审查，但未由代理独立复跑。
 - 2026-08-06 用户确认 `Phase 1-A closure` 在面向 Agent 开发与 AI Infra 的调整范围内完成：架构、Transformer 主干、采样、位置编码、证据边界和自回归生成机制达到对话诊断意义上的 working。
 - Phase 1-A 的独立 attention 实现、真实采样实验和手写完整 GPT 记为 `waived_by_scope`；真实 tokenizer 到输出文本闭环及真实模型证据对照仍为 `not_verified`，不得改写为运行完成。
-- 当前主阶段已切换为 Phase 1-B“评测基本功与练习集”：先学习任务类型、评分方法与评测合同，再冻结一个小任务，构造 3 至 5 个 seed cases、重复评分并运行最简单基线。
-- Agent Systems 系统学习文档继续作为后续学习骨架，不在本次切换中替代 Phase 1-B 主线。
+- Phase 1-B“评测基本功与练习集”已按调整范围关闭：任务类型、评分方法、评测合同、abstain/失败标签、评分一致性与留出集污染达到对话诊断意义上的 working。
+- Phase 1-B 的四类 seed case 只形成对话草案；持久化、隔天重复评分、确定性规则基线和逐 case 运行由用户标记为 `waived_by_scope`，不得改写为已执行或已建立 benchmark。
+- 当前主阶段已切换为 Phase 1-C“VLM 基线与 benchmark 草案”：先建立 VLM 输入到输出的数据流，再运行开源小型 VLM 的最小图像问答基线。
+- Agent Systems 系统学习文档继续作为后续学习骨架，不在本次切换中替代 Phase 1-C 主线。
 - `global_step` 持久化、磁盘 checkpoint、错误 label mask、变长 micro-batch、性能测量和生产训练加固作为后续工程项保留，不阻塞本次学习主线切换。
 - 当前不创建五份 current 文档组；待本项目形成持续迭代的设计、实现和验证事实后再评估 current 化。
 - 不声明 `single_pass_recoverable: true`。
