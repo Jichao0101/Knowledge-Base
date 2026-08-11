@@ -1,9 +1,9 @@
 ---
-type: project_learning_guide
+type: project_learning_document
 status: active
 project: AI-Career-Transition
 learning_stage: Phase 0
-summary: 面向当前理解缺口，系统解释 decoder-only LLM 从文本、token、逐层 Transformer 到下一个 token 生成的完整推理机制。
+summary: 系统解释 decoder-only LLM 从文本、token、逐层 Transformer 到下一个 token 生成的完整推理机制。
 sources:
   - 2026-07-17 Phase 0 主动诊断对话
   - 2026-07-21 第一阶段主动学习对话与 VLM 迁移检查
@@ -16,7 +16,7 @@ risks:
 updated_at: 2026-08-06
 ---
 
-# 1 LLM 最小推理机制系统学习文档
+# 1 LLM 最小推理机制学习文档
 
 ## 1.1 学习目标与当前重点
 
@@ -35,7 +35,7 @@ updated_at: 2026-08-06
 → 追加到序列并继续生成
 ```
 
-当前诊断已经表明，整体链路已有初步轮廓，下面几处需要重点补齐：
+本文重点解释下面几处常见混淆：
 
 1. tokenizer 输出的是 token ID，不是 embedding。
 2. Q、K、V 在每一层都由该层输入 hidden states 重新计算，不是始终由原始 embedding 计算。
@@ -46,6 +46,8 @@ updated_at: 2026-08-06
 7. KV cache 保存的是什么，以及它为什么能降低逐 token 解码的重复计算。
 
 本文会完整讲主线，但在这些位置展开更多转换细节。
+
+个人闭卷题、诊断结果、范围豁免和阶段关闭证据见 [[02_Projects/AI-Career-Transition/20_学习记录/P01A_LLM机制与训练_学习记录]]；项目启动时的初始缺口见 [[02_Projects/AI-Career-Transition/20_学习记录/P00_能力诊断_学习记录]]。
 
 ## 1.2 全局数据流
 
@@ -569,50 +571,9 @@ flowchart LR
 
 因此，在进入 VLM benchmark 之前，先闭合本文的 LLM 主线是必要前置。
 
-## 1.16 闭卷检查与实践顺序
+## 1.16 后续补充边界
 
-不要用“看懂本文”作为掌握证据。按下面顺序检查：
-
-### 1.16.1 第一关：完整数据流
-
-闭卷画出：
-
-```text
-text → token IDs → embeddings → blocks → last hidden → LM Head → logits → decoding
-```
-
-要求说明每一步的输入、输出和 shape。
-
-### 1.16.2 第二关：逐层 Q/K/V
-
-回答：为什么第 2 层不能继续直接使用原始 token embeddings 计算 Q/K/V？
-
-### 1.16.3 第三关：causal mask
-
-手写四个 token 的 causal mask，并解释为什么训练能并行、生成却必须逐 token 进行。
-
-### 1.16.4 第四关：decoding
-
-给定一组 logits，分别解释降低 temperature、设置 top-k 和设置 top-p 会改变什么。必须明确每一步最终只生成一个 token。
-
-### 1.16.5 第五关：KV cache
-
-画出 prefill 与第二个 decode step，说明旧 K/V、新 Q/K/V 和 cache 更新发生在哪里。
-
-### 1.16.6 完成边界
-
-只有满足以下条件，才把“LLM 最小推理机制”从碎片理解提升为可用理解：
-
-- 能闭卷讲完整数据流，不跳过 tokenizer、embedding、LM Head 或 decoding。
-- 能解释每层重新计算 Q/K/V，而不是只背 attention 公式。
-- 能用信息泄漏解释 causal mask，而不是只说“不能看未来”。
-- 能区分 logits、概率、候选过滤和最终 token 选择。
-- 能解释 KV cache 节省了什么、没有节省什么。
-- 能把上述机制迁移到 VLM 的语言生成主干。
-
-## 1.17 后续补充边界
-
-本文暂不深入以下内容，待最小推理闭环通过诊断后再展开：
+本文暂不深入以下内容；需要时再建立对应学习骨架和实践：
 
 - tokenizer 训练算法与 byte fallback 细节。
 - Grouped Query Attention、Multi-Query Attention 和 FlashAttention。
@@ -621,123 +582,4 @@ text → token IDs → embeddings → blocks → last hidden → LM Head → log
 - 预训练数据工程、SFT、RLHF/DPO 等训练阶段。
 - VLM projector、视觉 token 压缩和视频采样的实现对比。
 
-这些内容重要，但当前不应阻塞最小机制闭环。
-
-## 1.18 第一阶段主动学习进度（2026-07-21）
-
-### 1.18.1 阶段结论
-
-本轮采用主动回忆、苏格拉底追问、费曼复述和迁移题完成口头机制诊断。当前将“LLM 最小推理机制”记录为：
-
-```text
-可用理解（working）
-```
-
-该结论仅表示在本轮对话提示范围内能够解释主干机制并完成相邻场景迁移，不代表已经完成闭卷独立重画、代码实现、测试、性能测量或工程故障定位，因此不提升为“已独立验证”或“完全掌握”。
-
-### 1.18.2 已通过的诊断点
-
-- 能解释 causal mask 通过阻断未来 token 的 attention 权重防止答案泄漏，并区分“训练可并行”与“生成逐 token”。
-- 能说明训练输入与监督标签错开一位；当前位置可以读取自身输入，但监督目标是下一个 token。
-- 能闭环说明 `token IDs → embeddings → Transformer blocks → 最后位置 hidden state → LM Head → logits → decoding → 新 token`。
-- 能说明 Q/K/V 在每一层由该层输入 hidden states 重新计算，后续层不直接复用原始 embeddings。
-- 能区分 attention 输出、完整 block 输出、最终 hidden state、vocabulary logits 和 softmax 概率。
-- 能区分 temperature、top-k、top-p 与最终 greedy/sampling，并解释 temperature 对 top-k 集合和 top-p 候选数量的不同影响。
-- 能区分 prefill 与 decode，说明 KV cache 保存历史 K/V 而不保存历史 Q 的原因。
-- 能用位置敏感性解释：无位置信息时，attention 无法区分可见前缀内部的排列顺序。
-- 能迁移到 VLM：视觉 encoder 与 projector 改变输入 embedding 的来源，后续 causal LLM 生成主干基本保持不变。
-
-### 1.18.3 已纠正但仍需在实践中复核的边界
-
-- 完整序列训练通常并不使用推理解码意义上的 KV cache；训练或 prefill 会并行计算多个位置，增量 decode 才只计算新位置的 Q/K/V。
-- logits 是未归一化词表分数，不是“伪概率”；softmax 后才得到概率分布。
-- Transformer block 内 norm、residual 与 attention/MLP 的具体先后顺序依模型架构而异，不能把一种实现顺序泛化为全部模型。
-
-### 1.18.4 下一阶段
-
-下一阶段转入 LLM 训练机制，按以下顺序继续主动学习：
-
-```text
-训练样本与 shifted labels
-→ vocabulary logits
-→ cross-entropy loss
-→ 梯度与反向传播
-→ optimizer 参数更新
-→ train / eval 行为边界
-```
-
-第一道诊断问题是：模型如何根据目标 token 的概率得到“本次预测错了多少”的标量信号，并把该信号传回 embedding、attention、MLP 与 LM Head 参数。
-
-## 1.19 Phase 1-A closure 主动学习进度（2026-08-06）
-
-### 1.19.1 本轮达到 working 的理论主题
-
-1. **Encoder / decoder 架构边界**
-   - 能区分双向 encoder、因果 decoder 和 encoder-decoder；纠正了“encoder 本身适合翻译”的混淆。
-   - 能说明翻译时 encoder 双向读取完整源句，decoder 的 self-attention 只看目标前缀，cross-attention 使用 decoder query 与全部 encoder hidden states 投影得到的 K/V。
-   - 能用训练/推理一致性和答案泄漏解释 decoder-only 自回归生成的因果约束。
-
-2. **Transformer block 组成与职责**
-   - 能说明 multi-head attention 通过各 head 独立的 `W_Q/W_K/W_V` 在不同子空间形成 attention 分布，并由 `W_O` 混合；若各 head 投影相同，则功能上冗余。
-   - 能说明 residual 同时保留恒等信息路径和梯度路径，使子层学习增量修正。
-   - 能说明 LayerNorm 对单个 token 的特征维做尺度稳定，不在 token 或 batch 之间统计。
-   - 能说明 FFN 对每个 token 独立执行“升维线性层 → 非线性激活 → 降维线性层”；若移除非线性，两层可合并为单一仿射变换。
-   - 本轮尚未单独诊断位置编码，因此不能把整个 Transformer block 覆盖区标记为闭合。
-
-3. **证据、拒答与不确定性边界**
-   - 能区分结论客观真值与当前证据支持状态；即使结论碰巧为真，当前证据集中无依据时仍标记 `unsupported_claim`。
-   - 能区分 `unsupported_claim`、`fabricated_evidence`、`contradicted_by_evidence`，不依赖含义漂移的笼统“幻觉”标签。
-   - 缺失证据可在授权内补取时继续检索；证据源不可用时应 abstain、报告限制，并请求授权、替代证据或终止决定。
-
-### 1.19.2 Scaled dot-product attention 诊断边界
-
-已能闭卷说明：
-
-- `Q:[B,H,Tq,D]` 与 `K:[B,H,Tk,D]` 产生 scores `[B,H,Tq,Tk]`。
-- causal mask 在 softmax 前把不可见位置加为负无穷，softmax 沿 `Tk` 维归一化。
-- scores 与 `V:[B,H,Tk,Dv]` 相乘后输出 `[B,H,Tq,Dv]`。
-- 当 Q/K 分量近似独立、零均值、单位方差时，点积方差约为 `D`；除以 `sqrt(D)` 后约回到 1，降低 softmax 提前饱和与非最大位置梯度趋零的风险。
-
-用户明确决定不重复实现成熟 attention 算子。因此证据状态记录为：
-
-```text
-数学机制与 shape：working
-独立实现与参考测试：waived_by_scope
-```
-
-`waived_by_scope` 不等于“已独立实现并测试”，后续只有真实实现或故障定位证据才能提升该项。
-
-### 1.19.3 当前下一步
-
-进入固定 logits、固定随机种子的采样参数受控实验，依次观察 temperature、top-p、最大输出长度和上下文变化；随后完成有证据/无证据对照实验、最小文本到文本推理链复核，并在 Phase 1-A closure 前补做位置编码边界诊断。
-
-## 1.20 Phase 1-A 关闭记录（2026-08-06）
-
-### 1.20.1 关闭决定
-
-用户根据 Agent 开发与 AI Infra 的职业目标，确认 Phase 1-A 在调整后的课程范围内完成，并转入 Phase 1-B“评测基本功与练习集”。该决定关闭当前学习主线，不把未执行的实现或运行提升为验证证据。
-
-### 1.20.2 最终证据状态
-
-```text
-encoder/decoder、Transformer block 主干、证据边界：working
-scaled dot-product attention 数学机制与 shape：working
-temperature、top-p、停止条件与上下文影响机制：working
-位置编码作用、causal mask 隐式顺序与 RoPE 相对位置：working
-自回归生成、teacher forcing 与文本生成伪代码：working
-有证据/无证据回答边界：working
-
-独立实现 scaled dot-product attention：waived_by_scope
-真实采样参数抽样实验：waived_by_scope
-手写完整 GPT、tokenizer 与 generation：waived_by_scope
-真实 tokenizer → generation → decode 文本闭环：not_verified
-真实模型有/无证据对照运行：not_verified
-```
-
-`working` 只表示主动诊断中的可用理解；`waived_by_scope` 表示用户基于学习收益主动移出课程门禁；`not_verified` 表示没有运行证据。三者不得互相替代。
-
-### 1.20.3 后续恢复边界
-
-- Phase 1-B 不重复考察已达到 working 的 LLM 机制，除非评测设计暴露相关缺口。
-- Phase 1-B 可以调用成熟模型、tokenizer 与生成接口，不要求手写完整 GPT。
-- 若后续任务需要排查 attention、tokenizer 或 generation 的实现故障，必须重新补充相应运行证据，不能引用本次课程关闭决定作为实现证明。
+这些内容重要，但不应阻塞本文的最小机制闭环。

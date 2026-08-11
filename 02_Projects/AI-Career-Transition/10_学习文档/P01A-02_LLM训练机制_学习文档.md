@@ -1,9 +1,9 @@
 ---
-type: project_learning_guide
+type: project_learning_document
 status: active
 project: AI-Career-Transition
 learning_stage: Phase 1 - LLM training mechanism
-summary: 系统解释 decoder-only LLM 从训练样本、loss、反向传播到 AdamW、混合精度与训练恢复的完整训练闭环，重点补齐主动评测暴露的薄弱项。
+summary: 系统解释 decoder-only LLM 从训练样本、loss、反向传播到 AdamW、混合精度与训练恢复的完整训练闭环。
 sources:
   - 2026-07-21 至 2026-07-25 第二阶段主动学习、闭卷检查与最小实践代码审查
   - 2026-08-01 TinyCausalLM 单步训练运行、有效 token 加权、AMP 与 checkpoint 主动学习续测
@@ -13,13 +13,13 @@ sources:
   - 02_Projects/AI-Career-Transition/00_规划/AI职业转型整体学习方案.md
 scope: decoder-only LLM 的 next-token 训练、SFT masking、梯度、optimizer、schedule、混合精度、checkpoint 与最小训练验证。
 risks:
-  - 本文是学习材料；最小代码实验已经在用户运行与静态代码审查范围内闭合，但不代表独立复跑、生产训练或跨设备恢复验证已经完成。
+  - 本文是学习材料，不代表任何具体代码实验、生产训练或跨设备恢复已经完成。
   - 不同框架对 label shift、mask、autocast、scheduler 和 optimizer step 的封装顺序可能不同，使用时必须核对实际 API。
   - AdamW、混合精度和分布式训练存在更多实现细节，本文先闭合单机最小机制主干。
 updated_at: 2026-08-04
 ---
 
-# 1 LLM 训练机制系统学习文档
+# 1 LLM 训练机制学习文档
 
 ## 1.1 学习目标与当前重点
 
@@ -38,14 +38,14 @@ updated_at: 2026-08-04
 → checkpoint / evaluation
 ```
 
-主动评测表明，cross-entropy、基础梯度流、SFT masking、gradient clipping、混合精度和 checkpoint 主干已经达到可用理解。2026-08-04 已进一步完成 TinyCausalLM 单 batch 过拟合、确定性 eval 和 CPU 内存 checkpoint 轨迹恢复；本阶段重点已经从“补齐概念”转为“记录实践边界并切换到评测基本功”。
-
-本阶段曾重点修正：
+本文重点澄清：
 
 1. Adam 的一阶矩不是“速度”的物理量，二阶矩也不是“加速度”。
 2. 二阶矩的目的不是做更高阶拟合，而是估计每个参数近期梯度的典型尺度。
 3. AdamW 的 weight decay 与把 L2 项混入 Adam 梯度不是同一件事。
 4. 单次 finite loss、非零梯度和参数变化不能替代单 batch 过拟合与恢复轨迹验证。
+
+个人闭卷题、TinyCausalLM 运行结果、证据边界和阶段关闭决定见 [[02_Projects/AI-Career-Transition/20_学习记录/P01A_LLM机制与训练_学习记录]]。
 
 ## 1.2 全局训练数据流
 
@@ -609,77 +609,6 @@ model.eval() + torch.no_grad()
 - 对比正确与错误 label mask 的训练曲线。
 - 保存模型、optimizer、scheduler、step 和 scaler 后执行一次恢复验证。
 
-### 1.14.3 实践完成记录
-
-截至 2026-08-04，实践位于 `/home/jichao/test/llm_practice.py`：
-
-```text
-已完成代码审查
-→ input_ids / attention / labels shape 对齐
-→ next-token label shift
-→ 有效监督 token 与忽略位置统计
-→ PAD 输入与 label=-100 一致性检查
-
-已完成单步运行
-→ 一层 nn.Module TinyCausalLM
-→ causal mask + padding mask
-→ logits[:, :-1, :] 对齐 labels[:, 1:]
-→ shifted cross-entropy + backward
-→ finite nonzero gradient norm
-→ AdamW step 后 LM Head 参数变化
-
-已完成外层训练与评估
-→ 对同一个 batch 重复执行 train_step
-→ 更新后 model.eval() + no_grad() 重新 forward
-→ eval loss 使用有效 label 的 mean 口径
-→ eval loss 阈值 + 3/3 有效 token accuracy 联合判定
-
-已完成 CPU 内存 checkpoint 轨迹恢复
-→ 第 K 步深拷贝 model / optimizer / CPU RNG
-→ 原分支继续 M 步并记录逐步 metrics
-→ 新建 model / optimizer，加载状态后在下一次 forward 前恢复 RNG
-→ 恢复分支继续 M 步
-→ 比较 loss、gradient norm、LM Head delta 和全部最终参数
-```
-
-已能解释：原始位置 3 的 ASSISTANT hidden state 产生位置 3 的 logits，而 shift 后它与原始位置 4 的 label `A` 配对；ASSISTANT 自身的 label 为 `-100`，只表示不要求前一位置直接预测该模板 token。
-
-2026-08-01 使用 `/home/jichao/miniconda3/envs/openmmlab/bin/python` 运行单步训练，得到：
-
-```text
-loss: 2.095466136932373
-grad_norm: 6.997917486628188
-lm_head_delta: 0.00010000145994126797
-```
-
-2026-08-04 用户在 `openmmlab` 环境运行单 batch 过拟合路径，报告：
-
-```text
-overfit:(loss:0.0916125476360321),(accuray:1.0)
-```
-
-当前样本 shift 后有 3 个有效监督 token，因此 `accuracy=1.0` 对应 `3/3`；eval loss 低于预设阈值 `0.1`。评估函数在 `model.eval()` 与 `torch.no_grad()` 下使用更新后的参数重新 forward，并在 loss 前检查有效 token 数量。
-
-同日用户运行 `recover_trajectory()`，报告四项差值：
-
-```text
-max_loss_diff = 0
-max_grad_norm_diff = 0
-max_lm_head_delta_diff = 0
-max_param_abs_diff = 0
-```
-
-本轮静态代码审查确认：checkpoint 对 model、optimizer 和 CPU RNG 做了独立快照；恢复时先重建并加载 model/optimizer，再在下一次带 dropout 的 forward 前恢复 RNG；原分支第 `K+M` 步参数经过 clone，恢复分支在相同的 M 步后与其比较。
-
-证据边界：
-
-- 已审查用户提交的 tensor 构造与 shift 代码。
-- 已观察到单步 finite loss、有限非零梯度与参数变化；后续用户运行结果达到确定性 eval loss 阈值与 `3/3` accuracy。
-- 用户报告的轨迹恢复四项差值均为 0，静态审查确认比较对象、参数 clone 和 RNG 恢复时点能够支撑该结果。
-- 本轮未由代理独立复跑；未保留逐 step loss 曲线，恢复实验使用内存 checkpoint，且当前代码未把 `global_step` 写入 checkpoint。
-- scheduler、GradScaler、CUDA RNG、DataLoader/Sampler 状态、磁盘序列化、错误 label mask 对照和变长 micro-batch 等价性仍属于工程加固或扩展实验，不阻塞本轮最小学习主线关闭。
-- 因此本阶段可标记为“最小训练实践已完成（用户运行 + 静态审查）”，但不得外推为生产训练闭环或独立 recoverability verification。
-
 ## 1.15 常见误解与纠正
 
 | 误解 | 更准确的理解 |
@@ -696,31 +625,3 @@ max_param_abs_diff = 0
 | dropout ratio 足以恢复随机轨迹 | ratio 只是配置，下一张 mask 由 RNG state 决定 |
 | sum 梯度应先 clipping 再除 token 数 | 应先恢复 token mean 梯度，再判断是否需要 clipping |
 | 单次非零梯度和参数变化等于过拟合 | 它们只证明更新链路工作，过拟合还需更新后的确定性 eval 证据 |
-
-## 1.16 闭卷检查与完成边界
-
-### 1.16.1 Adam/AdamW 检查
-
-不用公式解释：
-
-1. 一阶矩与二阶矩各记录什么。
-2. 为什么大而振荡的梯度可能被抑制。
-3. AdamW 为什么把 weight decay 从自适应梯度中解耦。
-
-### 1.16.2 训练主链检查
-
-闭卷复述：
-
-```text
-tokens / labels / masks
-→ forward / logits / loss
-→ scale / backward / unscale / clip
-→ AdamW / scheduler / zero_grad
-→ checkpoint / eval
-```
-
-### 1.16.3 实践完成边界
-
-只有在最小训练实验中观察到 loss 下降、梯度有效、参数真实更新，并完成一次 checkpoint 恢复验证后，才把本阶段从“系统学习材料已生成”提升为“实践验证完成”。
-
-当前状态：上述学习范围内的完成边界已经满足。Adam/AdamW、训练主链、有效 token 加权、AMP 缩放顺序、global step、RNG 与 checkpoint 主干已通过主动学习检查；TinyCausalLM 已取得单步梯度/参数变化、单 batch 确定性 eval 门禁和 CPU 内存 checkpoint 轨迹恢复证据。下一阶段转入评测基本功与练习集，不继续以局部训练加固阻塞主线。
