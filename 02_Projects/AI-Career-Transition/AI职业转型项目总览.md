@@ -14,6 +14,7 @@ sources:
   - 2026-08-06 Phase 1-A closure 续测、范围豁免决定与 Phase 1-B 切换确认
   - 2026-08-09 Phase 1-B 主动学习、传统评测实践范围豁免与 Phase 1-C 切换确认
   - 2026-08-10 AI Career 主动学习方法修正、学习文档索引创建与 Phase 1-C 教学骨架建立
+  - 2026-08-11 Phase 1-C baseline 可复现性、case 证据边界、分组门禁和本地实践准备主动学习
   - 02_Projects/DMS/03_Model_Training/model_training_overview_current.md
   - 02_Projects/DMS/08_EyeStatus/eyestatus_overview_current.md
   - 02_Projects/agent-trajectory/agent_trajectory_overview_current.md
@@ -22,7 +23,7 @@ scope: 职业方向、能力补齐、学习路线、作品建设、阶段验证�
 risks:
   - 学习范围横跨模型、系统和 Agent，若缺少阶段性交付，容易再次退化为零散学习或 vibe coding。
   - 本项目记录的是规划和阶段证据，不代表目标能力已经掌握或项目已经完成生产验证。
-updated_at: 2026-08-10
+updated_at: 2026-08-11
 ---
 
 # 1 AI 职业转型项目总览
@@ -94,7 +95,9 @@ DMS/OMS 视觉感知与端侧部署项目基础
 - Phase 1-B“评测基本功与练习集”已按调整范围关闭：任务类型、评分方法、评测合同、abstain/失败标签、评分一致性与留出集污染达到对话诊断意义上的 working。
 - Phase 1-B 的四类 seed case 只形成对话草案；持久化、隔天重复评分、确定性规则基线和逐 case 运行由用户标记为 `waived_by_scope`，不得改写为已执行或已建立 benchmark。
 - 当前主阶段已切换为 Phase 1-C“VLM 基线与 benchmark 草案”：先建立 VLM 输入到输出的数据流，再运行开源小型 VLM 的最小图像问答基线。
-- 已新增 [[02_Projects/AI-Career-Transition/AI职业转型学习文档索引]] 管理历史学习文档归类；Phase 1-C 的教学骨架记录在 [[02_Projects/AI-Career-Transition/Phase1-C_VLM基线与benchmark草案系统学习文档]]，但这不代表 Phase 1-C 已完成。
+- 已新增 [[02_Projects/AI-Career-Transition/AI职业转型学习文档索引]] 管理历史学习文档归类；[[02_Projects/AI-Career-Transition/Phase1-C_VLM基线与benchmark草案系统学习文档]] 已由教学草案转为 `active` 的阶段学习文档，但这不代表 Phase 1-C 已完成。
+- Phase 1-C 的 baseline 可复现合同、执行/case/聚合/门禁分层、留出集污染、分组与安全关键组门禁、逐样本审计要求以及单图 case 证据边界已达到对话诊断意义上的 `working`。
+- 目标设备与 Python 环境已完成只读清点；隔离环境创建、依赖安装、GPU 可用性验证、模型下载、真实 VLM 推理、逐样本输出和分组评测仍为 `not_verified`。
 - Agent Systems 系统学习文档继续作为后续学习骨架，不在本次切换中替代 Phase 1-C 主线。
 - `global_step` 持久化、磁盘 checkpoint、错误 label mask、变长 micro-batch、性能测量和生产训练加固作为后续工程项保留，不阻塞本次学习主线切换。
 - 当前不创建五份 current 文档组；待本项目形成持续迭代的设计、实现和验证事实后再评估 current 化。

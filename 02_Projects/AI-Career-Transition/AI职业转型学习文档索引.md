@@ -5,13 +5,14 @@ project: AI-Career-Transition
 summary: 管理 AI Career Transition 项目的学习方案、滚动检查点、阶段系统学习文档和并行专题骨架，避免历史学习文档散落在同一层后难以恢复。
 sources:
   - 2026-08-10 用户提出 AI Career 历史学习文档需要归类，并确认优先通过文档管理而非立即批量重命名处理
+  - 2026-08-11 用户确认同步 Phase 1-C 学习进度并将阶段教学草案转为正式维护的项目学习文档
   - 02_Projects/AI-Career-Transition/AI职业转型项目总览.md
   - 02_Projects/AI-Career-Transition/当前阶段学习检查点.md
 scope: AI Career Transition 项目的学习文档入口、阶段归类、恢复顺序和命名规则。
 risks:
   - 本索引只管理项目学习文档，不替代阶段学习文档、滚动检查点或项目总览中的事实边界。
   - 既有文件暂不批量重命名，避免破坏已有 wiki 链接；阶段归类以本索引为准。
-updated_at: 2026-08-10
+updated_at: 2026-08-11
 ---
 
 # 1 AI 职业转型学习文档索引
@@ -36,7 +37,7 @@ updated_at: 2026-08-10
 | Phase 0 | [[02_Projects/AI-Career-Transition/LLM最小推理机制系统学习文档]] | active | LLM 最小推理数据流、生成机制、VLM 输入迁移和 Phase 1-A closure 边界。 |
 | Phase 1 | [[02_Projects/AI-Career-Transition/LLM训练机制系统学习文档]] | active | next-token 训练、loss、mask、梯度、AdamW、混合精度和 checkpoint 最小实践。 |
 | Phase 1-B | [[02_Projects/AI-Career-Transition/AI评测基本功系统学习文档]] | active | 任务类型、评分方法、评测合同、可靠性边界和 seed case 范围关闭记录。 |
-| Phase 1-C | [[02_Projects/AI-Career-Transition/Phase1-C_VLM基线与benchmark草案系统学习文档]] | draft | VLM 数据流、图像/视频 token 预算、最小 VLM baseline、benchmark 草案和分组评测。 |
+| Phase 1-C | [[02_Projects/AI-Career-Transition/Phase1-C_VLM基线与benchmark草案系统学习文档]] | active | 持续维护的阶段学习文档；VLM 数据流、baseline 设计、case 边界和分组门禁已形成，真实模型运行与 benchmark 实践尚未完成。 |
 | 并行专题 | [[02_Projects/AI-Career-Transition/Agent开发系统学习文档]] | draft | Agent Systems 学习骨架；作为后续 Agent Systems 主线背景，不替代 Phase 1-C。 |
 
 ## 1.3 当前恢复顺序
