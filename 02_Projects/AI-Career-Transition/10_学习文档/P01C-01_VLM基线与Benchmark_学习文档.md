@@ -1,9 +1,9 @@
 ---
-type: project_learning_artifact
+type: project_learning_document
 status: active
 project: AI-Career-Transition
 learning_stage: Phase 1-C - VLM baseline and benchmark draft
-summary: 记录 Phase 1-C 的 VLM 数据流教学骨架、主动学习闭合证据、最小图像问答 baseline 设计、benchmark case 边界与待执行实践。
+summary: 系统说明 Phase 1-C 的 VLM 数据流、视觉 token、视频输入约束、图像问答 baseline、benchmark case 合同与可复现评测方法。
 sources:
   - 2026-08-10 用户修正主动学习方法：知识大面积缺失时先教学骨架，再用主动重建和诊断题检查吸收
   - 2026-08-10 Phase 1-C VLM 数据流与视频持续闭眼任务主动学习对话
@@ -19,7 +19,7 @@ risks:
 updated_at: 2026-08-11
 ---
 
-# 1 Phase 1-C VLM 基线与 benchmark 草案系统学习文档
+# 1 Phase 1-C VLM 基线与 Benchmark 学习文档
 
 ## 1.1 如何使用本文
 
@@ -36,57 +36,19 @@ updated_at: 2026-08-11
 → 阶段证据记录
 ```
 
-本文已从教学草案转为持续维护的 Phase 1-C 阶段学习文档，但不是 Phase 1-C 完成证明。阶段完成仍以 [[02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点]] 的完成门禁为准。
+本文只承载可复用的阶段教学内容。个人诊断题、回答结果、实践准备和下一步保存在 [[02_Projects/AI-Career-Transition/20_学习记录/P01C_VLM基线与Benchmark_学习记录]]；阶段完成仍以 [[02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点]] 的完成门禁为准。
 
 ## 1.2 覆盖区
 
-| 覆盖区 | 必须能回答的问题 | 当前状态 |
-|---|---|---|
-| 单图 VLM 数据流 | 图片如何变成 LLM 可读取的输入序列 | 对话诊断已验证 |
-| projector 与 token 压缩 | 维度对齐和 token 数量压缩为什么不是一回事 | 对话诊断已验证 |
-| 视觉证据与问题语义 | LLM 如何通过 attention 关联图片区域和文本问题 | 对话诊断已验证 |
-| 视频与多帧输入 | 空间分辨率、时间采样和上下文预算如何取舍 | 部分闭合 |
-| 最小 VLM baseline | 如何运行一个可复现的图像问答最小基线 | 设计已验证，运行待执行 |
-| benchmark 草案 | case 来源、期望行为、证据边界和失败标签如何定义 | 对话诊断已验证，case 未落盘 |
-| 分组评测与微调边界 | 如何解释错误，什么时候不该微调 | 对话诊断已验证，结果待执行 |
-
-## 1.3 2026-08-10 主动学习诊断结果
-
-本轮诊断属于 Phase 1-C 的学习进度证据，不是阶段完成证明。
-
-已闭合内容：
-
-1. 能说明图片经 image encoder / ViT 形成 visual tokens，再经 projector 对齐到 LLM embedding 维度，并与 text token embeddings 组成连续输入序列。
-2. 能区分普通 projector 的维度对齐作用和 token 数量压缩；能用 `576 x 1024 -> 576 x 4096` 解释 token 数不变、特征维度变化。
-3. 能说明 VLM 通过 attention 在文本问题 token 与相关视觉 patch 之间建立关联；训练阶段学习 `Wq/Wk/Wv`，推理阶段用固定参数生成当前输入的 `Q/K/V` 和 attention weights。
-4. 能把“单帧闭眼检测”和“10 秒内持续闭眼超过 2 秒”区分为空间判别与时序证据任务，并指出后者需要连续时长、帧段或时间范围作为可复核证据。
-
-仍需继续检查的内容：
-
-1. 视频采样密度、帧间隔和漏检风险之间的定量关系还需要结合具体输入预算继续练习。
-2. “持续闭眼超过 2 秒”的 4 至 8 个最小 benchmark case 尚未完整落盘。
-3. 开源小型 VLM baseline 未运行，因此不能声明模型输入输出、失败类型、zero-shot/few-shot 或分组评测已验证。
-
-## 1.4 2026-08-11 主动学习诊断结果
-
-本轮把“知道 baseline 名词”推进到“能够设计可复现、可评分、可审计的最小实验”。结论仍属于对话诊断证据，不替代模型运行记录。
-
-已达到对话诊断意义上的 `working`：
-
-1. 能列出 baseline 的关键固定项：输入图片、模型、推理配置、运行次数和输出格式，并进一步补齐随机种子。
-2. 能区分 `execution_success`、单次 case 通过/失败、聚合指标和 baseline 门禁；错误答案不能因高温度或小模型能力有限而改记为任务成功。
-3. 能说明评测合同和通过阈值必须在运行前冻结；查看测试错误并修改 prompt 后，原测试集已成为开发集，最终 few-shot 证据必须来自未参与调参的独立留出集。
-4. 能说明总体 accuracy 或 macro accuracy 都不能替代关键组门禁；需要同时报告每组样本量、每组 accuracy、总体指标、macro 指标、worst-group 指标和安全关键组最低阈值。
-5. 能说明仅保存最终 accuracy 不足以成为可靠证据，必须保存逐样本输入、原始输出和评分结果，才能复核分组指标、失败标签与 abstain 判断。
-6. 已为单帧闭眼任务提出闭眼、睁眼、眯眼和眩光四类最小 case，并把判断边界修正为“任务所需眼部状态证据是否可辨认”，不把瞳孔可见性当作唯一必要条件。
-7. 能解释第一个 baseline 应优先选择本地可运行、版本和推理配置清晰的模型；小模型 smoke test 只验证链路，不能代表另一 checkpoint 的能力结果。
-
-本轮仍未验证：
-
-1. 尚未冻结真实模型 revision、依赖版本、图片预处理、prompt 模板和完整解码配置。
-2. 尚未运行 smoke test 或 2B 级 VLM baseline，未保存逐样本输出、显存峰值和失败记录。
-3. 四类 case 仍是对话设计，尚未使用公开、合成或明确授权图片落盘。
-4. 视频采样密度、帧间隔与持续事件漏检风险仍需在真实输入预算下验证。
+| 覆盖区 | 必须理解或能够设计的内容 |
+|---|---|
+| 单图 VLM 数据流 | 图片如何变成 LLM 可读取的输入序列 |
+| projector 与 token 压缩 | 维度对齐和 token 数量压缩为什么不是一回事 |
+| 视觉证据与问题语义 | LLM 如何通过 attention 关联图片区域和文本问题 |
+| 视频与多帧输入 | 空间分辨率、时间采样和上下文预算如何取舍 |
+| 最小 VLM baseline | 如何运行一个可复现的图像问答最小基线 |
+| benchmark 草案 | case 来源、期望行为、证据边界和失败标签如何定义 |
+| 分组评测与微调边界 | 如何解释错误，什么时候不该微调 |
 
 # 2 单图 VLM 数据流
 
@@ -123,16 +85,6 @@ updated_at: 2026-08-11
 ```
 
 真正进入模型的是这些 token 对应的 embedding。视觉 token 和文本 token 不是同一种来源，但进入 LLM 后都参与 attention。
-
-## 2.2 主动重建检查
-
-闭卷画出单图 VLM 数据流，并标出三个 shape：
-
-1. image encoder 输出：`N x D_v`
-2. projector 输出：`N x D_llm`
-3. 与文本拼接后的总序列长度：`N + T`
-
-检查点：如果 image encoder 输出 `576 x 1024`，LLM embedding 维度是 `4096`，普通 projector 更可能输出 `576 x 4096`，而不是自动减少为更少 token。
 
 # 3 projector 与 token 压缩
 
@@ -175,14 +127,6 @@ projector 主要解决第一个问题。token 压缩主要解决第二个问题�
 | 输出 token | 回答 yes/no 或描述证据时读取相关视觉和文本 token | 只依赖先验猜测 |
 
 attention 不是可直接等同于人工解释的全部证据，但它提供了“哪些输入 token 参与当前生成”的机制基础。
-
-## 4.2 主动重建检查
-
-用一句话解释：
-
-> 为什么 VLM 不是先做完一个独立视觉分类，再把分类结果交给 LLM？
-
-合格答案应提到：视觉 token 可以作为上下文参与语言生成，文本问题会影响模型读取哪些视觉证据。
 
 # 5 视频与多帧输入约束
 
@@ -288,21 +232,3 @@ Phase 1-C 的第一个 baseline 目标不是追求高分，而是证明链路可
 - 每个样本的原始输出、规范化结果、评分结论和失败标签。
 - 每组样本量、每组 accuracy、总体/macro/worst-group 指标。
 - 是否满足运行前冻结的总体与关键组门禁。
-
-## 7.4 2026-08-11 本地实践准备状态
-
-用户提供的目标设备为约 6 GB 显存的 NVIDIA GeForce RTX 4050。只读环境检查确认当前工作环境是 WSL2，磁盘空间充足；默认 Python 3.13 环境未安装 PyTorch、Transformers、Accelerate 或 Pillow。既有 `openmmlab` 环境包含 Python 3.8、PyTorch 2.4.1 和 CUDA 12.4 构建，但缺少 Transformers/Accelerate，不作为本次 VLM baseline 的默认环境。
-
-当前代理沙箱无法访问 GPU，因此以上只证明环境清点完成，不能证明目标 WSL 会话中的 CUDA 可用。为避免污染既有训练环境，下一步优先建立独立 Python 3.11 实验环境；环境创建、依赖安装、模型下载和 GPU 推理均尚未执行。
-
-# 8 当前下一步
-
-下一次继续 Phase 1-C 时，不再重复已闭合的数据流和 baseline 设计问答，直接进入实践：
-
-1. 在目标 WSL 会话确认 `nvidia-smi` 与 `torch.cuda.is_available()`。
-2. 建立隔离的 Python 3.11 VLM 实验环境并固定依赖版本。
-3. 使用画面清晰、答案明确、来源合规的单图完成 smoke test，先验证加载、预处理、prompt、推理与记录链路。
-4. 再运行目标小型 VLM checkpoint，保存可复现配置、逐样本原始输出和显存峰值。
-5. 链路稳定后才把闭眼、睁眼、眯眼和眩光设计落实为 4 个最小 case；不从微调开始。
-
-在完成最小 baseline 前，不把任何 case 集称为 benchmark。
