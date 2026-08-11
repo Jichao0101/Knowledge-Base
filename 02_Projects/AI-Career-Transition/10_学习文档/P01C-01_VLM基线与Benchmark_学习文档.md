@@ -8,6 +8,7 @@ sources:
   - 2026-08-10 用户修正主动学习方法：知识大面积缺失时先教学骨架，再用主动重建和诊断题检查吸收
   - 2026-08-10 Phase 1-C VLM 数据流与视频持续闭眼任务主动学习对话
   - 2026-08-11 Phase 1-C baseline 可复现性、任务合同、分组门禁、case 证据边界、模型选择与本地环境主动学习对话
+  - 2026-08-11 Phase 1-C baseline 合同续测：输入身份、处理器封装、输出协议、执行失败、显存约束与环境证据
   - 02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
   - 02_Projects/AI-Career-Transition/00_规划/AI职业转型整体学习方案.md
   - 02_Projects/AI-Career-Transition/10_学习文档/P01B-01_AI评测基本功_学习文档.md
@@ -185,6 +186,31 @@ benchmark 草案不是“收集一些图片然后问模型”。每个 case 至�
 
 若模型回答“是，驾驶员闭眼了”，但没有连续时长、帧段或时间范围，这不应算完全通过。若合同允许部分通过，可标记为 `partial: evidence_missing`；若合同要求可复核连续时长，则为 `fail: evidence_missing`。
 
+## 6.3 单图双眼状态的最小输出合同
+
+需要自动评分时，prompt 不应只要求自由文本回答，而应冻结结构化输出协议。例如：
+
+```json
+{
+  "left_eye": "open",
+  "right_eye": "open"
+}
+```
+
+两个字段的允许值可定义为 `open | closed | narrow | abstain`。其中 `left_eye` 和 `right_eye` 必须明确采用驾驶员解剖学方向还是最终输入画面的左右方向；如果采用画面方向，应禁止未记录的水平翻转，并固定 EXIF 方向处理。
+
+失败标签至少区分：
+
+| 情况 | 建议失败标签 |
+|---|---|
+| JSON 无法解析、缺少字段 | `invalid_output_format` |
+| JSON 合法但取值不在枚举内 | `invalid_label` |
+| 标签合法但与可复核标注不符 | `incorrect_classification` |
+| 证据清晰却拒答 | `unnecessary_abstention` |
+| 证据不可辨认却强行断言 | `failure_to_abstain` 或 `unsupported_assertion` |
+
+`abstain` 是独立决策状态，不是额外的视觉类别。出现遮挡或眩光也不自动等于应该拒答；判断依据是任务所需证据是否仍可辨认。
+
 # 7 最小 VLM baseline 计划
 
 ## 7.1 baseline 目标
@@ -216,6 +242,18 @@ Phase 1-C 的第一个 baseline 目标不是追求高分，而是证明链路可
 
 只有当错误分类显示“模型缺少任务边界或样式示例”时，few-shot 才有意义。只有当错误分类显示主要误差可能通过学习目标域模式改善，且 baseline 与评分规则已经稳定时，才考虑参数高效微调。
 
+实践顺序应保持为：
+
+```text
+单图 smoke test
+→ 冻结小型 case 集与门禁
+→ zero-shot baseline
+→ 错误分类
+→ few-shot 对比
+```
+
+如果先查看冻结测试集的错误，再从这些失败样本中选择 few-shot 示例，原测试集已经参与方法设计，不能继续作为独立留出集。
+
 ## 7.3 可复现与可审计记录合同
 
 运行前至少冻结并记录：
@@ -226,9 +264,31 @@ Phase 1-C 的第一个 baseline 目标不是追求高分，而是证明链路可
 - 每个 case 的 `expected_behavior`、证据要求、abstain 条件、失败标签和分组门禁。
 - Python、PyTorch、Transformers、CUDA runtime、驱动、GPU 与显存配置。
 
+以下细节不能用路径或默认值代替：
+
+- 模型保存在本地或 Google Drive 只证明可持久访问，不证明权重身份固定；仍需记录精确 revision 或模型文件 hash。
+- 图片路径不能证明内容未变化；应记录内容 hash、确切标注路径、case ID 和分组。
+- “没有手工预处理”不等于“预处理为无”。视觉工具和 processor 仍会执行图片读取、方向处理、缩放、像素预算控制、张量构造和文本模板处理，因此需要冻结 processor 来源、版本和关键配置。
+- 固定随机种子不能替代完整解码配置。需要确定性首版 baseline 时，可使用 `do_sample: false`、`num_beams: 1`，并固定 `max_new_tokens`；启用采样时还需固定 temperature、top-p/top-k 和重复次数。
+- `nvidia-smi` 记录 GPU、驱动和驱动支持的 CUDA 上限；`torch.version.cuda` 记录 PyTorch 构建使用的 CUDA runtime，两者不能互相替代。
+
 运行后至少保存：
 
 - 每次执行状态与耗时。
 - 每个样本的原始输出、规范化结果、评分结论和失败标签。
 - 每组样本量、每组 accuracy、总体/macro/worst-group 指标。
 - 是否满足运行前冻结的总体与关键组门禁。
+
+## 7.4 执行失败与指标分母
+
+baseline 需要分开报告：
+
+```text
+execution_success_rate = 成功完成推理的样本数 / 全部冻结样本数
+conditional_accuracy = 正确样本数 / 成功完成推理的样本数
+end_to_end_accuracy = 正确样本数 / 全部冻结样本数
+```
+
+只报告 `conditional_accuracy` 会隐藏 OOM、输入解析失败和输出格式失败。运行前没有冻结排除规则时，失败样本不得静默过滤，应保留为 `execution_failure` 并进入端到端分母。
+
+ROI 裁剪会改变输入合同。如果只对 OOM 样本裁剪，会造成样本处理不一致和选择偏差；若任务确实只需头部或眼部证据，应在运行前把 ROI 策略冻结为全体样本一致的预处理，并把全图 baseline 与 ROI baseline 作为不同配置分别报告。
