@@ -74,7 +74,7 @@ updated_at: 2026-08-06
 
 ## 1.6 使用边界
 
-- 本卡允许支撑 `02_Projects/AI-Career-Transition/Agent开发系统学习文档.md`，不直接进入 `01_Knowledge/`。
+- 本卡允许支撑 `02_Projects/AI-Career-Transition/10_学习文档/P03-01_Agent系统_学习文档.md`，不直接进入 `01_Knowledge/`。
 - DMS 实践章节只能把现有任务当作设计场景，不得在未读 DMS 原始材料时写出新的 DMS 根因事实。
 - 实现具体 SDK 示例前，应重新读取相应官方页面并固定依赖版本；本卡不替代依赖锁文件或 API contract test。
 - 对 retry、timeout、幂等、durable execution 的工程细节，官方 SDK 提供部分机制，但最终策略必须由应用根据副作用和业务风险定义。

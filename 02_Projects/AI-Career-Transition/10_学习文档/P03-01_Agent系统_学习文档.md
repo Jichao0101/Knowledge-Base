@@ -6,8 +6,8 @@ learning_area: Agent Systems
 summary: 以一次可复核的 DMS 日志证据任务为贯穿案例，重点解释 Agent 运行时、工具执行、状态恢复、权限控制、证据链与评测，辅助说明架构选择和主流框架概念映射。
 sources:
   - 04_Sources/Agent工程化/2026-08-06_OpenAI与Anthropic_Agent官方文档来源证据卡.md
-  - 02_Projects/AI-Career-Transition/多模态AI职业转型学习方案.md
-  - 02_Projects/AI-Career-Transition/当前阶段学习检查点.md
+  - 02_Projects/AI-Career-Transition/00_规划/AI职业转型整体学习方案.md
+  - 02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
 scope: Agent Systems 主动学习、最小实现、可观察实验和 DMS 日志证据任务的后续实践设计。
 risks:
   - 本文是学习材料，不代表内容已掌握、实现已验证或系统已达到生产可用。

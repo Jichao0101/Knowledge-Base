@@ -8,9 +8,9 @@ sources:
   - 2026-08-10 用户修正主动学习方法：知识大面积缺失时先教学骨架，再用主动重建和诊断题检查吸收
   - 2026-08-10 Phase 1-C VLM 数据流与视频持续闭眼任务主动学习对话
   - 2026-08-11 Phase 1-C baseline 可复现性、任务合同、分组门禁、case 证据边界、模型选择与本地环境主动学习对话
-  - 02_Projects/AI-Career-Transition/当前阶段学习检查点.md
-  - 02_Projects/AI-Career-Transition/多模态AI职业转型学习方案.md
-  - 02_Projects/AI-Career-Transition/AI评测基本功系统学习文档.md
+  - 02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
+  - 02_Projects/AI-Career-Transition/00_规划/AI职业转型整体学习方案.md
+  - 02_Projects/AI-Career-Transition/10_学习文档/P01B-01_AI评测基本功_学习文档.md
 scope: VLM 输入输出数据流、视觉 token、projector、token 压缩、视频采样、图像问答 baseline、任务集来源边界、zero-shot/few-shot 和分组评测。
 risks:
   - 本文是 Phase 1-C 学习材料，不代表已经运行开源 VLM、建立 benchmark 或完成阶段门禁。
@@ -36,7 +36,7 @@ updated_at: 2026-08-11
 → 阶段证据记录
 ```
 
-本文已从教学草案转为持续维护的 Phase 1-C 阶段学习文档，但不是 Phase 1-C 完成证明。阶段完成仍以 [[02_Projects/AI-Career-Transition/当前阶段学习检查点]] 的完成门禁为准。
+本文已从教学草案转为持续维护的 Phase 1-C 阶段学习文档，但不是 Phase 1-C 完成证明。阶段完成仍以 [[02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点]] 的完成门禁为准。
 
 ## 1.2 覆盖区
 

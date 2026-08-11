@@ -7,7 +7,7 @@ summary: 面向当前理解缺口，系统解释 decoder-only LLM 从文本、to
 sources:
   - 2026-07-17 Phase 0 主动诊断对话
   - 2026-07-21 第一阶段主动学习对话与 VLM 迁移检查
-  - 02_Projects/AI-Career-Transition/多模态AI职业转型学习方案.md
+  - 02_Projects/AI-Career-Transition/00_规划/AI职业转型整体学习方案.md
 scope: decoder-only 自回归语言模型的最小训练与推理闭环；为后续 VLM、Agent 和评测学习建立机制基础。
 risks:
   - 本文是学习材料，不是能力已掌握或完成独立验证的证据。

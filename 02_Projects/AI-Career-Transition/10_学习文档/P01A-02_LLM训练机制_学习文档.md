@@ -8,9 +8,9 @@ sources:
   - 2026-07-21 至 2026-07-25 第二阶段主动学习、闭卷检查与最小实践代码审查
   - 2026-08-01 TinyCausalLM 单步训练运行、有效 token 加权、AMP 与 checkpoint 主动学习续测
   - 2026-08-04 TinyCausalLM 单 batch 过拟合、确定性评估、checkpoint 轨迹恢复主动学习与静态代码审查
-  - 02_Projects/AI-Career-Transition/当前阶段学习检查点.md
-  - 02_Projects/AI-Career-Transition/LLM最小推理机制系统学习文档.md
-  - 02_Projects/AI-Career-Transition/多模态AI职业转型学习方案.md
+  - 02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
+  - 02_Projects/AI-Career-Transition/10_学习文档/P01A-01_LLM推理机制_学习文档.md
+  - 02_Projects/AI-Career-Transition/00_规划/AI职业转型整体学习方案.md
 scope: decoder-only LLM 的 next-token 训练、SFT masking、梯度、optimizer、schedule、混合精度、checkpoint 与最小训练验证。
 risks:
   - 本文是学习材料；最小代码实验已经在用户运行与静态代码审查范围内闭合，但不代表独立复跑、生产训练或跨设备恢复验证已经完成。
