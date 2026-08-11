@@ -72,6 +72,7 @@ DMS/OMS 视觉感知与端侧部署项目基础
 ## 1.4 项目入口
 
 - 主学习方案：[[02_Projects/AI-Career-Transition/00_规划/AI职业转型整体学习方案]]
+- 学习文档维护规范：[[02_Projects/AI-Career-Transition/00_规划/学习文档维护规范]]
 - 学习文档索引：[[02_Projects/AI-Career-Transition/10_学习文档/学习文档索引]]
 - Phase 0 系统学习文档：[[02_Projects/AI-Career-Transition/10_学习文档/P01A-01_LLM推理机制_学习文档]]
 - Phase 0 能力诊断记录：[[02_Projects/AI-Career-Transition/20_学习记录/P00_能力诊断_学习记录]]
@@ -84,6 +85,7 @@ DMS/OMS 视觉感知与端侧部署项目基础
 - Phase 1-C 学习记录：[[02_Projects/AI-Career-Transition/20_学习记录/P01C_VLM基线与Benchmark_学习记录]]
 - Agent Systems 系统学习骨架：[[02_Projects/AI-Career-Transition/10_学习文档/P03-01_Agent系统_学习文档]]
 - Agent Systems 学习记录：[[02_Projects/AI-Career-Transition/20_学习记录/P03_Agent系统_学习记录]]
+- 实践记录索引：[[02_Projects/AI-Career-Transition/30_实践记录/实践记录索引]]
 
 后续阶段实验、作品和求职记录优先留在本项目目录。只有形成长期稳定、经过审核并具有明确适用边界的可复用结论后，才评估是否提升到正式知识区。
 
