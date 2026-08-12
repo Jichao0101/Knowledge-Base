@@ -1,6 +1,6 @@
 ---
 title: Tracking Implementation Current
-summary: Tracking 当前实现文档，以 feat/ljc/track_0812@244e5300 为事实基线，逐步映射 face-first 的 Face、驾驶员选择、Body、Hand 算法流程与代码入口。
+summary: Tracking 当前实现文档，以 feat/ljc/track_0812@3a2ed302 为事实基线，逐步映射 face-first 的 Face、驾驶员选择、Body、Hand 算法流程与代码入口。
 status: verified
 doc_role: current
 truth_role: current
@@ -69,7 +69,7 @@ updated_at: 2026-08-12
 | 2 | `updateFaceTracks` | class 0 Face detection | `m_faceTracks`、Face CV、hit/miss、类型票数 | 暂不发布 |
 | 3 | `selectDriverFace` | 稳定 active Face | 更新 `m_driverFaceId` | 唯一 DRIVER Face id |
 | 4 | `Update` Face publish loop | `m_faceTracks` | 强制新 DRIVER、撤销旧 DRIVER | `m_faceTrackResultMap` |
-| 5 | `updateBodyTracks` | class 2 Body detection、全部 active Face、driver id | `m_bodyTracks`、`m_retiredBodyTracks`、Body CV/hit/miss | `m_bodyTrackResultMap` |
+| 5 | `updateBodyTracks` | class 2 Body detection、已有 Body owner、当帧有效 Face、driver id | `m_bodyTracks`、`m_handTracks` 删除级联、Body CV/hit/miss | `m_bodyTrackResultMap` |
 | 6 | `updateHandTracks` | class 1 Hand detection、本帧 Body map | `m_handTracks`、Hand CA/hit/miss、retired cleanup | left/right Hand map |
 
 该调用链是 `face-first`：Face 先产生 identity/key 和 DRIVER；Body/Hand 均不能创建或替换乘员 identity。Body 仍是 Hand 候选域和下游 `m_humanTrackResultMap` 的直接证据，不能从流程说明中省略。
@@ -78,7 +78,6 @@ updated_at: 2026-08-12
 
 - 长期内部状态：
   - `m_bodyTracks`
-  - `m_retiredBodyTracks`
   - `m_faceTracks`
   - `m_handTracks`
 - 对外结果：
@@ -92,7 +91,6 @@ updated_at: 2026-08-12
   - `fuse_algorithm.cpp` 将 body 兼容映射到 `m_humanTrackResultMap`
 - 关键状态语义：
   - `m_bodyTracks` 承载当前 active body 轨迹
-  - `m_retiredBodyTracks` 承载旧 body 的清理锚点
   - `m_faceTracks` 承载 face 子轨迹
   - `m_handTracks` 承载以 face-owned Body evidence id 为 key 的 left/right Hand 槽位
 
@@ -125,7 +123,7 @@ updated_at: 2026-08-12
 - 导出兼容层 -> `fuse_algorithm.cpp`、`handpose_model.cpp`、`humanpose_model.cpp`
 - Face 纯计算 helper -> `.cpp` anonymous namespace 的 `CollectDetectionsByClass` / `BuildFaceAssignmentLoss`
 - Body 匹配与选择 helper -> `.cpp` anonymous namespace 的 `TrackBoxMatchLoss` / `PredictAndSelectTrackedBodyDetection` / `SelectFaceAnchoredBodyDetection`
-- Hand private 子阶段 -> `updateOwnedHandSlots` / `recoverUnmatchedHandSlots` / `cleanupOrphanAndExpiredHandSlots` / `publishHandSlots`
+- Hand private 子阶段 -> `updateOwnedHandSlots` / `recoverUnmatchedHandSlots` / `cleanupExpiredHandSlots` / `publishHandSlots`
 
 ## 0.6 Matching And Lifecycle
 
@@ -174,19 +172,19 @@ updated_at: 2026-08-12
 ### 0.6.2 body
 
 1. `CollectDetectionsByClass(..., kBodyClassId)` 收集 class 2 Body。Body 不分配独立 id，`m_bodyTracks` 的 key 继承 owner Face id。
-2. owner 顺序先加入本帧 DRIVER Face，再加入其他 `missCount==0 && hitCount>0` 的 Face。整个 phase 共用 `usedDetections`，所以 DRIVER owner 优先占用 Body detection；这正是主驾 Body 消失后误跟副驾问题需要重点验证的路径。
-3. owner 已有 Body 时，`PredictAndSelectTrackedBodyDetection` 先调用 CV `PredictMotion`，再从未占用 detection 中最小化：
+2. 第一阶段遍历已有 Body：当前 DRIVER owner 优先，其次为仍标记 DRIVER 的 Body，再处理其他 Body。只要 owner Face track 尚在 `m_faceTracks`，Face 短时 miss 不阻断 Body tracking。
+3. `PredictAndSelectTrackedBodyDetection` 调用 CV `PredictMotion`，再从未占用 detection 中最小化：
 
    `L_body_track = 10 × (1-IoU(predBody,detBody)) + computeDistanceLoss(predBody,detBody)`。
 
    最小 loss 不低于 `body.dummyLoss` 时视为 tracking 失败。
-4. tracking 失败或尚未绑定 Body 时，`SelectFaceAnchoredBodyDetection` 执行获取/重获取。`FaceBelongsToBody` 要求 Face 中心位于 Body 横向扩张 15%、顶部扩张 10%、向下 60% 高度的区域；合格候选再最小化：
+4. 第二阶段只遍历 `missCount==0 && hitCount>0` 的当帧有效 Face。已有 Body tracking 失败或尚未绑定 Body 时，`SelectFaceAnchoredBodyDetection` 执行获取/重获取。`FaceBelongsToBody` 要求 Face 中心位于 Body 横向扩张 15%、顶部扩张 10%、向下 60% 高度的区域；合格候选再最小化：
 
    `L_body_acquire = |faceCx-bodyCx|/bodyW + |faceCy-(bodyTop+0.25×bodyH)|/bodyH`。
 
    当前获取路径没有额外 dummyLoss 截断。
 5. 命中后把 detection 标为 used。首次绑定用 detection 初始化 CV；已有轨迹用 `CorrectMotion` 修正，并将 corrected rect 回写为 Body `box`。人员类型直接继承 owner Face；随后 `AdvanceHit`。
-6. owner Face 不存在或本帧未命中时 `AdvanceMiss`。Face 已删除，或 Body `missCount>=body.missThreshold` 时，将 Body 保存到 `m_retiredBodyTracks` 后从 `m_bodyTracks` 删除。
+6. 第三阶段统一应用命中；只有 Body tracking/acquisition 均未命中时才 `AdvanceMiss`。Face 短时 miss 但 Body tracking 命中时执行 `AdvanceHit`。Face 已删除或 Body `missCount>=body.missThreshold` 时，从 `m_bodyTracks` 删除 Body并同步 `m_handTracks.erase(ownerFaceId)`。
 7. 发布要求 Body hit 达门槛、owner Face 仍存在且 Face hit 也达门槛。输出 key 是 owner Face id；DRIVER 和非 DRIVER 的稳定 Body 都可能发布。
 
 ### 0.6.3 hand
@@ -200,15 +198,14 @@ updated_at: 2026-08-12
    - 已初始化 slot 使用 `5×NormalizedCenterDistance + HandSizeContinuityLoss + 1.5×(1-IoU) + 0.75×HandAnchorLoss`，越出 Body ROI 再加 `1.0`；
    - 匈牙利 assignment 的 cost 必须小于 `hand.dummyLoss`。新 slot 初始化 CA 和 `hitCount=1`；已有 slot 用 detection 修正 CA、把 `box/predBox` 设为 detection 并推进 hit。
 4. `recoverUnmatchedHandSlots` 是 second pass：收集 allowed owner 下 first pass 未命中的已初始化 slot，构造 `(unmatchedSlotCount + handDetectionCount)` 方阵。代码优先查本帧输出 Body，缺失时写有 `m_bodyTracks` fallback；但 allowed owner 本身来自本帧 Body map，正常控制流下 `outputBodyIt` 应存在。随后只允许 ROI 内未使用 detection，损失仍为 `HandMatchLoss`；匹配失败则 `AdvanceMiss`。
-5. `cleanupOrphanAndExpiredHandSlots`：miss 达 `hand.missThreshold` 的单侧 slot reset；新 Body 与 retired Body 满足 `IoU>0.15` 或 `NormalizedCenterDistance<0.35` 时，清理同区域失去 active Body owner 的旧 Hand；两侧均未初始化且 owner Body 已不存在时删除整个 owner state。
+5. `cleanupExpiredHandSlots`：miss 达 `hand.missThreshold` 的单侧 slot reset；两侧均未初始化时删除空 owner state。Body 删除时已同步删除同 owner Hand，因此不再执行 retired-body/orphan 空间清理。
 6. `publishHandSlots`：只遍历 allowed DRIVER owner；slot 必须 initialized、hit 达门槛且仍属于 Body ROI。left/right 分别写入对应 map，key 均为 owner Face id。miss 只保留内部状态，不发布 `predBox`。
-7. 主循环最后清理已经不再被 Face、Body、Hand 任一状态引用的 retired Body。
 
 ## 0.7 Current Implementation Constraints
 
 - Face / Body / Hand 对外仍使用 legacy 四类 map；同一 driver occupant 的 Body/Hand key 当前来源于 DRIVER Face trackId。
 - Hand 代码中的 legacy 变量名仍包含 `bodyId`；当前语义应理解为 face-owned Body evidence id，不代表 Body identity owner。
-- retired body 只作为 handoff 和 orphan child 清理的历史锚点，不直接对外输出。
+- retired Body 容器和同区域 orphan Hand 清理路径已移除；Hand 生命周期在 Body 删除点收敛。
 - 当前实现保留 Face/Hand 的内部连续性；Hand 对外输出 key 已收敛为当前 DRIVER face-owned Body evidence id，但区域级唯一性仍需运行验证。
 - `m_humanTrackResultMap` 只在导出层作为 body 兼容映射，不是 tracking 上游事实源。
 - 当前实现并未把 `tracking_interfaces_evidence` 提升为默认实现输入；其接口事实已经并入本文件和 spec。
@@ -217,7 +214,7 @@ updated_at: 2026-08-12
 
 ## 0.8 Known Gaps
 
-- `244e5300` 的结构重构缺少 runtime replay、新增单元测试和代表性视频验证；6 月 profile/snapshot 路线不是当前实现。
+- `3a2ed302` 缺少 runtime replay、新增单元测试和代表性视频验证；6 月 profile/snapshot 路线不是当前实现。
 - Body tracking 失败后会立即走无额外 dummy 门槛的 Face-anchor selection；这是主驾 Body 消失后可能选到副驾 Body 的直接风险点。
 - left/right slot 在同一 Body ROI 内共享候选，并依靠预测连续性和左右 anchor 区分；手跨中线、交叉或短时漏检时仍可能交换。
 - `recoverUnmatchedHandSlots` 只收集 allowed DRIVER Body owner；owner 暂时不 allowed 但 `m_bodyTracks` 尚存在时，旧 slot 不一定推进 miss，当前 cleanup 也不会立即删除它。
@@ -237,7 +234,7 @@ updated_at: 2026-08-12
 
 - must_update_when:
   - `DmsTrack::Update` 的主顺序变化
-  - `m_bodyTracks / m_retiredBodyTracks / m_faceTracks / m_handTracks` 结构变化
+  - `m_bodyTracks / m_faceTracks / m_handTracks` 结构或删除级联变化
   - `AtomicResult` 四类 tracking map 或 body 兼容映射变化
   - hand miss 输出策略、统一 sanitize/clamp 或 orphan fallback / hand second pass 逻辑变化
   - `track_params.json` 的 DEFAULT 读取或车型覆盖规则变化

@@ -411,3 +411,12 @@ supersedes:
 - `tracking_design_current` 与 `tracking_implementation_current` 已补充可直接对照代码的完整帧流程，包括 Face 卡尔曼预测、损失矩阵、损失项与门禁、匈牙利匹配、人员类型投票、唯一 DRIVER Face 过滤评分、Body 两阶段关联、Hand 左右槽两阶段匹配、生命周期与发布条件。
 - 口径边界为：Face 是 identity、track id 和唯一 DRIVER 的主锚点；Body 是 face-owned evidence；Hand 依赖 stable DRIVER Body evidence。调用顺序与语义主线均不得写成 body-first。
 - 本轮只修订 current 表述和追加维护记录更正，不修改 DMS 代码，不改变 `recoverability_status: partial`，不新增 `single_pass_recoverable: true`。
+
+## 1.45 2026-08-12 Tracking Face 遮挡续跟与 Hand 级联生命周期写回
+
+- `DmsTrack` 已提交 `3a2ed302 Fix Body and Hand lifecycle coupling`，并新增项目级维护记录：[[02_Projects/DMS/04_Tracking/Current Maintenance Records/Face遮挡期间Body续跟与Hand级联生命周期修复闭环记录-2026-08-12]]。
+- 已局部同步 Tracking 五份 current 文档和 DMS 项目总览；没有整组重写 current，也没有改变默认入口或默认恢复顺序。
+- 当前生命周期事实变化为：已有 Body 在 Face 短时 miss、Face track 尚存期间继续自身 tracking；仅当帧有效 Face 允许 Body acquisition；Face 真正删除或 Body miss 达阈值时删除 Body，并同步删除同 owner Hand。
+- retired Body 容器、同区域 orphan Hand 清理与 Hand 跨 Body 生命周期残留路径已移除；历史记录保持不变，作为当时方案证据继续保留。
+- `git diff --check` 与 `bash scripts/compile_j6b.sh` 全量构建通过；板端 runtime replay、Face 遮挡恢复和 Hand 左右稳定性仍待验证。
+- `recoverability_status` 保持 `partial`，未新增或保留 `single_pass_recoverable: true`，本轮不提升正式知识。

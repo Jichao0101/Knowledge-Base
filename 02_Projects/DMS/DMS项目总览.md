@@ -42,9 +42,9 @@ DMS current 覆盖情况、模块索引状态和待修复项记录在 [[02_Proje
 ## 1.4 当前维护摘要
 
 - Tracking 当前事实源为 [[02_Projects/DMS/04_Tracking/tracking_overview_current]] 及其 current 文档组；项目总览不再枚举 Tracking 的历史提交和逐步 writeback。
-- 当前 Tracking 代码事实以待合入主分支的 `feat/ljc/track_0812@244e5300` 为准：架构为 face-first；Face 先完成匹配、分类与唯一 DRIVER 选择，Body 再按 DRIVER-first owner 顺序绑定全部 active Face，Hand 最后按 stable DRIVER Body 管理左右槽。
-- 当前验证边界：本轮只做内部结构与注释重构；`git diff --check` 已通过，最终注释补充前的同一结构版本完成过 J6B 全量编译，最终 clean-commit 重跑被中断。runtime replay、单元测试、代表性视频集、Body owner 误绑定和 Hand 左右槽稳定性仍未闭合。
-- 本轮实施与证据边界见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack 当前分支跟踪架构可读性重构闭环记录-2026-08-12]]。
+- 当前 Tracking 代码事实以 `feat/ljc/track_0812@3a2ed302` 为准：架构为 face-first；已有 Body 在 Face 短时 miss、尚未删除期间继续自身 tracking，只有当帧有效 Face 允许 Body acquisition；Face 真正删除或 Body miss 达阈值时删除 Body 并级联删除同 owner Hand。
+- 当前验证边界：`git diff --check` 与 J6B 全量编译通过；runtime replay、代表性视频集、Face 遮挡恢复、Body owner 误绑定和 Hand 左右槽稳定性仍未闭合。
+- 本轮生命周期实施与证据边界见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/Face遮挡期间Body续跟与Hand级联生命周期修复闭环记录-2026-08-12]]；前置结构重构见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack 当前分支跟踪架构可读性重构闭环记录-2026-08-12]]。
 - 历史方案、superseded lambda 路线、整体架构评审和每步验证命令详见 `02_Projects/DMS/04_Tracking/Current Maintenance Records/` 与 `02_Projects/DMS/04_Tracking/subpower_runs/`。
 - SDK Integration 当前补充记录：[[02_Projects/DMS/06_SDK_Integration/DMS回灌方案]] 记录 `start_stage=model` 已实现的模型阶段回灌路径，以及 README 中 `start_stage=postprocess` 预留但暂不支持的边界；该记录仅为源码静态整理，未完成 x86 或板端运行验证。
 - Issue Analysis Skill 当前处于阶段三验证：`ADASL2-1565` 已完成在线飞书、真实 Jira/Data、Evidence Package、308/308 行 A 核准备、Agent review、证据不足结论和真实 Jira 评论闭环；R 核规则已拆分为解释性 reference 与机器可消费 strategy，但 analyser、输入适配和结果合同仍未实现，运行时继续 `skipped/r_core_analyser_not_available`。Skill 瘦身与 R 核 reference 分层后全量 55 项测试通过；多 case、完整 DMS 状态链、并发去重和 recoverability verification 仍未闭环。
