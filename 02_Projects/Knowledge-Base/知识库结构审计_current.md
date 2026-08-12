@@ -2,7 +2,7 @@
 type: structure_audit
 status: active
 scope: 记录知识库结构化、current 标准化、总览内容化的当前迁移状态；不作为具体主题事实源。
-updated_at: 2026-07-27
+updated_at: 2026-08-12
 supersedes:
   - 02_Projects/Knowledge-Base/知识库结构审计-2026-06-05.md
 ---
@@ -396,3 +396,18 @@ supersedes:
 - R 核 analyser、输入适配、证据 ID 和 `r_core_result.json` 合同尚未实现，运行阶段继续为 `skipped/r_core_analyser_not_available`，既有 R 核/跨核归属禁用和置信度边界不变。
 - Skill 结构校验、JSON/来源 hash/引用一致性检查、`git diff --check` 和仓库全量 55 项测试通过。
 - 本轮不提升正式知识，不改变 recoverability 状态，不新增 `single_pass_recoverable: true`。
+
+## 1.43 2026-08-12 Tracking 当前事实重新基线化
+
+- 用户明确指定待合入主分支的 `feat/ljc/track_0812@244e5300` 及其注释澄清为 Tracking 当前代码事实，已据此局部同步 Tracking 五份 current 文档、DMS 项目总览，并新增 2026-08-12 重构闭环记录。
+- 6 月分支中的 `2m/5m profile gate`、`selected-driver-only Body` 与 `body-to-hand finalized snapshot` 不再表述为 current；相关维护记录保留为历史设计与分支证据，没有改写或删除历史事实。
+- 当前事实恢复为：Face 决定 driver identity；Body 以 active face owner 运行且 driver 优先；Hand 从本帧 body legacy map 获取 stable DRIVER owner，恢复阶段可能回退内部 body tracks；Hand 主流程拆为四个 private 子阶段。
+- 本轮没有整组重写 current 文档，只校正与当前代码冲突的段落；默认入口、恢复顺序、`recoverability_status: partial` 均未变化。
+- 未新增或保留 `single_pass_recoverable: true`；本轮不提升正式知识。runtime replay、单元测试、Body owner 误绑定和 Hand 左右槽稳定性验证仍未闭合。
+
+## 1.44 2026-08-12 Tracking face-first 口径与完整流程补强
+
+- 根据用户复核，将 Tracking current 的统一架构口径明确为 `face-first`，不再使用含混的 `head-first` 当前态表述；历史文件名和历史决策记录保持原样。
+- `tracking_design_current` 与 `tracking_implementation_current` 已补充可直接对照代码的完整帧流程，包括 Face 卡尔曼预测、损失矩阵、损失项与门禁、匈牙利匹配、人员类型投票、唯一 DRIVER Face 过滤评分、Body 两阶段关联、Hand 左右槽两阶段匹配、生命周期与发布条件。
+- 口径边界为：Face 是 identity、track id 和唯一 DRIVER 的主锚点；Body 是 face-owned evidence；Hand 依赖 stable DRIVER Body evidence。调用顺序与语义主线均不得写成 body-first。
+- 本轮只修订 current 表述和追加维护记录更正，不修改 DMS 代码，不改变 `recoverability_status: partial`，不新增 `single_pass_recoverable: true`。

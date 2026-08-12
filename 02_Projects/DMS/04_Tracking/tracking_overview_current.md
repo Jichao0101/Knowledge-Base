@@ -1,6 +1,6 @@
 ---
 title: Tracking Overview Current
-summary: Tracking 当前态唯一入口，定义默认恢复顺序、默认实现输入链、default_recovery_bundle 与真相源集合；head-first 功能主线已形成，历史 body-first 实现已归档，2026-06-16 基线对比后推荐路线收缩为 2m face/head-only 与 5m driver-bound evidence。
+summary: Tracking 当前态唯一入口，定义默认恢复顺序、默认实现输入链、default_recovery_bundle 与真相源集合；当前事实基线为待合入主分支的 feat/ljc/track_0812 提交 244e5300 及其注释澄清，保持既有行为并优化 Face/Body/Hand phase 可读性。
 status: verified
 doc_role: current
 truth_role: current
@@ -70,12 +70,13 @@ sources:
   - 02_Projects/DMS/04_Tracking/tracking_implementation_current.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack内部结构与可读性重构分析-2026-06-08.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack 当前分支跟踪架构可读性重构闭环记录-2026-08-12.md
   - 90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
 scope: 适用于恢复当前 Tracking 模块的整体目标、边界、入口文档与当前真相源，不展开全部历史过程。
 risks:
   - 当前态判断基于代码静态读取、subpower 审查和本地编译；没有补做板端或视频回放。
   - 对“效果性目标”如 ID 连续性，只能记录当前机制与证据边界，不能把静态机制等同于最终效果验收。
-updated_at: 2026-06-17
+updated_at: 2026-08-12
 ---
 
 ## 0.1 Current Scope
@@ -135,13 +136,15 @@ default_recovery_bundle:
   - `/home/jichao/dms/source/models/handpose_model.cpp`
   - `/home/jichao/dms/source/models/humanpose_model.cpp`
 
-Tracking 当前代码事实以 `AtomicResult` 四类 map 和 `DmsTrack::Update -> updateFaceTracks -> selectDriverFace -> profile gate -> updateBodyTracks -> updateHandTracks` 为核心，对外仍提供 `body / face / left_hand / right_hand` 跟踪结果。
+Tracking 当前代码事实以 `AtomicResult` 四类 map 和 `DmsTrack::Update -> updateFaceTracks -> selectDriverFace -> updateBodyTracks -> updateHandTracks` 为核心，对外仍提供 `body / face / left_hand / right_hand` 跟踪结果。当前合入基线为 `feat/ljc/track_0812` 的 `244e5300`；工作区另有一处“二倍尺寸连续性损失”的注释澄清，不改变实现事实。
 
 当前实现状态：
-- driver identity 由 head/face track 决定；body 是 driver face-bound body/torso evidence；hand 只消费 driver body evidence 下的 left/right 槽位。
-- `track_params.json` 的 `camera_type` 派生 profile gate：`2m` 跳过并清理 body/hand tracking cache，其他 profile 保持 body/hand 路径。
-- body evidence 只对 selected driver face 获取和发布；非 driver body cache 只进入 miss/cleanup，不发布。
-- hand 内部 body 输入来自 body phase 返回的局部 finalized driver body evidence snapshot，不再反读 `curResult->m_bodyTrackResultMap`。
+- driver identity 由 Face track 决定；Face 跟踪的量产行为保持不变，本轮只抽取检测分类与 assignment loss 等纯计算 helper 并补充必要注释。
+- 完整 face-first 帧流程、Face loss 公式、人员类型投票、DRIVER Face 过滤评分、Body/Hand 两阶段关联见 `tracking_design_current`；逐函数和状态字段映射见 `tracking_implementation_current`。
+- 当前没有按 `camera_type` 跳过 body/hand 的 profile gate；每帧在 Face/driver 选择后继续执行 Body 和 Hand phase。
+- Body 以 active face track 为 owner：driver owner 优先处理，其余 active face owner 随后处理；已有轨迹优先按预测匹配，失败时允许基于 face anchor 选择检测，稳定证据可按 owner key 发布。
+- Hand 读取本帧 `curResult->m_bodyTrackResultMap` 作为 body evidence；稳定 DRIVER Body 是唯一 allowed owner。second pass 虽保留 `m_bodyTracks` fallback 表达式，但按当前 allowed-owner 不变量通常应命中本帧 Body evidence。
+- Hand 主流程拆为 owner 槽位更新、未匹配恢复、孤儿/过期清理和发布四个 private 子阶段，未引入新的 public API 或中间领域类型。
 - driver face selection 当前拒绝稳定 `BACK_PASSENGER` 候选，并使用配置化 preferred anchor、变小惩罚和变大增益抑制后排误绑定。
 - `DmsTrack::Init/Update` public API 和四类 legacy map ABI 保持不变；current 组记录当前事实、实现边界和验证缺口，历史记录只作为追溯证据。
 
@@ -149,11 +152,10 @@ Tracking 当前代码事实以 `AtomicResult` 四类 map 和 `DmsTrack::Update -
 
 - 本模块负责：检测结果关联、轨迹生命周期、人员类型稳定判定、face/hand 与 body 的关联和输出。
 - 本模块不负责：新增检测器能力、运行时效果验收、下游业务判决逻辑。
-- 当前仍存在的开放问题集中在代表性样本运行验证、2m/5m profile runtime replay、callback/fusion 同 key 消费确认和输出唯一性边界，而不是 head-first 主框架缺失。
+- 当前架构口径为 face-first：Face 先建立 identity/key 和唯一 DRIVER，Body 绑定 Face，Hand 再绑定 DRIVER Body。开放问题集中在运行验证、Body 重绑定和左右 Hand 槽稳定性。
 - 当前主框架已落地并通过本地编译/静态审查记录，但不是运行效果已验收。
-- DmsTrack 内部可读性重构和三笔 hand lambda 整理没有 runtime replay 或单元测试证明多帧运行等价。
-- body-to-hand finalized snapshot 改变了 hand 阶段内部 body 输入来源；后续继续扩展时仍需要更强的回归保护。
-- 当前优先缺口是 2m/5m runtime replay、driver-bound hand evidence 行为验证、bounded cache 验证和区域级唯一性验证。
+- `244e5300` 的 DmsTrack 可读性重构没有 runtime replay 或新增单元测试证明多帧运行等价；Face 行为不允许借重构改变。
+- 当前优先缺口是 Body owner 交接、Hand 左右槽恢复/清理、bounded cache 和区域级唯一性验证。
 - `tracking_interfaces_evidence` 不再承担默认输入职责，只作为接口边界的辅助证据。
 
 ## 0.5 Current Document Roles
@@ -200,7 +202,7 @@ Tracking 当前代码事实以 `AtomicResult` 四类 map 和 `DmsTrack::Update -
 - 2026-06-09 可读性重构未执行 runtime replay 或新增单元测试；本次板端验证按任务边界为 not required。
 - face / left_hand / right_hand 的区域级最终唯一输出，仍不能被当前代码静态证据完全证明为已闭合。
 - ID 连续性仍缺少运行时证据。
-- head-first 第一轮已实现并通过本地编译；2m/5m profile 分流已完成本地编译和独立 review，但板端/视频回放、callback/fusion 同 key 消费和 hand owner 运行日志仍需后续验证。
+- face-first 主线已实现；`244e5300` 只做结构与注释整理，板端/视频回放、callback/fusion 同 key 消费和 hand owner 运行日志仍需后续验证。6 月分支中的 profile gate、driver-only Body 和 body-to-hand snapshot 只作为历史方案追溯，不是当前代码事实。
 - OccupantTrack 不作为后续默认路线；未来 hand 增强优先验证 HumanPose-assisted hand association。
 
 ## 0.8 Historical Mapping

@@ -38,42 +38,42 @@ sources:
   - 90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/head-first跟踪代码重构闭环记录-2026-05-23.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack内部结构与可读性重构分析-2026-06-08.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack 当前分支跟踪架构可读性重构闭环记录-2026-08-12.md
   - /home/jichao/dms/source/utils/track.cpp
 scope: 适用于判断 Tracking 当前有哪些证据已经成立、哪些结论仍需更高等级验证；为默认实现输入链提供验证边界，不承接设计或规范正文。
 risks:
   - 本文档只记录当前验证状态和证据边界；每个历史小步的详细验证记录保留在 Current Maintenance Records 与 subpower_runs。
   - 当前已有编译/静态审查证据不能替代 runtime replay、单元测试或代表性视频集验收。
-updated_at: 2026-06-17
+updated_at: 2026-08-12
 ---
 
 ## 0.1 Evidence Status
 
 ### 0.1.1 已由当前代码静态证据支撑
 
-- head/face 使用恒速度模型并作为 identity 主锚点
-- body/torso evidence 以 head trackId 为 key，使用预测、匹配、acquisition 与生命周期管理
+- Face 使用恒速度模型并作为 identity 主锚点
+- Body evidence 以 Face trackId 为 key，使用预测、匹配、acquisition 与生命周期管理
 - hand 使用恒加速度模型，但 2026-04-07 起不再向下游输出 miss 预测框
-- body 结果作为 head-owned evidence legacy 输出，不再作为乘员级主锚点
+- Body 结果作为 face-owned evidence legacy 输出，不再作为乘员级主锚点
 - 上游结果事实源是 body / face / leftHand / rightHand 四类 map
-- driver head 最终唯一化已在代码中显式实现
-- 更新顺序为 `face/head -> selectDriverHead -> body evidence -> hand evidence`
+- DRIVER Face 最终唯一化已在代码中显式实现
+- 更新顺序为 `updateFaceTracks -> selectDriverFace -> Face publish -> updateBodyTracks -> updateHandTracks`
 - 配置从 `track_params.json` 读取，并以 `DEFAULT` 加车型覆盖
-- `camera_type == "2m"` 时 body/hand phase 被跳过，旧 body/retired body/hand cache 会被清理
-- 5m/default profile 下 body evidence 只对 selected driver face 获取和发布，非 driver body cache 不发布
-- hand 内部 body 输入来自 `updateBodyTracks` 返回的 `driverBodyEvidence` snapshot，不再反读 `curResult->m_bodyTrackResultMap`
+- 当前没有 `camera_type` 驱动的 Body/Hand profile gate，两个 phase 每帧执行
+- body evidence 先处理 selected driver face，随后处理其余 active face owner，稳定证据可按 owner 发布
+- Hand 从 `curResult->m_bodyTrackResultMap` 读取稳定 DRIVER Body evidence；second pass 的内部 Body fallback 在当前 allowed-owner 不变量下通常不应成为实际输入
 - `m_humanTrackResultMap` 只是导出兼容层，不是上游事实源
 - track 输出在写入四类 track map 前已有统一 sanitize/clamp 与非法框过滤
 - initialized face first pass 已有连续性门控；driver 相关 face 绑定使用更严格的 `distanceLoss <= 0.45`
 - first pass 被连续性门控明确拒绝的 face track，同帧不会再通过 second pass 绕回匹配
 - 2026-06-12 后，driver face selection 已验证在目标 2m 回灌样本中不会选择 stable BACK_PASSENGER 后排候选，且不依赖收紧 `distanceLoss`。
-- 当前代码已完成 head-first 第一轮实现：driver identity 来自 head/face track，body/hand 作为 head-bound evidence 组织
+- 当前代码已完成 face-first 第一轮实现：driver identity 来自 Face track，Body 作为 face-owned evidence，Hand 受 DRIVER Body 约束
 
 ### 0.1.2 已有验证证据等级
 
-- `bash scripts/compile_j6b.sh`：head-first 第一轮、2026-06-17 profile split、driver-bound body evidence、body-to-hand snapshot 和三笔 hand lambda 可读性整理均已有通过记录，最终目标为 `[100%] Built target sdk`。
-- `git diff --check`：上述 2026-06-17 代码小步均已有通过记录。
-- 独立 review：profile split、driver-bound body evidence、body-to-hand snapshot 和三笔 hand lambda 可读性整理均已有 `approved` 记录。
-- `interface-abstraction-implementation-guard`：body-to-hand snapshot 涉及 private phase-level 方法签名变化，已有守门和 diff 审计记录；三笔 hand lambda 整理未改变 header/private phase 方法签名。
+- `bash scripts/compile_j6b.sh`：`244e5300` 最终注释补充前的同一结构重构版本已达到 `[100%] Built target sdk`；最终 clean-commit 全量重跑两次被中断，因此不声明最终提交已完成一次不间断全量构建。
+- `git diff --check`：`244e5300` 提交前通过；当前工作区仅有一处 Face loss 注释澄清，当前 diff check 仍通过。
+- 代码审计：public API 未变化；Face 只抽取纯计算 helper，Body 只抽取匹配/选择 helper，Hand 拆为四个 private 子阶段；没有引入 2m/5m profile、driver-only Body 或 body-to-hand snapshot。
 - 板端/日志样本：2026-06-12 后排误跟踪主驾样本二次回灌中 `face-first driver face select face=1` 为 0 次，`face=0` 为 189 次，`reject back passenger` 为 126 次，`reject smaller face=1` 为 61 次。
 - 历史 coredump 修复已有目标帧覆盖且未再出现 `abort` / `core dumped` 的板端记录，但该记录不代表 hand 功能指标重新验收。
 
@@ -85,10 +85,10 @@ updated_at: 2026-06-17
 - 运行时 replay / 视频流级验证
 - face / hand fallback 路径是否在更广泛运行样本中完全满足唯一性约束
 - 对快速运动恢复的效果改善是否能推广到代表性样本集
-- 2m profile 下 body/hand output 长序列持续为空且无 stale cache 复活
-- 5m profile 下 driver-bound body/hand evidence 不跨 owner
-- body-to-hand finalized snapshot 下 hand owner source、left/right slot 和 orphan cleanup 的序列级行为
-- 三笔 hand lambda 可读性整理只具备行为等价的静态/编译/review 证据，不证明运行效果改善
+- 主驾 body 消失后是否会重绑定到副驾 body
+- 同一只手在 left/right slot 间反复归属的序列级行为
+- stable DRIVER Body owner 暂时丢失时，未进入 allowed owner 集合的 Hand slot 是否持续推进 miss 并按时清理
+- `244e5300` 只具备静态审计、diff check 和注释补充前全量编译证据，不证明运行行为等价或效果改善
 
 ## 0.2 Current Review Conclusion
 
@@ -109,11 +109,11 @@ updated_at: 2026-06-17
   4. 快速运动恢复样本，验证 body/face/hand 的 `predBox / detection / updated box` 三者关系是否按预期收敛
 - 若后续要重新评估 DMS driver false-yawn 的根因消除，建议补更长窗口 replay，专门量化 identity-swap 风险
 - 若后续继续优化 2m 场景，建议补更长 2m 视频集，对 `driver face reject`、`driver face match`、`driver second-pass face match orphan=` 做计数型统计，而不是只依赖抽样日志。
-- 若后续进入 head-first 运行验收，必须补：
-  1. `track_params.json` 车型 profile 下 body/hand disabled 且不发布 stale body/hand 的回放验证；
-  2. 5m profile 下只发布 selected driver face-bound body/torso 的 owner 稳定性验证；
-  3. hand owner source、left/right slot、orphan takeover 在 finalized body snapshot 边界下的手部大幅运动和多人干扰序列统计；
-  4. driver identity source 日志，区分 `head_first`、`body_fallback` 与 reject reason。
+- 若后续进入 face-first 运行验收，必须补：
+  1. 主驾 body 消失、主副驾同时存在及 owner 交接场景的 body 归属统计；
+  2. hand owner source、left/right slot、orphan takeover 在手部大幅运动和多人干扰序列中的统计；
+  3. driver identity source 日志，区分 `head_first`、`body_fallback` 与 reject reason；
+  4. `244e5300` 与重构前基线的代表性视频输出 diff，确认结构整理未改变 Face 量产行为。
 - 若后续使用 HumanPose-assisted hand association，需要单独验证 wrist 已有证据链，以及 elbow/shoulder/arm direction 对 hand owner、left/right、miss recovery 的增益。
 - 若后续继续沿用本轮 sanitize/clamp 方案，建议补一次日志降噪，避免 `track sanitize clamp` 在板端形成噪声洪泛
 - 若后续代码再次触及 `track.cpp`、`AtomicResult` 或导出链路，应重新跑 `knowledge_sync_check`，并再次判断 recoverability 状态。
@@ -133,7 +133,7 @@ updated_at: 2026-06-17
   - 代码里仍存在 fallback 输出路径，但 current 文档已经明确把该风险归入验证边界，而不是恢复入口缺口。
 - 保留限制：
   - 该判定只说明 current 组可恢复当前主态，不等价于运行效果已验证闭环。
-  - 由于仍存在 replay、区域级唯一性、ID 连续性和 head-first 落地验证缺口，本组不声明单次恢复完全闭环。
+  - 由于仍存在 replay、区域级唯一性、ID 连续性和 face-first 落地验证缺口，本组不声明单次恢复完全闭环。
   - 若默认恢复 bundle、事实源代码路径或历史文档入口关系变化，必须重新判定本节。
 
 ## 0.6 Historical Mapping
@@ -143,7 +143,7 @@ updated_at: 2026-06-17
 - 2026-04-05 DMS 主驾打哈欠误报修复的 accepted-with-risks 结论已收敛到本文件，但仍保留残余风险描述
 - 2026-04-05 后排乘客头部误跟踪修复的 pass-with-risks 结论已收敛到本文件
 - 2026-05-08 2m 摄像头后排 head 误绑定主驾修复的板端日志证据已收敛到本文件
-- 2026-05-09 head-first over body-first 决策已收敛到本文件，但不提升为已验证运行事实
+- 2026-05-09 历史决策记录使用 head-first/body-first 对比术语；current 统一采用 face-first 口径，该决策本身不提升为已验证运行事实
 - 当前 validation 仅负责证据与边界判定，不承担设计职责或实现职责
 
 ## 0.7 Current Sync Rule
@@ -155,7 +155,7 @@ updated_at: 2026-06-17
   - 默认恢复所需的验证边界变化
   - DMS driver false-yawn 的 acceptance standard 或风险边界变化
   - 2m 摄像头 head/body association 的 gate、日志证据或风险边界变化
-  - head-first 实现、回放或板端验证证据状态变化
+  - face-first 实现、回放或板端验证证据状态变化
 - absorbs_history_from:
   - `多目标跟踪功能审核记录-2026-03-27.md`
   - `多目标跟踪设计失配修复未闭环记录-2026-03-27.md`
