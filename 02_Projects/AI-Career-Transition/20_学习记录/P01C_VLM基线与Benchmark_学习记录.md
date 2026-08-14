@@ -9,15 +9,18 @@ sources:
   - 2026-08-10 Phase 1-C VLM 数据流与视频持续闭眼任务主动学习对话
   - 2026-08-11 Phase 1-C baseline 可复现性、任务合同、分组门禁、case 证据边界、模型选择与本地环境主动学习对话
   - 2026-08-11 Phase 1-C baseline 合同续测与 Colab 实践路线确认
+  - 2026-08-14 Qwen2.5-VL-3B 单图 smoke test 用户运行报告
   - 02_Projects/AI-Career-Transition/10_学习文档/P01C-01_VLM基线与Benchmark_学习文档.md
   - 02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
+  - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLM单图SmokeTest_2026-08-14_实践记录.md
 scope: Phase 1-C 的个人诊断题、诊断结论、证据状态、实践准备和恢复任务。
 risks:
   - 对话诊断达到 working 不等于真实模型运行、benchmark 建立或阶段门禁完成。
   - 本记录中的 WSL 和 Colab 环境信息均为阶段快照；执行前必须重新验证并保存实际运行证据。
   - 四类图像 case 仍是设计，未落盘为公开、合成或明确授权数据集。
+  - 单图 smoke test 是用户报告的运行证据，代理未独立复跑；严格 JSON 与归一化评分合同尚未冻结。
 single_pass_recoverable: false
-updated_at: 2026-08-11
+updated_at: 2026-08-14
 ---
 
 # 1 Phase 1-C VLM 基线与 Benchmark 学习记录
@@ -34,7 +37,7 @@ updated_at: 2026-08-11
 | projector 与 token 压缩 | working | 对话诊断 |
 | 视觉证据与问题语义 | working | 对话诊断 |
 | 视频与多帧输入 | partial | 定量采样边界待真实输入预算验证 |
-| 最小 VLM baseline | partial | 理论合同达到 working，真实运行仍为 not_verified |
+| 最小 VLM baseline | partial | 单图 smoke test 已有 user_reported 运行证据；严格输出合同和 zero-shot 聚合仍未完成 |
 | benchmark 草案 | partial | case 边界已形成，图片未落盘 |
 | 分组评测与微调边界 | working | 评测设计已理解，结果未执行 |
 
@@ -101,13 +104,28 @@ updated_at: 2026-08-11
 
 随后用户把目标运行环境改为 Google Colab，并报告计划使用 T4 16 GB GPU、Google Drive 挂载模型和数据。该信息是用户提供的目标配置，不是代理独立读取的运行证据；实际 GPU、驱动、PyTorch CUDA runtime、依赖版本、模型文件 hash、图片路径和标注仍需在实验开始时保存。
 
-## 1.7 下一步恢复任务
+## 1.7 2026-08-14 单图 smoke test
 
-1. 在 Colab 运行开始时保存 `nvidia-smi`、`torch.cuda.is_available()`、`torch.version.cuda`、Python 与关键包版本。
-2. 固定实际模型目录、模型文件 hash、processor 配置、候选图片路径与 MD5、确切标注路径、JSON 输出协议和确定性解码参数。
-3. 使用一张证据清晰、标注明确的图片完成 smoke test，验证加载、预处理、prompt、推理、JSON 解析与记录链路，并保存原始输出、耗时和显存峰值。
-4. 链路稳定后冻结小型 case 集、评分规则和门禁，再运行 zero-shot baseline。
-5. 先做 zero-shot 错误分类；只有错误表明示例可能改善格式、任务边界或证据使用时，再进行 few-shot 理论检查和独立对比。
-6. few-shot 示例不得从已查看的最终留出集失败样本中挑选；不从微调开始。
+用户在 Google Colab 使用本地 Google Drive 模型目录中的 Qwen2.5-VL-3B-Instruct 完成两次单图推理：首次开放描述验证多模态生成链路；随后使用双眼状态 JSON prompt 和用户提供的左右眼 `closed` 标注完成任务特定 smoke test。
+
+任务特定运行结果：
+
+- `execution_success = true`。
+- 归一化后左右眼均为 `closed`，与用户提供标注一致。
+- 耗时 `13.581s`。
+- 峰值显存 allocated `8.631 GiB`，reserved `9.137 GiB`。
+- 原始输出带 Markdown 代码围栏，因此 `raw_format_success = false`；去除围栏后 `semantic_pass_after_normalization = true`。
+- 用户代码已设置 `do_sample=false`、`num_beams=1`、`max_new_tokens=64` 和 seed `47`。
+- 当前评分函数依赖全局 `expected`；扩展多 case 前需要改为显式参数。
+
+完整配置、原始输出和证据边界见 [[02_Projects/AI-Career-Transition/30_实践记录/P01C_VLM单图SmokeTest_2026-08-14_实践记录]]。本次结果不等于 zero-shot baseline 已运行，也不支持聚合 accuracy。
+
+## 1.8 下一步恢复任务
+
+1. 决定严格裸 JSON 与允许代码围栏归一化之间的评分规则，同时保留格式合规率和归一化后语义正确率。
+2. 把 `expected` 改为评分函数显式参数；保存环境版本、模型 hash、图片 hash 和完整标注路径。
+3. 冻结小型 case 集、评分规则和门禁，再运行 zero-shot baseline。
+4. 先做 zero-shot 错误分类；只有错误表明示例可能改善格式、任务边界或证据使用时，再进行 few-shot 理论检查和独立对比。
+5. few-shot 示例不得从已查看的最终留出集失败样本中挑选；不从微调开始。
 
 在完成最小 baseline 前，不把任何 case 集称为 benchmark。
