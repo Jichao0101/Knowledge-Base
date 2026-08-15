@@ -10,17 +10,19 @@ sources:
   - 2026-08-11 Phase 1-C baseline 可复现性、任务合同、分组门禁、case 证据边界、模型选择与本地环境主动学习对话
   - 2026-08-11 Phase 1-C baseline 合同续测与 Colab 实践路线确认
   - 2026-08-14 Qwen2.5-VL-3B 单图 smoke test 用户运行报告
+  - 2026-08-15 Qwen2.5-VL-3B 5-case zero-shot、输入身份审计与固定 ROI 诊断用户运行报告
   - 02_Projects/AI-Career-Transition/10_学习文档/P01C-01_VLM基线与Benchmark_学习文档.md
   - 02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
   - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLM单图SmokeTest_2026-08-14_实践记录.md
+  - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMZeroShot初始基线_2026-08-15_实践记录.md
 scope: Phase 1-C 的个人诊断题、诊断结论、证据状态、实践准备和恢复任务。
 risks:
   - 对话诊断达到 working 不等于真实模型运行、benchmark 建立或阶段门禁完成。
   - 本记录中的 WSL 和 Colab 环境信息均为阶段快照；执行前必须重新验证并保存实际运行证据。
-  - 四类图像 case 仍是设计，未落盘为公开、合成或明确授权数据集。
-  - 单图 smoke test 是用户报告的运行证据，代理未独立复跑；严格 JSON 与归一化评分合同尚未冻结。
+  - 当前 5 个图像 case 为内部授权开发/诊断集；每组仅 1 个样本，不能视为稳定 benchmark 或最终留出集。
+  - 单图 smoke test 与 zero-shot 基线均为用户报告的运行证据，代理未独立复跑；模型 hash 和精确 checkpoint 身份尚未冻结。
 single_pass_recoverable: false
-updated_at: 2026-08-14
+updated_at: 2026-08-15
 ---
 
 # 1 Phase 1-C VLM 基线与 Benchmark 学习记录
@@ -37,9 +39,9 @@ updated_at: 2026-08-14
 | projector 与 token 压缩 | working | 对话诊断 |
 | 视觉证据与问题语义 | working | 对话诊断 |
 | 视频与多帧输入 | partial | 定量采样边界待真实输入预算验证 |
-| 最小 VLM baseline | partial | 单图 smoke test 已有 user_reported 运行证据；严格输出合同和 zero-shot 聚合仍未完成 |
-| benchmark 草案 | partial | case 边界已形成，图片未落盘 |
-| 分组评测与微调边界 | working | 评测设计已理解，结果未执行 |
+| 最小 VLM baseline | partial | 单图 smoke test 和 5-case zero-shot 已有 user_reported 证据；执行与解析均为 100%，case exact match 为 20%，出现 closed 类预测坍缩 |
+| benchmark 草案 | partial | 5 个内部授权 case 已形成开发/诊断集，但每组仅 1 个且已参与错误分析，不能作为最终留出集 |
+| 分组评测与微调边界 | working | 已按组记录首轮结果，但样本量不足；few-shot、独立留出集和正式门禁尚未完成 |
 
 ## 1.3 2026-08-10 主动学习诊断
 
@@ -120,12 +122,29 @@ updated_at: 2026-08-14
 
 完整配置、原始输出和证据边界见 [[02_Projects/AI-Career-Transition/30_实践记录/P01C_VLM单图SmokeTest_2026-08-14_实践记录]]。本次结果不等于 zero-shot baseline 已运行，也不支持聚合 accuracy。
 
-## 1.8 下一步恢复任务
+## 1.8 2026-08-15 zero-shot 初始基线
 
-1. 决定严格裸 JSON 与允许代码围栏归一化之间的评分规则，同时保留格式合规率和归一化后语义正确率。
-2. 把 `expected` 改为评分函数显式参数；保存环境版本、模型 hash、图片 hash 和完整标注路径。
-3. 冻结小型 case 集、评分规则和门禁，再运行 zero-shot baseline。
-4. 先做 zero-shot 错误分类；只有错误表明示例可能改善格式、任务边界或证据使用时，再进行 few-shot 理论检查和独立对比。
-5. few-shot 示例不得从已查看的最终留出集失败样本中挑选；不从微调开始。
+用户修复了 smoke-test prompt 中的答案示例泄露，并把 `expected` 改为 `infer_qwen_vl` 的显式参数。输出合同现允许一个可选的 `json` Markdown 代码围栏：先归一化再解析，但仍要求 JSON 只有 `left_eye` 和 `right_eye` 两个枚举字段。
+
+用户报告的 Colab 环境为 Python `3.12.13`、PyTorch `2.11.0+cu128`、PyTorch CUDA runtime `12.8`、Transformers `5.15.0`、Accelerate `1.14.0`、`qwen-vl-utils 0.0.14`、Pillow `11.3.0`、Tesla T4、driver `580.82.07`。`nvidia-smi` 显示 CUDA `13.0`，这里只解释为驱动支持上限。
+
+5 个内部授权 case 在统一 zero-shot 配置下全部执行并成功解析，但模型对 10 只眼睛均预测为 `closed`：
+
+- execution success：`5/5 = 100%`。
+- normalized JSON parse success：`5/5 = 100%`。
+- case exact match：`1/5 = 20%`。
+- per-eye accuracy：`2/10 = 20%`。
+- 平均推理时间：`6.841s`。
+- 5 个原图 MD5 和处理后 tensor MD5 均不同，排除了循环中重复输入同一图片/tensor。
+- case 3 使用固定人脸 ROI 后仍把 `open/open` 误判为 `closed/closed`；耗时从全图的 `6.094s` 降至 `1.723s`，但语义错误未修复。
+
+当前错误分类为 `closed` 类预测坍缩。证据支持“Qwen2.5-VL-3B-Instruct 在当前任务合同和域上不能可靠完成细粒度眼态 zero-shot 分类”，但不支持把唯一根因写成参数量不足。完整逐 case 证据见 [[02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMZeroShot初始基线_2026-08-15_实践记录]]。
+
+## 1.9 下一步恢复任务
+
+1. 冻结当前 5 个 case 为开发/诊断集；不再用它们声明最终泛化性能。
+2. 若需要增强证据，只增加一个运行前未查看的小型内部授权留出集，并冻结 ROI、prompt、归一化和门禁。
+3. 根据课程投入产出决定做一次最小 few-shot 对比，或将 few-shot 标为 `waived_by_scope`；3B/7B 模型规模对比不是当前阻塞项。
+4. 若进入可移交 benchmark，再补模型文件 hash、精确 checkpoint 身份、许可证快照和更充足的分组样本。
 
 在完成最小 baseline 前，不把任何 case 集称为 benchmark。

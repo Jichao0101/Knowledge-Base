@@ -17,16 +17,18 @@ sources:
   - 2026-08-11 Phase 1-C baseline 可复现性、case 证据边界、分组门禁和本地实践准备主动学习
   - 2026-08-11 Phase 1-C baseline 合同续测、Colab 环境切换与实践顺序确认
   - 2026-08-14 Qwen2.5-VL-3B 单图 smoke test 用户运行报告
+  - 2026-08-15 Qwen2.5-VL-3B 5-case zero-shot、输入身份审计与固定 ROI 诊断用户运行报告
   - 02_Projects/DMS/03_Model_Training/model_training_overview_current.md
   - 02_Projects/DMS/08_EyeStatus/eyestatus_overview_current.md
   - 02_Projects/agent-trajectory/agent_trajectory_overview_current.md
   - 02_Projects/AI-Career-Transition/00_规划/AI职业转型整体学习方案.md
   - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLM单图SmokeTest_2026-08-14_实践记录.md
+  - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMZeroShot初始基线_2026-08-15_实践记录.md
 scope: 职业方向、能力补齐、学习路线、作品建设、阶段验证与求职准备。
 risks:
   - 学习范围横跨模型、系统和 Agent，若缺少阶段性交付，容易再次退化为零散学习或 vibe coding。
   - 本项目记录的是规划和阶段证据，不代表目标能力已经掌握或项目已经完成生产验证。
-updated_at: 2026-08-14
+updated_at: 2026-08-15
 ---
 
 # 1 AI 职业转型项目总览
@@ -107,11 +109,13 @@ DMS/OMS 视觉感知与端侧部署项目基础
 - 当前主阶段已切换为 Phase 1-C“VLM 基线与 benchmark 草案”：先建立 VLM 输入到输出的数据流，再运行开源小型 VLM 的最小图像问答基线。
 - 已新增 [[02_Projects/AI-Career-Transition/10_学习文档/学习文档索引]] 管理历史学习文档归类；[[02_Projects/AI-Career-Transition/10_学习文档/P01C-01_VLM基线与Benchmark_学习文档]] 已由教学草案转为 `active` 的阶段学习文档，但这不代表 Phase 1-C 已完成。
 - Phase 1-C 的 baseline 可复现合同、执行/case/聚合/门禁分层、留出集污染、分组与安全关键组门禁、逐样本审计要求以及单图 case 证据边界已达到对话诊断意义上的 `working`。
-- Phase 1-C 后续诊断补齐了输入内容身份、Qwen 处理器封装、结构化输出、执行失败分母、ROI 一致性、确定性解码和 CUDA 环境证据边界；baseline 理论合同已达到 `working`，但整体仍因缺少运行证据而保持 `partial`。
-- 目标运行环境已由 WSL RTX 4050 调整为用户报告的 Google Colab T4 16 GB；驱动、PyTorch CUDA runtime、依赖版本和文件 hash 尚未冻结。单图运行证据见后文，zero-shot 多 case、聚合指标和分组评测仍为 `not_verified`。
+- Phase 1-C 后续诊断补齐了输入内容身份、Qwen 处理器封装、结构化输出、执行失败分母、ROI 一致性、确定性解码和 CUDA 环境证据边界；baseline 理论合同已达到 `working`，实际 zero-shot 已运行但语义能力失败，整体因缺少独立留出集、few-shot 范围决定和完整模型身份而保持 `partial`。
+- 目标运行环境已由 WSL RTX 4050 调整为 Google Colab T4。用户已报告并保存 Python、PyTorch、PyTorch CUDA runtime、依赖、driver、GPU 和显存快照；模型文件 hash、精确 revision 和许可证快照尚未冻结。
 - 当前实践顺序固定为单图 smoke test、冻结小型 case 集、zero-shot baseline、错误分类、few-shot 对比；不再追加一轮泛化的 few-shot 理论诊断来替代 baseline 实验。
 - 2026-08-14 用户报告已在 Google Colab 使用 Qwen2.5-VL-3B-Instruct 完成单图 smoke test：链路执行成功，归一化后双眼状态与用户标注一致，耗时 `13.581s`，峰值显存 allocated `8.631 GiB`、reserved `9.137 GiB`；原始输出带 Markdown 代码围栏，因此严格裸 JSON 未通过。完整边界见 [[02_Projects/AI-Career-Transition/30_实践记录/P01C_VLM单图SmokeTest_2026-08-14_实践记录]]。
-- 上述结果是用户报告、代理未独立复跑的单 case 证据，不代表 zero-shot baseline、聚合 accuracy、分组评测或 benchmark 已完成；环境版本、模型 hash 和图片 hash 仍待冻结。
+- 2026-08-15 用户冻结允许单个 `json` 代码围栏的归一化合同，修复答案示例泄露和 `expected` 全局变量问题，并在 5 个内部授权 case 上完成 zero-shot 初始基线。execution/parse success 均为 100%，case exact match 与 per-eye accuracy 均为 20%；模型对所有眼睛输出 `closed`。不同原图和处理后 tensor 的 MD5 排除了重复输入，固定人脸 ROI 仍未修复 clear-open 失败。完整证据见 [[02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMZeroShot初始基线_2026-08-15_实践记录]]。
+- 上述结果均为用户报告、代理未独立复跑。当前 5 个 case 已参与错误分析，只能作为开发/诊断集；它们证明初始 zero-shot baseline 已运行并失败，不代表稳定 benchmark、最终分组能力或正式门禁已经完成。
+- 当前不把 3B/7B 模型规模对比作为 Phase 1-C 阻塞项。下一步若继续增强证据，优先建立小型未查看留出集，再决定最小 few-shot 对比是执行还是 `waived_by_scope`。
 - Agent Systems 系统学习文档继续作为后续学习骨架，不在本次切换中替代 Phase 1-C 主线。
 - `global_step` 持久化、磁盘 checkpoint、错误 label mask、变长 micro-batch、性能测量和生产训练加固作为后续工程项保留，不阻塞本次学习主线切换。
 - 当前不创建五份 current 文档组；待本项目形成持续迭代的设计、实现和验证事实后再评估 current 化。
