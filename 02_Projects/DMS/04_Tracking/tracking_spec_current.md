@@ -1,6 +1,6 @@
 ---
 title: Tracking Spec Current
-summary: Tracking 当前可执行规范文档，记录 face-first 行为约束、face-owned Body、DRIVER-Body-owned Hand、驾驶员 Face 过滤规则和可读性重构边界；保持四类 map ABI。
+summary: Tracking 当前可执行规范文档，记录 face-first 行为约束、face-owned Body、Hand 已有轨迹优先与空侧获取、图像侧到实际侧发布映射及驾驶员 Face 过滤规则；保持四类 map ABI。
 status: verified
 doc_role: current
 truth_role: current
@@ -41,6 +41,7 @@ sources:
   - 02_Projects/DMS/04_Tracking/tracking_implementation_current.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack 当前分支跟踪架构可读性重构闭环记录-2026-08-12.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/Hand跟踪与空侧获取分离及实际左右发布映射记录-2026-08-17.md
   - 90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
   - /home/jichao/dms/include/utils/track.h
   - /home/jichao/dms/source/utils/track.cpp
@@ -52,7 +53,7 @@ scope: 适用于按当前规范修改 Tracking 代码时作为默认规范输入
 risks:
   - 本规范只约束当前已收敛的设计与实现边界，不把仍未闭合的项伪装成已验收硬规则。
   - 若后续代码修改影响 `track.cpp`、`AtomicResult` 或导出链路，需先做 `knowledge_sync_check` 并同步更新本文件。
-updated_at: 2026-08-12
+updated_at: 2026-08-17
 ---
 
 ## 0.1 Spec Scope
@@ -92,9 +93,10 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - Face 不应再被异常 raw Body box 扩大 owner；DRIVER Face reject 不能被同帧其他路径绕回。
 - 当前代码中 Face 先于 Body evidence 初始化和匹配，并通过 `allocateFaceTrackId` 持有 identity；legacy key 投影应继承该 Face id。
 - `face` 初始化后允许与 `body` 短时解耦，不得在 `body` 暂失时被无条件同步清理。
-- Hand 必须按每个 face-owned Body evidence 的 `left/right` 两个槽位建模，不得退回统一 Hand truth source。
-- Hand owner 必须受稳定 DRIVER Body/torso 约束；当前 owner 集合从 `curResult->m_bodyTrackResultMap` 构造。second pass 虽保留内部 `m_bodyTracks` fallback 表达式，但正常 allowed-owner 不变量下必须能够取得本帧 Body evidence。
-- `hand` 初始化后只允许在所属 Body 生命周期内按槽位维护；Body 删除时必须同步删除同 owner 的 left/right Hand state。
+- Hand 必须按同一 face-bound Body 继承 id 下的 `left/right` 两个内部图像侧状态建模，不得退回统一 Hand truth source。
+- Hand 候选域必须受稳定 DRIVER Body/torso 约束；允许的继承 id 集合从 `curResult->m_bodyTrackResultMap` 构造，Body 不为 Hand 创建新的 identity。
+- 已初始化 Hand track 必须先与 detection 匹配并在本阶段完成 hit/miss；只有 tracking 后剩余的 detection 才允许与未初始化侧别做 acquisition。空侧不得与已有轨迹进入同一竞争矩阵。
+- `hand` 初始化后只允许在所属 Body 生命周期内按侧别维护；Body 删除时必须同步删除同 id 的 left/right Hand state。
 - Face 短时 miss 时，Body 可继续内部 tracking；Hand 对外发布仍必须存在当前已发布且稳定为 DRIVER 的 Body evidence。Face 真正删除会级联删除 Body/Hand，不保留 orphan slot。
 - 当前代码中 `hand` miss 只推进内部生命周期，不再向下游发布预测框；若后续重新引入短时预测输出，必须先更新 validation 风险并验证 handoff/handpose 消费影响。
 - 不再维护 retired Body 空间锚点，也不允许新 Body 通过同区域判断接管或清理旧 Hand；旧 Hand 必须在原 Body 删除点完成级联清理。
@@ -131,7 +133,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - 第一阶段不得破坏四类 map ABI；face-first 的内部绑定关系必须投影回现有 map。
 - Occupant/PersonTrack + PartTrack 不属于当前 required behavior，也不作为默认未来路线；若重新立项，需重新形成独立决策并更新 current 文档和 ABI 边界。
 - `DmsTrack::Init/Update` 是当前唯一 public tracker API；内部可读性重构不得增加 public phase API。
-- `track.h` private surface 以 `3a2ed302` 为当前组织基线：保留长期状态、配置/ID 基础能力、四个 phase-level 方法，以及 Hand 的 owner 更新、未匹配恢复、过期清理、发布四个职责明确的 private 子阶段。
+- `track.h` private surface 以 `13efd826` 为当前组织基线：保留长期状态、配置/ID 基础能力、四个 phase-level 方法，以及 Hand 的已有轨迹匹配、空侧获取、过期清理、发布四个职责明确的 private 子阶段。
 - 不得把 `solve/apply/advance/finalize/project/publish` 全套步骤提升为 header-level private helper 脚本。只有当某个步骤拥有独立契约、独立复用、独立测试或独立失败边界时，才允许在实现前重新做抽象必要性审计。
 - `FrameBodyView`、`HandAssignmentRow`、`AssignmentResult`、`BodyEdgeMode`、`LifecycleContext/Payload/Eligibility` 不属于当前规范要求的稳定类型；默认使用 `.cpp` internal、函数局部 struct/lambda、局部容器或已有 `TrackInfo` 表达。
 - face occlusion 下游已具备接口与逻辑判断，track 内部不需要再做 face occlusion 业务分支。
@@ -140,13 +142,12 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 
 - assignment evaluator 返回真实 cost 或有限 forbidden cost；当前 forbidden cost 固定为 `1e6f`，所有配置化 `dummyLoss` 必须显著小于该值。
 - Face 可复用 `.cpp` internal assignment solver，也可在只有 Face 使用且直接调用 Hungarian 更清晰时删除该 helper。solver 若存在，只负责矩阵扩展、dummy、forbidden 和 index 结果解析，不感知 track/owner/slot 领域语义。Body/Hand 不要求为了“统一 assignment”强制复用该 solver。
-- Face 保持全局匹配语义；Body 按 face owner 逐一做 tracking/face-anchor selection；Hand 按稳定 DRIVER body owner 的 left/right 槽位关联。
-- Body/Hand 的 tracking loss、acquisition loss 与 `dummyLoss` 仍需按场景标定；Body tracking 失败后只有当帧有效 Face 才允许 face-anchor selection。Hand 未匹配恢复仍是后续 owner 误绑定验证重点。
+- Face 保持全局匹配语义；Body 按 face id 逐一做 tracking/face-anchor selection；Hand 按稳定 DRIVER Body 继承 id 先做已有轨迹匹配，再做空侧 acquisition。
+- Body/Hand 的 tracking loss、acquisition loss 与 `dummyLoss` 仍需按场景标定；Body tracking 失败后只有当帧有效 Face 才允许 face-anchor selection。Hand tracking 使用 `HandMatchLoss`，空侧 acquisition 使用 `HandAnchorLoss`，两者不得重新混入同一 assignment 竞争。
 - assignment 结果只能是 `.cpp` 或函数局部短期契约，不得进入稳定 header、cleanup、finalize、projection 或 publish；最小结果只保留 `rightByLeft/-1` 与确有消费方的 `unmatchedRight`。
 - Body 的 sanitize/lifecycle finalize 必须先于 legacy publish 和 Hand 读取 `m_bodyTrackResultMap`。Hand 没有 tracker 内部下游，不得为形式统一新增 `FrameHandView`、publish payload 或 eligibility。
-- Hand assignment 的 unmatched 解释只针对本帧候选 rows；lifecycle 必须另行 sweep 所有 initialized slots，确保未进入候选 rows 的 owner/slot 也按明确策略推进或清理。
-- Hand 对外发布仍需满足当前稳定门槛和 owner 条件，不得跨 owner 迁移或反向影响 driver identity；Body 删除必须在同一状态转换中删除同 owner Hand。
-- owner 暂时不再可发布但 Body 尚存时，initialized Hand slot 的 miss/reset 策略仍需运行验证；不得因不再进入 assignment row 而永久停止 cleanup。assignment rows 只定义本帧候选匹配，不能替代生命周期收尾。
+- Hand tracking assignment row 只能表示已初始化轨迹；空侧 acquisition row 只能表示由同一继承 id 和图像侧别定义的未初始化侧。两类 row 的 unmatched 语义不得混用。
+- Hand 对外发布仍需满足当前稳定门槛和同 id Body 条件，不得迁移 id 或反向影响 driver identity；Body 删除必须在同一状态转换中删除同 id Hand。
 - publish helper 不得调用 `PrepareTrackForOutput`、`AdvanceMiss` 或 cleanup；除 sanitize 明确归属于 finalize 外，publish 不得推进 hit/miss、retire、reset 或 owner migration。
 - `body` 和 `face` 使用恒速度运动模型。
 - `hand` 使用恒加速度运动模型。
@@ -155,6 +156,8 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - `body` 命中后允许检测主导融合，但不能破坏稳定输出与生命周期计数语义。
 - `face` 命中后输出使用检测框，预测状态只作为关联输入。
 - `hand` 命中后输出使用检测框，miss 时不向下游输出预测框。
+- Hand 内部 left/right 必须解释为图像坐标侧；对外 map 与 `TrackInfo::instanceType` 必须同时解释为驾驶员实际左右。当前固定方向下 image-left 映射为 `m_rightHandTrackResultMap/RIGHT_HAND`，image-right 映射为 `m_leftHandTrackResultMap/LEFT_HAND`。
+- 若输入预处理或车型配置可能水平翻转，必须先验证并配置化上述映射，不得只交换 map 而保留相反的 `instanceType`。
 
 ## 0.7 Type And Filter Contracts
 
@@ -166,7 +169,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - driver face size continuity 必须区分方向：候选比当前 driver reference 变小应作为强惩罚和拒绝依据；候选变大应作为主驾遮挡恢复的增益，不应被对称 size-loss 拒绝。
 - driver face preferred anchor、anchor 权重、变小惩罚权重和变大增益权重必须来自结构化配置，不得散落硬编码。
 - 本类后排误绑定修复不得通过收紧 face match `distanceLoss` 或 driver distance gate 实现。
-- `hand` 侧的左右槽位必须维持方向区分和历史连续性约束。
+- `hand` 内部图像侧必须维持方向区分和历史连续性约束；实际左右只在发布边界映射，不得反向污染内部匹配语义。
 
 ## 0.8 Config Contracts
 

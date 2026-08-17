@@ -2,7 +2,7 @@
 type: structure_audit
 status: active
 scope: 记录知识库结构化、current 标准化、总览内容化的当前迁移状态；不作为具体主题事实源。
-updated_at: 2026-08-12
+updated_at: 2026-08-17
 supersedes:
   - 02_Projects/Knowledge-Base/知识库结构审计-2026-06-05.md
 ---
@@ -420,3 +420,11 @@ supersedes:
 - retired Body 容器、同区域 orphan Hand 清理与 Hand 跨 Body 生命周期残留路径已移除；历史记录保持不变，作为当时方案证据继续保留。
 - `git diff --check` 与 `bash scripts/compile_j6b.sh` 全量构建通过；板端 runtime replay、Face 遮挡恢复和 Hand 左右稳定性仍待验证。
 - `recoverability_status` 保持 `partial`，未新增或保留 `single_pass_recoverable: true`，本轮不提升正式知识。
+
+## 1.46 2026-08-17 Tracking Hand 跟踪/获取分离与实际左右映射写回
+
+- `DmsTrack` 当前代码基线更新为 `feat/ljc/track_0812@13efd826`，包含 `04da47b8 Separate Hand tracking from slot acquisition` 与 `13efd826 Map image-side Hands to physical sides`。
+- 已局部同步 Tracking 五份 current 文档、DMS 项目总览，并新增项目维护记录：[[02_Projects/DMS/04_Tracking/Current Maintenance Records/Hand跟踪与空侧获取分离及实际左右发布映射记录-2026-08-17]]；没有整组重写 current，也没有改写历史记录。
+- 当前 Hand 事实变化为：已有轨迹先使用 `HandMatchLoss` 匹配并推进 hit/miss，tracking 后剩余 detection 才以 `HandAnchorLoss` 获取空侧；内部 left/right 表示图像坐标侧，发布时同时交换实际左右 map 与 `instanceType`，继承 key 不变。
+- 验证边界为：`04da47b8` 有 J6B 全量编译通过记录；`13efd826` 由用户报告单次编译运行验收通过，但缺少可重放日志、样本标识和代表性视频统计。本次知识同步期间被停止的重复编译不计为通过。
+- `recoverability_status` 继续保持 `partial`，未新增或保留 `single_pass_recoverable: true`，本轮不提升正式知识。
