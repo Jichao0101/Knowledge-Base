@@ -4,25 +4,30 @@ status: active
 project: AI-Career-Transition
 learning_stage: Phase 1-C - VLM baseline and benchmark draft
 record_role: durable_stage_learning_record
-summary: 保存 Phase 1-C 的主动学习诊断、掌握状态、未验证项、实践环境准备状态和下一步恢复入口；不承载完整教学正文。
+summary: 保存 Phase 1-C 的主动学习诊断、掌握状态、VLM baseline、prompt/输入合同敏感性、模型任务边界和下一步恢复入口；不承载完整教学正文。
 sources:
   - 2026-08-10 Phase 1-C VLM 数据流与视频持续闭眼任务主动学习对话
   - 2026-08-11 Phase 1-C baseline 可复现性、任务合同、分组门禁、case 证据边界、模型选择与本地环境主动学习对话
   - 2026-08-11 Phase 1-C baseline 合同续测与 Colab 实践路线确认
   - 2026-08-14 Qwen2.5-VL-3B 单图 smoke test 用户运行报告
   - 2026-08-15 Qwen2.5-VL-3B 5-case zero-shot、输入身份审计与固定 ROI 诊断用户运行报告
+  - 2026-08-17 Qwen2.5-VL-3B 文本示例、定义顺序与单眼 ROI 诊断用户运行报告
+  - 2026-08-17 prompt 敏感性、因果证据边界、停止规则与模型任务分层主动学习诊断
   - 02_Projects/AI-Career-Transition/10_学习文档/P01C-01_VLM基线与Benchmark_学习文档.md
   - 02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
   - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLM单图SmokeTest_2026-08-14_实践记录.md
   - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMZeroShot初始基线_2026-08-15_实践记录.md
+  - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMPrompt与单眼ROI诊断_2026-08-17_实践记录.md
 scope: Phase 1-C 的个人诊断题、诊断结论、证据状态、实践准备和恢复任务。
 risks:
   - 对话诊断达到 working 不等于真实模型运行、benchmark 建立或阶段门禁完成。
   - 本记录中的 WSL 和 Colab 环境信息均为阶段快照；执行前必须重新验证并保存实际运行证据。
   - 当前 5 个图像 case 为内部授权开发/诊断集；每组仅 1 个样本，不能视为稳定 benchmark 或最终留出集。
   - 单图 smoke test 与 zero-shot 基线均为用户报告的运行证据，代理未独立复跑；模型 hash 和精确 checkpoint 身份尚未冻结。
+  - 文本示例和定义顺序实验使用已参与错误分析的开发集，不能作为泛化或严格多模态 few-shot 证据。
+  - 单眼 ROI 同时改变输入、任务粒度、prompt 和输出 schema；其结果不能隔离为 ROI 的单一因果效应。
 single_pass_recoverable: false
-updated_at: 2026-08-15
+updated_at: 2026-08-17
 ---
 
 # 1 Phase 1-C VLM 基线与 Benchmark 学习记录
@@ -39,9 +44,9 @@ updated_at: 2026-08-15
 | projector 与 token 压缩 | working | 对话诊断 |
 | 视觉证据与问题语义 | working | 对话诊断 |
 | 视频与多帧输入 | partial | 定量采样边界待真实输入预算验证 |
-| 最小 VLM baseline | partial | 单图 smoke test 和 5-case zero-shot 已有 user_reported 证据；执行与解析均为 100%，case exact match 为 20%，出现 closed 类预测坍缩 |
+| 最小 VLM baseline | partial | 单图 smoke test、5-case zero-shot、文本 prompt 和单眼 ROI 诊断已有 user_reported 证据；链路稳定，但预测分布随 prompt/input contract 改变，未形成稳定细粒度眼态能力 |
 | benchmark 草案 | partial | 5 个内部授权 case 已形成开发/诊断集，但每组仅 1 个且已参与错误分析，不能作为最终留出集 |
-| 分组评测与微调边界 | working | 已按组记录首轮结果，但样本量不足；few-shot、独立留出集和正式门禁尚未完成 |
+| 分组评测与微调边界 | working | 能识别开发集污染、prompt 顺序敏感性、ROI 混杂变量和停止规则；严格多模态 few-shot、独立留出集和正式门禁尚未完成 |
 
 ## 1.3 2026-08-10 主动学习诊断
 
@@ -140,11 +145,32 @@ updated_at: 2026-08-15
 
 当前错误分类为 `closed` 类预测坍缩。证据支持“Qwen2.5-VL-3B-Instruct 在当前任务合同和域上不能可靠完成细粒度眼态 zero-shot 分类”，但不支持把唯一根因写成参数量不足。完整逐 case 证据见 [[02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMZeroShot初始基线_2026-08-15_实践记录]]。
 
-## 1.9 下一步恢复任务
+## 1.9 2026-08-17 prompt 与单眼 ROI 诊断
+
+用户在既有 5-case 开发集上继续完成三类用户运行诊断：
+
+1. 增加 `open/abstain/narrow` 文字示例后，case exact match 从 `20%` 变为 `40%`，per-eye accuracy 从 `20%` 变为 `50%`，预测分布从 `closed 10/10` 转为 `open 4/10 + narrow 6/10`。
+2. 只调整四个标签定义顺序时，两版 case exact match 分别为 `20%` 和 `40%`，per-eye accuracy 分别为 `30%` 和 `50%`；clear-open case 的输出随顺序从 `closed/closed` 变为 `open/open`。
+3. 使用经生产标注验收并由用户人工校验的单眼 ROI、单眼 prompt 和单字段 schema 后，per-eye accuracy 为 `4/10 = 40%`，预测分布转为 `abstain 8/10 + open 2/10`。
+
+上述结果均来自用户报告，代理未独立复跑。完整配置、逐 case 结果和证据边界见 [[02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMPrompt与单眼ROI诊断_2026-08-17_实践记录]]。
+
+主动学习诊断闭合了以下内容：
+
+- 能说明 prompt 定义、示例和顺序会改变类别分布；小开发集准确率提高不能证明泛化能力提升。
+- 能区分“结果支持某假设”和“结果证明唯一根因”；ROI 失败不能直接推出模型普遍没有分类能力。
+- 能识别单眼 ROI 实验同时改变视觉输入、任务粒度、prompt 和 schema，不能隔离裁剪的单一因果作用。
+- 能判断继续枚举 prompt/ROI 已偏离学习路线，并将失败 baseline 转化为模型任务边界。
+- 能迁移到分层系统：专用模型承担低层细粒度感知，VLM 提供全局语义和长尾辅助，时序状态层形成稳定状态，策略门禁决定报警或动作。
+
+当前最强阶段结论是：Qwen2.5-VL-3B-Instruct 的多模态执行与结构化输出链路可运行，但当前细粒度眼态结果对 prompt 和输入合同敏感，不适合作为安全相关眼态事实的唯一来源。该结论不等于模型参数规模是唯一根因，也不外推到其他 VLM、任务或数据域。
+
+## 1.10 下一步恢复任务
 
 1. 冻结当前 5 个 case 为开发/诊断集；不再用它们声明最终泛化性能。
-2. 若需要增强证据，只增加一个运行前未查看的小型内部授权留出集，并冻结 ROI、prompt、归一化和门禁。
-3. 根据课程投入产出决定做一次最小 few-shot 对比，或将 few-shot 标为 `waived_by_scope`；3B/7B 模型规模对比不是当前阻塞项。
-4. 若进入可移交 benchmark，再补模型文件 hash、精确 checkpoint 身份、许可证快照和更充足的分组样本。
+2. 停止继续枚举 prompt 顺序、ROI 或 3B/7B 对比来提高这 5 个开发 case 的分数。
+3. 文本类别示例只记为 prompt 敏感性诊断；严格多模态 few-shot 和独立留出集仍未执行。下一步先做 Phase 1-C 范围收尾决定，不默认把它们设为继续学习的阻塞实验。
+4. 若未来进入可移交 benchmark，再补未查看留出集、模型文件 hash、精确 checkpoint 身份、许可证快照、冻结 ROI/input contract 和更充足的分组样本。
+5. 后续学习优先转向“专用感知事实 + VLM 语义增强 + 时序状态 + 策略门禁”的分层多模态系统设计。
 
-在完成最小 baseline 前，不把任何 case 集称为 benchmark。
+当前 5 个开发 case 不称为 benchmark；只有未来重新冻结独立数据、模型身份、输入合同和正式门禁后，才评估是否建立可移交 benchmark。
