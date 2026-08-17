@@ -4,7 +4,7 @@ status: active
 project: AI-Career-Transition
 learning_stage: Phase 1-C - VLM baseline and benchmark draft
 record_role: durable_stage_learning_record
-summary: 保存 Phase 1-C 的主动学习诊断、掌握状态、VLM baseline、prompt/输入合同敏感性、模型任务边界和下一步恢复入口；不承载完整教学正文。
+summary: 保存 Phase 1-C 的主动学习诊断、掌握状态、VLM baseline、prompt/输入合同敏感性、模型代际替换与资源约束、模型任务边界和下一步恢复入口；不承载完整教学正文。
 sources:
   - 2026-08-10 Phase 1-C VLM 数据流与视频持续闭眼任务主动学习对话
   - 2026-08-11 Phase 1-C baseline 可复现性、任务合同、分组门禁、case 证据边界、模型选择与本地环境主动学习对话
@@ -13,11 +13,13 @@ sources:
   - 2026-08-15 Qwen2.5-VL-3B 5-case zero-shot、输入身份审计与固定 ROI 诊断用户运行报告
   - 2026-08-17 Qwen2.5-VL-3B 文本示例、定义顺序与单眼 ROI 诊断用户运行报告
   - 2026-08-17 prompt 敏感性、因果证据边界、停止规则与模型任务分层主动学习诊断
+  - 2026-08-17 Qwen3.5-4B 输出协议、INT4、受限 max_pixels 与 T4 可部署配置用户运行报告
   - 02_Projects/AI-Career-Transition/10_学习文档/P01C-01_VLM基线与Benchmark_学习文档.md
   - 02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
   - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLM单图SmokeTest_2026-08-14_实践记录.md
   - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMZeroShot初始基线_2026-08-15_实践记录.md
   - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMPrompt与单眼ROI诊断_2026-08-17_实践记录.md
+  - 02_Projects/AI-Career-Transition/30_实践记录/P01C_Qwen3.5代际替换与资源约束诊断_2026-08-17_实践记录.md
 scope: Phase 1-C 的个人诊断题、诊断结论、证据状态、实践准备和恢复任务。
 risks:
   - 对话诊断达到 working 不等于真实模型运行、benchmark 建立或阶段门禁完成。
@@ -26,6 +28,7 @@ risks:
   - 单图 smoke test 与 zero-shot 基线均为用户报告的运行证据，代理未独立复跑；模型 hash 和精确 checkpoint 身份尚未冻结。
   - 文本示例和定义顺序实验使用已参与错误分析的开发集，不能作为泛化或严格多模态 few-shot 证据。
   - 单眼 ROI 同时改变输入、任务粒度、prompt 和输出 schema；其结果不能隔离为 ROI 的单一因果效应。
+  - Qwen3.5 最终可运行配置同时采用 INT4 与受限 max_pixels，且缺少最终逐 case 数值，不能作为纯模型代际能力结论。
 single_pass_recoverable: false
 updated_at: 2026-08-17
 ---
@@ -44,7 +47,7 @@ updated_at: 2026-08-17
 | projector 与 token 压缩 | working | 对话诊断 |
 | 视觉证据与问题语义 | working | 对话诊断 |
 | 视频与多帧输入 | partial | 定量采样边界待真实输入预算验证 |
-| 最小 VLM baseline | partial | 单图 smoke test、5-case zero-shot、文本 prompt 和单眼 ROI 诊断已有 user_reported 证据；链路稳定，但预测分布随 prompt/input contract 改变，未形成稳定细粒度眼态能力 |
+| 最小 VLM baseline | partial | 单图 smoke test、5-case zero-shot、文本 prompt、单眼 ROI 和 Qwen3.5 资源约束替换均有 user_reported 证据；链路可运行，但预测分布与执行协议对 prompt/input/model contract 敏感，未形成稳定细粒度眼态能力 |
 | benchmark 草案 | partial | 5 个内部授权 case 已形成开发/诊断集，但每组仅 1 个且已参与错误分析，不能作为最终留出集 |
 | 分组评测与微调边界 | working | 能识别开发集污染、prompt 顺序敏感性、ROI 混杂变量和停止规则；严格多模态 few-shot、独立留出集和正式门禁尚未完成 |
 
@@ -165,12 +168,27 @@ updated_at: 2026-08-17
 
 当前最强阶段结论是：Qwen2.5-VL-3B-Instruct 的多模态执行与结构化输出链路可运行，但当前细粒度眼态结果对 prompt 和输入合同敏感，不适合作为安全相关眼态事实的唯一来源。该结论不等于模型参数规模是唯一根因，也不外推到其他 VLM、任务或数据域。
 
-## 1.10 下一步恢复任务
+## 1.10 2026-08-17 Qwen3.5 代际替换与资源约束诊断
+
+用户随后尝试用参数规模接近的 Qwen3.5-4B 在相同 5-case 全图任务上替换 Qwen2.5-VL-3B。首次运行的五个输出均生成自然语言图像分析，并在最终 JSON 前结束，解析全部失败；这属于输出协议/预算失败，语义分类应记为 `not_evaluated`，不能计为分类准确率 0。
+
+为适应 Tesla T4，后续可运行配置同时采用 INT4 量化版本并限制 `max_pixels`。用户报告结果没有优化，但未提供最终逐 case 输出、准确率、量化方案或像素上限。因此当前只支持以下结论：
+
+- 当前 T4 可部署的 Qwen3.5-4B 配置没有观察到明确收益。
+- 模型代际、权重精度和像素预算同时变化，不能把结果解释为纯模型能力比较。
+- 对全图小目标眼态任务，降低像素预算可能进一步压缩关键证据，但本轮不能确定其单一因果贡献。
+- 模型替换需要重新验证 chat template、思考/直接回答模式和输出预算；不能只替换权重路径。
+
+完整证据边界见 [[02_Projects/AI-Career-Transition/30_实践记录/P01C_Qwen3.5代际替换与资源约束诊断_2026-08-17_实践记录]]。
+
+本轮进一步闭合了“模型能力比较”和“硬件可部署配置比较”的区别。当前停止继续搜索 Qwen3.5 量化、像素预算或 prompt 组合，下一步转向分层多模态系统设计。
+
+## 1.11 下一步恢复任务
 
 1. 冻结当前 5 个 case 为开发/诊断集；不再用它们声明最终泛化性能。
-2. 停止继续枚举 prompt 顺序、ROI 或 3B/7B 对比来提高这 5 个开发 case 的分数。
+2. 停止继续枚举 prompt 顺序、ROI、量化、像素预算或模型版本来提高这 5 个开发 case 的分数。
 3. 文本类别示例只记为 prompt 敏感性诊断；严格多模态 few-shot 和独立留出集仍未执行。下一步先做 Phase 1-C 范围收尾决定，不默认把它们设为继续学习的阻塞实验。
 4. 若未来进入可移交 benchmark，再补未查看留出集、模型文件 hash、精确 checkpoint 身份、许可证快照、冻结 ROI/input contract 和更充足的分组样本。
-5. 后续学习优先转向“专用感知事实 + VLM 语义增强 + 时序状态 + 策略门禁”的分层多模态系统设计。
+5. 后续学习转向“专用感知事实 + VLM 语义增强 + 时序状态 + 策略门禁”的分层多模态系统设计；SFT 和量化部署只在新的任务合同与资源目标需要时作为条件分支打开。
 
 当前 5 个开发 case 不称为 benchmark；只有未来重新冻结独立数据、模型身份、输入合同和正式门禁后，才评估是否建立可移交 benchmark。

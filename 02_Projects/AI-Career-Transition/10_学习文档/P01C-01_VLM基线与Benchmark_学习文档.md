@@ -3,7 +3,7 @@ type: project_learning_document
 status: active
 project: AI-Career-Transition
 learning_stage: Phase 1-C - VLM baseline and benchmark draft
-summary: 系统说明 Phase 1-C 的 VLM 数据流、视觉 token、视频输入约束、图像问答 baseline、benchmark case 合同、prompt/input contract 敏感性、停止规则与模型任务分层。
+summary: 系统说明 Phase 1-C 的 VLM 数据流、视觉 token、视频输入约束、图像问答 baseline、benchmark case 合同、prompt/input contract 敏感性、模型代际与资源约束比较、停止规则与模型任务分层。
 sources:
   - 2026-08-10 用户修正主动学习方法：知识大面积缺失时先教学骨架，再用主动重建和诊断题检查吸收
   - 2026-08-10 Phase 1-C VLM 数据流与视频持续闭眼任务主动学习对话
@@ -11,7 +11,9 @@ sources:
   - 2026-08-11 Phase 1-C baseline 合同续测：输入身份、处理器封装、输出协议、执行失败、显存约束与环境证据
   - 2026-08-15 Qwen2.5-VL-3B 5-case zero-shot 初始基线与失败分析
   - 2026-08-17 prompt 定义、顺序敏感性、单眼 ROI 与模型任务分层主动学习诊断
+  - 2026-08-17 Qwen3.5-4B 输出协议、INT4、受限 max_pixels 与 T4 可部署配置诊断
   - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMPrompt与单眼ROI诊断_2026-08-17_实践记录.md
+  - 02_Projects/AI-Career-Transition/30_实践记录/P01C_Qwen3.5代际替换与资源约束诊断_2026-08-17_实践记录.md
   - 02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
   - 02_Projects/AI-Career-Transition/00_规划/AI职业转型整体学习方案.md
   - 02_Projects/AI-Career-Transition/10_学习文档/P01B-01_AI评测基本功_学习文档.md
@@ -349,3 +351,22 @@ baseline 的学习价值是建立证据链并暴露失败模式，不是把少�
 | 策略门禁 | 结合车辆状态、风险等级和权限决定报警或动作 | 区分感知事实、模型推断与最终业务动作 |
 
 模型选型应先问“任务需要何种证据、实时性和风险保证”，再决定专用模型、VLM、状态机和策略层的组合。
+
+## 8.5 模型代际替换与资源约束
+
+“换成参数量接近的新模型”不自动构成公平对照。若新模型只能通过量化、降低 `max_pixels`、改变 chat template 或扩大输出预算才能运行，实验已经同时改变多个变量。
+
+至少区分两类问题：
+
+| 比较目标 | 应尽量固定 | 允许结论 |
+|---|---|---|
+| 模型能力代际比较 | 权重精度、图片、像素预算、prompt、预处理、输出协议和解码配置 | 新旧 checkpoint 在同一实验合同下的相对表现 |
+| 硬件可部署配置比较 | 硬件与资源门限，允许各模型采用实际可运行配置 | 当前硬件上哪种完整配置更有工程收益 |
+
+如果模型代际、INT4 和像素预算同时变化，只能回答第二类问题，不能把差异唯一归因于模型版本。参数量接近也不保证视觉 token 数量、运行显存和生成协议接近。
+
+对全图中的眼部等小目标，降低像素预算可能减少关键区域的有效视觉证据。此时即使新模型具有更强的通用能力，也未必能在受限部署配置下转化为任务收益。
+
+模型升级还需要重新验证输出协议。若模型先生成长分析并在最终 JSON 前达到输出预算，应将该 case 记为 `invalid_output_format` 或 `output_truncated_before_final_answer`，语义分类为 `not_evaluated`；不能把协议失败直接解释为分类错误。
+
+当资源约束使能力比较无法保持受控，并且可部署配置也没有观察到收益时，应记录部署边界并停止继续搜索开发集参数。量化部署和 SFT 都应由新的任务目标、数据规模和部署合同触发，而不是为了挽救已经污染的小开发集。

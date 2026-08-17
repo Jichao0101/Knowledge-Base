@@ -19,6 +19,7 @@ sources:
   - 2026-08-14 Qwen2.5-VL-3B 单图 smoke test 用户运行报告
   - 2026-08-15 Qwen2.5-VL-3B 5-case zero-shot、输入身份审计与固定 ROI 诊断用户运行报告
   - 2026-08-17 Qwen2.5-VL-3B prompt 定义、顺序敏感性、单眼 ROI 与模型任务分层主动学习诊断
+  - 2026-08-17 Qwen3.5-4B 输出协议、INT4、受限 max_pixels 与 T4 可部署配置诊断
   - 02_Projects/DMS/03_Model_Training/model_training_overview_current.md
   - 02_Projects/DMS/08_EyeStatus/eyestatus_overview_current.md
   - 02_Projects/agent-trajectory/agent_trajectory_overview_current.md
@@ -26,6 +27,7 @@ sources:
   - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLM单图SmokeTest_2026-08-14_实践记录.md
   - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMZeroShot初始基线_2026-08-15_实践记录.md
   - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMPrompt与单眼ROI诊断_2026-08-17_实践记录.md
+  - 02_Projects/AI-Career-Transition/30_实践记录/P01C_Qwen3.5代际替换与资源约束诊断_2026-08-17_实践记录.md
 scope: 职业方向、能力补齐、学习路线、作品建设、阶段验证与求职准备。
 risks:
   - 学习范围横跨模型、系统和 Agent，若缺少阶段性交付，容易再次退化为零散学习或 vibe coding。
@@ -117,9 +119,10 @@ DMS/OMS 视觉感知与端侧部署项目基础
 - 2026-08-14 用户报告已在 Google Colab 使用 Qwen2.5-VL-3B-Instruct 完成单图 smoke test：链路执行成功，归一化后双眼状态与用户标注一致，耗时 `13.581s`，峰值显存 allocated `8.631 GiB`、reserved `9.137 GiB`；原始输出带 Markdown 代码围栏，因此严格裸 JSON 未通过。完整边界见 [[02_Projects/AI-Career-Transition/30_实践记录/P01C_VLM单图SmokeTest_2026-08-14_实践记录]]。
 - 2026-08-15 用户冻结允许单个 `json` 代码围栏的归一化合同，修复答案示例泄露和 `expected` 全局变量问题，并在 5 个内部授权 case 上完成 zero-shot 初始基线。execution/parse success 均为 100%，case exact match 与 per-eye accuracy 均为 20%；模型对所有眼睛输出 `closed`。不同原图和处理后 tensor 的 MD5 排除了重复输入，固定人脸 ROI 仍未修复 clear-open 失败。完整证据见 [[02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMZeroShot初始基线_2026-08-15_实践记录]]。
 - 2026-08-17 用户在同一 5-case 开发集上完成文本示例、标签定义顺序和单眼 ROI 诊断。文本示例版本的 case/per-eye 指标为 `40%/50%`，两种定义顺序分别为 `20%/30%` 与 `40%/50%`，单眼 ROI 合同为 `40%` per-eye accuracy；预测分布分别转移到 `open/narrow`、`closed/open` 和 `abstain/open`，证明结果对 prompt 与输入合同敏感。完整证据见 [[02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMPrompt与单眼ROI诊断_2026-08-17_实践记录]]。
+- 随后用户在相同全图开发集上尝试 Qwen3.5-4B。首次 5/5 输出在自然语言分析阶段结束且没有形成 JSON；后续 T4 可运行配置同时采用 INT4 与受限 `max_pixels`，用户定性报告未见改善。该结果只支持“当前硬件上的可部署配置没有观察到收益”，不能作为纯模型代际能力结论。完整边界见 [[02_Projects/AI-Career-Transition/30_实践记录/P01C_Qwen3.5代际替换与资源约束诊断_2026-08-17_实践记录]]。
 - 本轮主动学习已闭合 prompt 敏感性、小样本指标边界、ROI 混杂变量、失败 baseline 停止规则和模型任务分层。用户能够说明专用感知模型负责低层细粒度事实，VLM 负责全局语义与长尾辅助，时序状态层形成稳定状态，策略门禁决定报警或动作。
 - 上述结果均为用户报告、代理未独立复跑。当前 5 个 case 已参与错误分析，只能作为开发/诊断集；它们证明初始 zero-shot baseline 已运行并失败，不代表稳定 benchmark、最终分组能力或正式门禁已经完成。
-- 当前停止继续枚举 prompt 顺序、ROI 和 3B/7B 对比来提高开发集分数。文本类别示例只作为 prompt 敏感性诊断，不记为严格多模态 few-shot；下一步先完成 Phase 1-C 范围收尾，未来若建设可移交 benchmark 再冻结未查看留出集和完整模型/input contract。
+- 当前停止继续枚举 prompt、ROI、量化、像素预算和模型版本来提高开发集分数。文本类别示例只作为 prompt 敏感性诊断，不记为严格多模态 few-shot；下一步完成 Phase 1-C 范围收尾并进入分层多模态系统设计，未来若建设可移交 benchmark 再冻结未查看留出集和完整模型/input contract。
 - Agent Systems 系统学习文档继续作为后续学习骨架，不在本次切换中替代 Phase 1-C 主线。
 - `global_step` 持久化、磁盘 checkpoint、错误 label mask、变长 micro-batch、性能测量和生产训练加固作为后续工程项保留，不阻塞本次学习主线切换。
 - 当前不创建五份 current 文档组；待本项目形成持续迭代的设计、实现和验证事实后再评估 current 化。
