@@ -20,6 +20,7 @@ sources:
   - 2026-08-15 Qwen2.5-VL-3B 5-case zero-shot、输入身份审计与固定 ROI 诊断用户运行报告
   - 2026-08-17 Qwen2.5-VL-3B prompt 定义、顺序敏感性、单眼 ROI 与模型任务分层主动学习诊断
   - 2026-08-17 Qwen3.5-4B 输出协议、INT4、受限 max_pixels 与 T4 可部署配置诊断
+  - 2026-08-20 Phase 1-C 文本 few-shot prompting 口径修正、范围关闭与 Phase 2-A 模型工程认知骨架决策
   - 02_Projects/DMS/03_Model_Training/model_training_overview_current.md
   - 02_Projects/DMS/08_EyeStatus/eyestatus_overview_current.md
   - 02_Projects/agent-trajectory/agent_trajectory_overview_current.md
@@ -28,11 +29,13 @@ sources:
   - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMZeroShot初始基线_2026-08-15_实践记录.md
   - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLMPrompt与单眼ROI诊断_2026-08-17_实践记录.md
   - 02_Projects/AI-Career-Transition/30_实践记录/P01C_Qwen3.5代际替换与资源约束诊断_2026-08-17_实践记录.md
+  - 02_Projects/AI-Career-Transition/10_学习文档/P02A-01_VLM模型工程认知_学习文档.md
+  - 02_Projects/AI-Career-Transition/20_学习记录/P02A_VLM模型工程认知_学习记录.md
 scope: 职业方向、能力补齐、学习路线、作品建设、阶段验证与求职准备。
 risks:
   - 学习范围横跨模型、系统和 Agent，若缺少阶段性交付，容易再次退化为零散学习或 vibe coding。
   - 本项目记录的是规划和阶段证据，不代表目标能力已经掌握或项目已经完成生产验证。
-updated_at: 2026-08-17
+updated_at: 2026-08-20
 ---
 
 # 1 AI 职业转型项目总览
@@ -92,6 +95,8 @@ DMS/OMS 视觉感知与端侧部署项目基础
 - Phase 1-B 学习记录：[[02_Projects/AI-Career-Transition/20_学习记录/P01B_AI评测基本功_学习记录]]
 - Phase 1-C VLM 系统学习文档：[[02_Projects/AI-Career-Transition/10_学习文档/P01C-01_VLM基线与Benchmark_学习文档]]
 - Phase 1-C 学习记录：[[02_Projects/AI-Career-Transition/20_学习记录/P01C_VLM基线与Benchmark_学习记录]]
+- Phase 2-A 模型工程认知学习文档：[[02_Projects/AI-Career-Transition/10_学习文档/P02A-01_VLM模型工程认知_学习文档]]
+- Phase 2-A 学习记录：[[02_Projects/AI-Career-Transition/20_学习记录/P02A_VLM模型工程认知_学习记录]]
 - Agent Systems 系统学习骨架：[[02_Projects/AI-Career-Transition/10_学习文档/P03-01_Agent系统_学习文档]]
 - Agent Systems 学习记录：[[02_Projects/AI-Career-Transition/20_学习记录/P03_Agent系统_学习记录]]
 - 实践记录索引：[[02_Projects/AI-Career-Transition/30_实践记录/实践记录索引]]
@@ -110,7 +115,7 @@ DMS/OMS 视觉感知与端侧部署项目基础
 - Phase 1-A 的独立 attention 实现、真实采样实验和手写完整 GPT 记为 `waived_by_scope`；真实 tokenizer 到输出文本闭环及真实模型证据对照仍为 `not_verified`，不得改写为运行完成。
 - Phase 1-B“评测基本功与练习集”已按调整范围关闭：任务类型、评分方法、评测合同、abstain/失败标签、评分一致性与留出集污染达到对话诊断意义上的 working。
 - Phase 1-B 的四类 seed case 只形成对话草案；持久化、隔天重复评分、确定性规则基线和逐 case 运行由用户标记为 `waived_by_scope`，不得改写为已执行或已建立 benchmark。
-- 当前主阶段已切换为 Phase 1-C“VLM 基线与 benchmark 草案”：先建立 VLM 输入到输出的数据流，再运行开源小型 VLM 的最小图像问答基线。
+- Phase 1-C“VLM 基线与 benchmark 草案”已于 2026-08-20 按范围关闭；Qwen2.5 已完成 zero-shot 与文本 few-shot prompting，后者不等于严格多模态 demonstration 或稳定 benchmark。
 - 已新增 [[02_Projects/AI-Career-Transition/10_学习文档/学习文档索引]] 管理历史学习文档归类；[[02_Projects/AI-Career-Transition/10_学习文档/P01C-01_VLM基线与Benchmark_学习文档]] 已由教学草案转为 `active` 的阶段学习文档，但这不代表 Phase 1-C 已完成。
 - Phase 1-C 的 baseline 可复现合同、执行/case/聚合/门禁分层、留出集污染、分组与安全关键组门禁、逐样本审计要求以及单图 case 证据边界已达到对话诊断意义上的 `working`。
 - Phase 1-C 后续诊断补齐了输入内容身份、Qwen 处理器封装、结构化输出、执行失败分母、ROI 一致性、确定性解码和 CUDA 环境证据边界；baseline 理论合同已达到 `working`，实际 zero-shot 已运行但语义能力失败，整体因缺少独立留出集、few-shot 范围决定和完整模型身份而保持 `partial`。
@@ -122,7 +127,9 @@ DMS/OMS 视觉感知与端侧部署项目基础
 - 随后用户在相同全图开发集上尝试 Qwen3.5-4B。首次 5/5 输出在自然语言分析阶段结束且没有形成 JSON；后续 T4 可运行配置同时采用 INT4 与受限 `max_pixels`，用户定性报告未见改善。该结果只支持“当前硬件上的可部署配置没有观察到收益”，不能作为纯模型代际能力结论。完整边界见 [[02_Projects/AI-Career-Transition/30_实践记录/P01C_Qwen3.5代际替换与资源约束诊断_2026-08-17_实践记录]]。
 - 本轮主动学习已闭合 prompt 敏感性、小样本指标边界、ROI 混杂变量、失败 baseline 停止规则和模型任务分层。用户能够说明专用感知模型负责低层细粒度事实，VLM 负责全局语义与长尾辅助，时序状态层形成稳定状态，策略门禁决定报警或动作。
 - 上述结果均为用户报告、代理未独立复跑。当前 5 个 case 已参与错误分析，只能作为开发/诊断集；它们证明初始 zero-shot baseline 已运行并失败，不代表稳定 benchmark、最终分组能力或正式门禁已经完成。
-- 当前停止继续枚举 prompt、ROI、量化、像素预算和模型版本来提高开发集分数。文本类别示例只作为 prompt 敏感性诊断，不记为严格多模态 few-shot；下一步完成 Phase 1-C 范围收尾并进入分层多模态系统设计，未来若建设可移交 benchmark 再冻结未查看留出集和完整模型/input contract。
+- 当前停止继续枚举 prompt、ROI、量化、像素预算和模型版本来提高开发集分数。文本类别示例计入文本 few-shot prompting，但不记为严格多模态 demonstration；未来若建设可移交 benchmark，再冻结未查看留出集和完整模型/input contract。
+- 当前主阶段已切换为 Phase 2-A“VLM 模型工程认知与 OMS 适配准备”：先建立单卡 SFT/PEFT、训练显存、分布式并行、算子 IO 和 profiling 的可考核认知地图，不把完整 SFT、集群训练或 kernel 实现设为当前门禁。
+- 未来 OMS demo 以月为单位推进；任务合同、合法数据、稳定基线、错误分类和资源预算明确后，再决定是否执行最小 LoRA/QLoRA 数据适配。
 - Agent Systems 系统学习文档继续作为后续学习骨架，不在本次切换中替代 Phase 1-C 主线。
 - `global_step` 持久化、磁盘 checkpoint、错误 label mask、变长 micro-batch、性能测量和生产训练加固作为后续工程项保留，不阻塞本次学习主线切换。
 - 当前不创建五份 current 文档组；待本项目形成持续迭代的设计、实现和验证事实后再评估 current 化。

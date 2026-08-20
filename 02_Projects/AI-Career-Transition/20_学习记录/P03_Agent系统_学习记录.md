@@ -13,14 +13,14 @@ risks:
   - 当前问题仅是未来诊断骨架，尚无作答结果，不得标记为 working 或完成。
   - DMS evidence case 只允许使用合成或明确授权材料。
 single_pass_recoverable: false
-updated_at: 2026-08-11
+updated_at: 2026-08-20
 ---
 
 # 1 Agent 系统学习记录
 
 ## 1.1 当前状态
 
-Agent Systems 学习文档已形成 `draft` 骨架，但当前主阶段仍是 Phase 1-C。本记录不包含已完成诊断；后续正式进入该阶段时，应先以 [[02_Projects/AI-Career-Transition/10_学习文档/P03-01_Agent系统_学习文档]] 为教学骨架，再逐题记录回答、缺口和实践证据。
+Agent Systems 学习文档已形成 `draft` 骨架，但当前主阶段是 Phase 2-A 模型工程认知。本记录不包含已完成诊断；后续正式进入 Agent Systems 阶段时，应先以 [[02_Projects/AI-Career-Transition/10_学习文档/P03-01_Agent系统_学习文档]] 为教学骨架，再逐题记录回答、缺口和实践证据。
 
 ## 1.2 主动学习恢复题
 

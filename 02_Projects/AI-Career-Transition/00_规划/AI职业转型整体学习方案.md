@@ -6,6 +6,7 @@ summary: 结合知识库已有 DMS、端侧部署和 Agent 工程项目，按“
 sources:
   - 2026-07-17 用户确认的学习目标、项目背景与隐私边界
   - 2026-08-10 用户修正 AI Career 主动学习方法：主动学习不得被误用为纯考试，知识大面积缺失时应先给教学骨架再诊断吸收
+  - 2026-08-20 用户确认 Phase 1-C 范围关闭，并将模型工程认知设为 Phase 2-A 进入 OMS VLM 适配前的桥接阶段
   - 02_Projects/AI-Career-Transition/AI职业转型项目总览.md
   - 02_Projects/DMS/03_Model_Training/model_training_overview_current.md
   - 02_Projects/DMS/08_EyeStatus/eyestatus_overview_current.md
@@ -16,7 +17,7 @@ risks:
   - 在尚不能解释 LLM/VLM 输入输出、失败机制和评分边界时过早采集 benchmark，容易形成数量化但不可解释的伪基线。
   - 远程模型 API 可降低原型成本，但不能替代数据治理、评测、可靠性、成本和端云降级能力。
   - AI 辅助完成的设计与实现不能直接视为独立掌握证据，必须补充解释、修改、测试或故障定位验证。
-updated_at: 2026-08-10
+updated_at: 2026-08-20
 ---
 
 # 1 多模态 AI 职业转型学习方案
@@ -222,7 +223,21 @@ Phase 0 与 Phase 1 前半段按“教学骨架—主动重建—最小实现—
 
 把已有 DMS/OMS 感知、状态和后处理项目升级为“低层感知 + 结构化状态 + 大模型语义理解”的分层系统。
 
-### 1.6.2 推荐任务
+### 1.6.2 Phase 2-A：模型工程认知与 OMS 适配准备
+
+在进入 OMS VLM demo 或完整端云原型实现前，先建立模型工程认知桥接：
+
+1. 重建从授权数据、chat template、visual/text tokens、label mask 到 forward/backward、optimizer、checkpoint 的单卡 VLM SFT 主链。
+2. 分解参数、梯度、optimizer state、activation 和 buffer 的训练显存，理解 LoRA/QLoRA、checkpointing、precision 与 FlashAttention 分别改变什么。
+3. 用容量、吞吐和通信解释 DDP、FSDP/ZeRO、TP、PP、CP，不以框架名替代选型理由。
+4. 用 HBM/SRAM、tiling、fusion 和 recomputation 建立算子 IO 心智模型，并说明 visual tokens 对 attention 的影响。
+5. 为假设性的 OMS VLM 数据适配设计 profiler、质量评测和停止条件。
+
+当前只要求认知与考核闭环，不强制完成 SFT、多机训练或 CUDA/Triton kernel。OMS 任务合同、合法数据、稳定基线、错误分类和资源预算明确后，再决定是否执行最小 LoRA/QLoRA。
+
+阶段学习文档：[[02_Projects/AI-Career-Transition/10_学习文档/P02A-01_VLM模型工程认知_学习文档]]。
+
+### 1.6.3 推荐任务
 
 从以下方向选择一个，不并行铺开：
 
@@ -231,7 +246,7 @@ Phase 0 与 Phase 1 前半段按“教学骨架—主动重建—最小实现—
 - 乘员场景理解与受约束的主动服务建议。
 - 视觉事件到语言解释再到受约束工具动作的完整链路。
 
-### 1.6.3 架构要求
+### 1.6.4 架构要求
 
 ```text
 端侧轻量感知或事件抽取
@@ -242,7 +257,7 @@ Phase 0 与 Phase 1 前半段按“教学骨架—主动重建—最小实现—
     -> 提醒、解释或模拟车控动作
 ```
 
-### 1.6.4 必做对照
+### 1.6.5 必做对照
 
 对以下输入策略进行质量、成本和延迟比较：
 
@@ -262,7 +277,7 @@ Phase 0 与 Phase 1 前半段按“教学骨架—主动重建—最小实现—
 - 成本与延迟统计。
 - 无法获得可靠结论时的 abstain 行为。
 
-### 1.6.5 退出条件
+### 1.6.6 退出条件
 
 - benchmark 扩展到至少 50 个真实、合成或可复现 case，并包含边界与拒答样本。
 - 报告端侧路径、云端路径和混合路径的质量、延迟、成本及失败模式。

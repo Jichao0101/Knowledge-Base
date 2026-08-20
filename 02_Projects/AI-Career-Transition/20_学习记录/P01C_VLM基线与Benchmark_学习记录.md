@@ -1,10 +1,10 @@
 ---
 type: project_learning_record
-status: active
+status: closed_by_scope
 project: AI-Career-Transition
 learning_stage: Phase 1-C - VLM baseline and benchmark draft
 record_role: durable_stage_learning_record
-summary: 保存 Phase 1-C 的主动学习诊断、掌握状态、VLM baseline、prompt/输入合同敏感性、模型代际替换与资源约束、模型任务边界和下一步恢复入口；不承载完整教学正文。
+summary: 保存 Phase 1-C 的主动学习诊断、VLM zero-shot 与文本 few-shot prompting、prompt/输入合同敏感性、模型替换与资源约束、模型任务边界和范围关闭结论；不承载完整教学正文。
 sources:
   - 2026-08-10 Phase 1-C VLM 数据流与视频持续闭眼任务主动学习对话
   - 2026-08-11 Phase 1-C baseline 可复现性、任务合同、分组门禁、case 证据边界、模型选择与本地环境主动学习对话
@@ -14,6 +14,7 @@ sources:
   - 2026-08-17 Qwen2.5-VL-3B 文本示例、定义顺序与单眼 ROI 诊断用户运行报告
   - 2026-08-17 prompt 敏感性、因果证据边界、停止规则与模型任务分层主动学习诊断
   - 2026-08-17 Qwen3.5-4B 输出协议、INT4、受限 max_pixels 与 T4 可部署配置用户运行报告
+  - 2026-08-20 用户确认 Qwen3.5 替换前已完成 Qwen2.5 文本 few-shot prompting，并确认 Phase 1-C 范围关闭
   - 02_Projects/AI-Career-Transition/10_学习文档/P01C-01_VLM基线与Benchmark_学习文档.md
   - 02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
   - 02_Projects/AI-Career-Transition/30_实践记录/P01C_VLM单图SmokeTest_2026-08-14_实践记录.md
@@ -26,11 +27,11 @@ risks:
   - 本记录中的 WSL 和 Colab 环境信息均为阶段快照；执行前必须重新验证并保存实际运行证据。
   - 当前 5 个图像 case 为内部授权开发/诊断集；每组仅 1 个样本，不能视为稳定 benchmark 或最终留出集。
   - 单图 smoke test 与 zero-shot 基线均为用户报告的运行证据，代理未独立复跑；模型 hash 和精确 checkpoint 身份尚未冻结。
-  - 文本示例和定义顺序实验使用已参与错误分析的开发集，不能作为泛化或严格多模态 few-shot 证据。
+  - 文本示例属于 few-shot prompting，但不包含图像-文本多模态 demonstration；实验使用已参与错误分析的开发集，不能作为泛化或严格多模态 few-shot 证据。
   - 单眼 ROI 同时改变输入、任务粒度、prompt 和输出 schema；其结果不能隔离为 ROI 的单一因果效应。
   - Qwen3.5 最终可运行配置同时采用 INT4 与受限 max_pixels，且缺少最终逐 case 数值，不能作为纯模型代际能力结论。
 single_pass_recoverable: false
-updated_at: 2026-08-17
+updated_at: 2026-08-20
 ---
 
 # 1 Phase 1-C VLM 基线与 Benchmark 学习记录
@@ -47,9 +48,9 @@ updated_at: 2026-08-17
 | projector 与 token 压缩 | working | 对话诊断 |
 | 视觉证据与问题语义 | working | 对话诊断 |
 | 视频与多帧输入 | partial | 定量采样边界待真实输入预算验证 |
-| 最小 VLM baseline | partial | 单图 smoke test、5-case zero-shot、文本 prompt、单眼 ROI 和 Qwen3.5 资源约束替换均有 user_reported 证据；链路可运行，但预测分布与执行协议对 prompt/input/model contract 敏感，未形成稳定细粒度眼态能力 |
+| 最小 VLM baseline | closed_by_scope | 单图 smoke test、5-case zero-shot、文本 few-shot prompting、单眼 ROI 和 Qwen3.5 资源约束替换均有 user_reported 证据；链路可运行，但未形成稳定细粒度眼态能力 |
 | benchmark 草案 | partial | 5 个内部授权 case 已形成开发/诊断集，但每组仅 1 个且已参与错误分析，不能作为最终留出集 |
-| 分组评测与微调边界 | working | 能识别开发集污染、prompt 顺序敏感性、ROI 混杂变量和停止规则；严格多模态 few-shot、独立留出集和正式门禁尚未完成 |
+| 分组评测与微调边界 | working | 已运行文本 few-shot prompting，并能识别开发集污染、prompt 顺序敏感性、ROI 混杂变量和停止规则；严格多模态 demonstration、独立留出集和正式 benchmark 门禁尚未完成 |
 
 ## 1.3 2026-08-10 主动学习诊断
 
@@ -183,12 +184,25 @@ updated_at: 2026-08-17
 
 本轮进一步闭合了“模型能力比较”和“硬件可部署配置比较”的区别。当前停止继续搜索 Qwen3.5 量化、像素预算或 prompt 组合，下一步转向分层多模态系统设计。
 
-## 1.11 下一步恢复任务
+## 1.11 阶段关闭前的恢复任务（历史）
 
 1. 冻结当前 5 个 case 为开发/诊断集；不再用它们声明最终泛化性能。
 2. 停止继续枚举 prompt 顺序、ROI、量化、像素预算或模型版本来提高这 5 个开发 case 的分数。
-3. 文本类别示例只记为 prompt 敏感性诊断；严格多模态 few-shot 和独立留出集仍未执行。下一步先做 Phase 1-C 范围收尾决定，不默认把它们设为继续学习的阻塞实验。
+3. 文本类别示例后来由用户确认归类为文本 few-shot prompting；它仍不是包含图像示例的严格多模态 demonstration，独立留出集也未执行。
 4. 若未来进入可移交 benchmark，再补未查看留出集、模型文件 hash、精确 checkpoint 身份、许可证快照、冻结 ROI/input contract 和更充足的分组样本。
 5. 后续学习转向“专用感知事实 + VLM 语义增强 + 时序状态 + 策略门禁”的分层多模态系统设计；SFT 和量化部署只在新的任务合同与资源目标需要时作为条件分支打开。
 
 当前 5 个开发 case 不称为 benchmark；只有未来重新冻结独立数据、模型身份、输入合同和正式门禁后，才评估是否建立可移交 benchmark。
+
+## 1.12 2026-08-20 Phase 1-C 范围关闭决定
+
+用户确认：替换 Qwen3.5 前，Qwen2.5 已使用带类别示例的 prompt 完成 few-shot prompting。Phase 1-C 原门禁要求最简单的 zero-shot 与 few-shot 基线，并未要求 demonstration 必须包含图像，因此该实验计入文本 few-shot prompting baseline。
+
+阶段以 `closed_by_scope` 关闭：
+
+1. VLM 数据流、输入/输出合同、可复现 baseline、失败分类、分组评测边界和模型任务分层已达到当前路线需要的认知深度。
+2. 单图 smoke test、zero-shot、文本 few-shot prompting、prompt/ROI 和资源受限模型替换均已有用户运行证据。
+3. 微调是错误分类支持时才打开的条件分支；未来 OMS SFT/PEFT 在新任务合同下重新决策。
+4. 当前 5 个 case 仍是开发/诊断集；严格多模态 demonstration、独立留出集、模型 hash 和代理独立复跑保持未验证。
+
+下一阶段转入 [[02_Projects/AI-Career-Transition/10_学习文档/P02A-01_VLM模型工程认知_学习文档]]。本关闭决定不把失败 baseline 改写为模型能力通过，也不把范围豁免改写为实践完成。
