@@ -1,6 +1,6 @@
 ---
 title: Tracking Overview Current
-summary: Tracking 当前态唯一入口，定义默认恢复顺序、默认实现输入链、default_recovery_bundle 与真相源集合；当前事实基线为 feat/ljc/track_0812 提交 13efd826，Hand 已分离已有轨迹匹配与空侧获取，并在发布边界把图像左右映射为驾驶员实际左右。
+summary: Tracking 当前态唯一入口，定义默认恢复顺序、默认实现输入链、default_recovery_bundle 与真相源集合；当前主线更新基线为 feat/ljc/track_0825@b0a8da10，Hand 已增加面积、Body 几何归属与非主驾竞争门禁。
 status: verified
 doc_role: current
 truth_role: current
@@ -73,12 +73,13 @@ sources:
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack 当前分支跟踪架构可读性重构闭环记录-2026-08-12.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/Face遮挡期间Body续跟与Hand级联生命周期修复闭环记录-2026-08-12.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/Hand跟踪与空侧获取分离及实际左右发布映射记录-2026-08-17.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/副驾手误关联主驾Hand归属门禁修复与板端回灌验证记录-2026-08-25.md
   - 90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
 scope: 适用于恢复当前 Tracking 模块的整体目标、边界、入口文档与当前真相源，不展开全部历史过程。
 risks:
-  - 当前态判断基于代码静态读取、既有本地编译和用户报告的单次运行验收；没有完成代表性视频集回放。
+  - 当前态包含单一 `/ota/dump` 的 999 帧板端回灌证据，但没有完成代表性视频集或 TC001/TC004 专项回放。
   - 对“效果性目标”如 ID 连续性，只能记录当前机制与证据边界，不能把静态机制等同于最终效果验收。
-updated_at: 2026-08-17
+updated_at: 2026-08-25
 ---
 
 ## 0.1 Current Scope
@@ -138,7 +139,7 @@ default_recovery_bundle:
   - `/home/jichao/dms/source/models/handpose_model.cpp`
   - `/home/jichao/dms/source/models/humanpose_model.cpp`
 
-Tracking 当前代码事实以 `AtomicResult` 四类 map 和 `DmsTrack::Update -> updateFaceTracks -> selectDriverFace -> updateBodyTracks -> updateHandTracks` 为核心，对外仍提供 `body / face / left_hand / right_hand` 跟踪结果。当前代码基线为 `feat/ljc/track_0812@13efd826`。
+Tracking 当前代码事实以 `AtomicResult` 四类 map 和 `DmsTrack::Update -> updateFaceTracks -> selectDriverFace -> updateBodyTracks -> updateHandTracks` 为核心，对外仍提供 `body / face / left_hand / right_hand` 跟踪结果。当前主线更新基线为 `feat/ljc/track_0825@b0a8da10`（`avoid assigning hand of other passengers to driver`）。
 
 当前实现状态：
 - driver identity 由 Face track 决定；Face 跟踪的量产行为保持不变，本轮只抽取检测分类与 assignment loss 等纯计算 helper 并补充必要注释。
@@ -148,6 +149,7 @@ Tracking 当前代码事实以 `AtomicResult` 四类 map 和 `DmsTrack::Update -
 - Hand 读取本帧 `curResult->m_bodyTrackResultMap` 作为 body evidence；稳定 DRIVER Body 只提供同一继承 `trackId` 下的候选域。已有 Hand track 先用预测连续性匹配，匹配后剩余 detection 才能进入空侧 acquisition。
 - Hand 主流程拆为 `trackExistingHands`、`acquireEmptyHandSlots`、`cleanupExpiredHandSlots`、`publishHands` 四个 private 子阶段；Body 删除时同步删除同 id Hand，不再保留 retired-body/orphan Hand 独立生命周期。
 - Hand 内部 left/right 表示图像坐标侧；发布时 image-left 写入实际右手 map、image-right 写入实际左手 map，并同步修正输出 `TrackInfo::instanceType`。四类 legacy map ABI 和继承的 key 不变。
+- Hand tracking、空侧 acquisition 与 publish 统一使用 owner gate：面积比至少 `0.01`，且 Hand 中心位于 Body 或 Hand/Body 交叠占比至少 `0.5`；若另一非主驾 Body 的中心包含或交叠证据更强，则该 detection 不得作为主驾 Hand 候选。
 - driver face selection 当前拒绝稳定 `BACK_PASSENGER` 候选，并使用配置化 preferred anchor、变小惩罚和变大增益抑制后排误绑定。
 - `DmsTrack::Init/Update` public API 和四类 legacy map ABI 保持不变；current 组记录当前事实、实现边界和验证缺口，历史记录只作为追溯证据。
 
@@ -156,9 +158,9 @@ Tracking 当前代码事实以 `AtomicResult` 四类 map 和 `DmsTrack::Update -
 - 本模块负责：检测结果关联、轨迹生命周期、人员类型稳定判定、face/hand 与 body 的关联和输出。
 - 本模块不负责：新增检测器能力、运行时效果验收、下游业务判决逻辑。
 - 当前架构口径为 face-first：Face 先建立 identity/key 和唯一 DRIVER，Body 绑定 Face，Hand 再绑定 DRIVER Body。开放问题集中在运行验证、Body 重绑定和左右 Hand 槽稳定性。
-- 当前主框架已落地并通过本地编译/静态审查记录，但不是运行效果已验收。
+- 当前主框架已落地；本轮目标 `/ota/dump` 已完成 999 帧板端回灌并关闭副驾小手误发布样本，但不是代表性运行效果已全面验收。
 - `3a2ed302` 与 `04da47b8` 已有全量编译通过记录；`13efd826` 已由用户报告单次运行验收通过，但没有保存为可重放的日志证据或代表性视频集统计。
-- 当前优先缺口是 Face 短时 miss 下 Body 续跟的系统性验证、Body id 交接、双手交叉/跨中线序列和不同图像翻转配置下的实际左右映射验证。
+- 当前优先缺口是 Face 短时 miss 下 Body 续跟的系统性验证、Body id 交接、双手交叉/跨中线序列、TC001/TC004 专项数据和不同图像翻转配置下的实际左右映射验证。
 - `tracking_interfaces_evidence` 不再承担默认输入职责，只作为接口边界的辅助证据。
 
 ## 0.5 Current Document Roles
@@ -206,6 +208,7 @@ Tracking 当前代码事实以 `AtomicResult` 四类 map 和 `DmsTrack::Update -
 - face / left_hand / right_hand 的区域级最终唯一输出，仍不能被当前代码静态证据完全证明为已闭合。
 - ID 连续性仍缺少运行时证据。
 - face-first 主线、`3a2ed302` 生命周期修复和 `04da47b8` Hand 两阶段修复已实现并完成 J6B 编译；`13efd826` 有用户报告的单次运行验收。代表性视频回放、callback/fusion 同 key 消费、Hand 继承 id 运行日志和水平翻转输入仍需后续验证。6 月分支中的 profile gate、driver-only Body 和 body-to-hand snapshot 只作为历史方案追溯，不是当前代码事实。
+- 修复内容已提交为 `b0a8da10`；对应的提交前同内容构建产物（日志标识 `bcbdf40a-dirty`）已完成 J6B 编译、SDK 校验部署和 `/ota/dump` 999 帧板端回灌。可比窗口的 driver-only 输出保持 241，non-driver-only/both/none 从 127/7/7 降为 0/0/0。该证据只关闭目标副驾小手样本，不关闭系统性 Hand 唯一性和召回风险。
 - OccupantTrack 不作为后续默认路线；未来 hand 增强优先验证 HumanPose-assisted hand association。
 
 ## 0.8 Historical Mapping

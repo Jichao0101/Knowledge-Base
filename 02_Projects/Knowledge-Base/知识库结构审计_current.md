@@ -428,3 +428,11 @@ supersedes:
 - 当前 Hand 事实变化为：已有轨迹先使用 `HandMatchLoss` 匹配并推进 hit/miss，tracking 后剩余 detection 才以 `HandAnchorLoss` 获取空侧；内部 left/right 表示图像坐标侧，发布时同时交换实际左右 map 与 `instanceType`，继承 key 不变。
 - 验证边界为：`04da47b8` 有 J6B 全量编译通过记录；`13efd826` 由用户报告单次编译运行验收通过，但缺少可重放日志、样本标识和代表性视频统计。本次知识同步期间被停止的重复编译不计为通过。
 - `recoverability_status` 继续保持 `partial`，未新增或保留 `single_pass_recoverable: true`，本轮不提升正式知识。
+
+## 1.47 2026-08-25 Tracking 副驾手误关联主驾 Hand 修复写回
+
+- 新增项目级维护记录：[[02_Projects/DMS/04_Tracking/Current Maintenance Records/副驾手误关联主驾Hand归属门禁修复与板端回灌验证记录-2026-08-25]]，并局部同步 Tracking 五份 current 文档与 DMS 项目总览；没有整组重写 current，也没有改写历史记录。
+- 当前主线更新基线为 `feat/ljc/track_0825@b0a8da10`（`avoid assigning hand of other passengers to driver`）：删除旧 30% Body 横向扩框，Hand tracking、空侧 acquisition 和 publish 统一使用面积比、中心/交叠与非主驾 Body 竞争归属门禁；`DmsTrack::Init/Update` 和四类 legacy map ABI 不变。
+- 验证证据为 J6B 全量编译、SDK 本地/板端校验及 `/ota/dump` 999 帧完整回灌。可比窗口 driver-only 保持 241，non-driver-only/both/none 从 127/7/7 变为 0/0/0，目标副驾小手误发布样本结论为 `passed_with_risks`。
+- `/ota/TC001`、`/ota/TC004` 在板端不存在；代表性数据、Body 边界召回、多人重叠、不同车型和专项数据仍待验证。回灌日志中的 `bcbdf40a-dirty` 仅表示构建发生时的历史标识，不是 current 代码基线风险。
+- `recoverability_status` 继续保持 `partial`，未新增或保留 `single_pass_recoverable: true`，本轮不提升正式知识。

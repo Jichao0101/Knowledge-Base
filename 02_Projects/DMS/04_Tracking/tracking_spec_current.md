@@ -42,6 +42,7 @@ sources:
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack 当前分支跟踪架构可读性重构闭环记录-2026-08-12.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/Hand跟踪与空侧获取分离及实际左右发布映射记录-2026-08-17.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/副驾手误关联主驾Hand归属门禁修复与板端回灌验证记录-2026-08-25.md
   - 90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
   - /home/jichao/dms/include/utils/track.h
   - /home/jichao/dms/source/utils/track.cpp
@@ -53,7 +54,7 @@ scope: 适用于按当前规范修改 Tracking 代码时作为默认规范输入
 risks:
   - 本规范只约束当前已收敛的设计与实现边界，不把仍未闭合的项伪装成已验收硬规则。
   - 若后续代码修改影响 `track.cpp`、`AtomicResult` 或导出链路，需先做 `knowledge_sync_check` 并同步更新本文件。
-updated_at: 2026-08-17
+updated_at: 2026-08-25
 ---
 
 ## 0.1 Spec Scope
@@ -95,6 +96,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - `face` 初始化后允许与 `body` 短时解耦，不得在 `body` 暂失时被无条件同步清理。
 - Hand 必须按同一 face-bound Body 继承 id 下的 `left/right` 两个内部图像侧状态建模，不得退回统一 Hand truth source。
 - Hand 候选域必须受稳定 DRIVER Body/torso 约束；允许的继承 id 集合从 `curResult->m_bodyTrackResultMap` 构造，Body 不为 Hand 创建新的 identity。
+- Hand-to-Body owner gate 必须同时检查最小面积比以及中心包含/Hand 面积交叠；若同帧另一非主驾 Body 的中心包含或交叠证据更强，则不得把该 detection 归给主驾 Hand。tracking、空侧 acquisition 和 publish 必须使用同一门禁，不能由另一阶段绕回。
 - 已初始化 Hand track 必须先与 detection 匹配并在本阶段完成 hit/miss；只有 tracking 后剩余的 detection 才允许与未初始化侧别做 acquisition。空侧不得与已有轨迹进入同一竞争矩阵。
 - `hand` 初始化后只允许在所属 Body 生命周期内按侧别维护；Body 删除时必须同步删除同 id 的 left/right Hand state。
 - Face 短时 miss 时，Body 可继续内部 tracking；Hand 对外发布仍必须存在当前已发布且稳定为 DRIVER 的 Body evidence。Face 真正删除会级联删除 Body/Hand，不保留 orphan slot。
@@ -115,6 +117,8 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - `TrackParameters.driverFaceAnchorWeight`：driver face anchor loss 权重。
 - `TrackParameters.driverFaceSmallerPenaltyWeight`：driver face 比 reference 变小时的惩罚权重。
 - `TrackParameters.driverFaceLargerBonusWeight`：driver face 比 reference 变大时的恢复增益权重。
+- `TrackParameters.minHandBodyAreaRatio`：Hand 相对 owner Body 的最小面积比，当前默认 `0.01`。
+- `TrackParameters.minHandBodyOverlapRatio`：Hand 与 owner Body 的最小 Hand 面积交叠比；Hand 中心已位于 Body 时可满足几何归属，当前默认 `0.5`。
 - `AtomicResult.m_bodyTrackResultMap`：body evidence legacy 输出，也是当前 Hand phase 的本帧 owner evidence 输入。
 - `AtomicResult.m_faceTrackResultMap`：Face identity 输出。
 - `AtomicResult.m_leftHandTrackResultMap`：left hand evidence legacy 输出。
@@ -147,6 +151,7 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - assignment 结果只能是 `.cpp` 或函数局部短期契约，不得进入稳定 header、cleanup、finalize、projection 或 publish；最小结果只保留 `rightByLeft/-1` 与确有消费方的 `unmatchedRight`。
 - Body 的 sanitize/lifecycle finalize 必须先于 legacy publish 和 Hand 读取 `m_bodyTrackResultMap`。Hand 没有 tracker 内部下游，不得为形式统一新增 `FrameHandView`、publish payload 或 eligibility。
 - Hand tracking assignment row 只能表示已初始化轨迹；空侧 acquisition row 只能表示由同一继承 id 和图像侧别定义的未初始化侧。两类 row 的 unmatched 语义不得混用。
+- Hand 候选不得通过扩大 owner Body 横向范围放宽归属；面积、中心、交叠与非主驾竞争归属判断必须先于 matching/acquisition cost 比较。
 - Hand 对外发布仍需满足当前稳定门槛和同 id Body 条件，不得迁移 id 或反向影响 driver identity；Body 删除必须在同一状态转换中删除同 id Hand。
 - publish helper 不得调用 `PrepareTrackForOutput`、`AdvanceMiss` 或 cleanup；除 sanitize 明确归属于 finalize 外，publish 不得推进 hit/miss、retire、reset 或 owner migration。
 - `body` 和 `face` 使用恒速度运动模型。
@@ -178,12 +183,14 @@ baseline 和历史 delta 默认不进入实现输入链；`tracking_interfaces_e
 - 当前 `track_params.json` 不承担 2m/5m Body/Hand phase gate；若未来引入 profile 分流，必须作为独立行为变更补充配置、日志和验证。
 - 阈值、Kf 参数和区域配置必须通过结构化配置项读取，不能依赖手工散落常量。
 - `track_params.json` 的 `presets.driver_face_anchor` 配置 driver face preferred anchor 与尺寸方向性权重；车型节点可覆盖坐标并继承 DEFAULT 权重。
+- `track_params.json` 的 `minBodyAreaRatio` 与 `minBodyOverlapRatio` 分别映射到 Hand owner gate 的面积比和交叠比；当前值为 `0.01` 与 `0.5`，车型节点可按既有 DEFAULT 覆盖规则调整。
 - 配置变化若影响阈值、运动模型或区域约束，必须同步更新 current 文档。
 
 ## 0.9 Verification Contracts
 
 - 若实现触及 `track.cpp` 的 body/face/hand 输出逻辑，至少重新检查 body 稳定输出门槛、driver 唯一化、face-owner 交接、hand owner/左右槽、bounded cache 清理和四类 map ABI。
 - face-first 后续验证必须覆盖 Body owner source、主驾 Body 消失后的重绑定、Hand owner source、左右槽稳定性和 driver identity source 日志。
+- Hand owner gate 后续验证必须同时统计错误归属抑制和真实主驾 Hand 召回，尤其覆盖主驾手靠近 Body 边界、多人 Body 重叠、双手交叉、长漏检恢复及不同车型。
 - face-first 后续优化必须以本 current 组为事实源；需要历史动机时再读取 [[head-first跟踪方案]]。
 - 若实现宣称修复 face/hand 区域级唯一输出，必须在 `tracking_validation_current` 中更新证据状态。
 - 若实现改变接口事实源或导出兼容边界，必须同步更新 `tracking_implementation_current` 与本文件。

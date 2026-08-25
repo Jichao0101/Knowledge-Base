@@ -35,13 +35,14 @@ sources:
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack 当前分支跟踪架构可读性重构闭环记录-2026-08-12.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/Face遮挡期间Body续跟与Hand级联生命周期修复闭环记录-2026-08-12.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/Hand跟踪与空侧获取分离及实际左右发布映射记录-2026-08-17.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/副驾手误关联主驾Hand归属门禁修复与板端回灌验证记录-2026-08-25.md
   - 90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md
   - /home/jichao/dms/source/utils/track.cpp
 scope: 适用于恢复当前 Tracking 的设计真相，重点描述目标、边界、层级、生命周期和设计原则；不单独承担完整实现规范职责。
 risks:
   - 文档明确区分“当前设计目标”和“当前代码已证实行为”；对未被代码静态证据完全支撑的项保持保守表述。
-updated_at: 2026-08-17
+updated_at: 2026-08-25
 ---
 
 ## 0.1 Current Goal
@@ -50,7 +51,7 @@ updated_at: 2026-08-17
 
 `face-first` 描述的是身份与执行主线，不表示 Hand 可以绕过 Body：Face 是身份和 key 的唯一来源，Body 是 Face 与 Hand/人体下游之间的关联证据，Hand 仍依赖 Body ROI。当前代码没有 2m/5m profile 分流，也没有把 Body 收缩为仅 selected driver owner。完整代码对应见 [[02_Projects/DMS/04_Tracking/tracking_implementation_current]]。
 
-本文件以 `feat/ljc/track_0812@13efd826` 为当前事实；运行效果和板端/视频回放仍以 [[02_Projects/DMS/04_Tracking/tracking_validation_current]] 的证据边界为准。
+本文件以当前主线更新基线 `feat/ljc/track_0825@b0a8da10` 为实现事实；运行效果和板端/视频回放仍以 [[02_Projects/DMS/04_Tracking/tracking_validation_current]] 的证据边界为准。
 
 本文件只回答“当前设计是什么”，不回答全部“按什么精确规则实现代码”；实现级硬约束收敛到 [[02_Projects/DMS/04_Tracking/tracking_spec_current]]。
 
@@ -106,14 +107,14 @@ Face phase 的算法契约如下：
 
 1. Hand 只继承本帧已发布且稳定类型为 DRIVER 的 Body `trackId`。同一继承 id 下维护 left/right 两个侧别状态，Hand 不分配独立 identity id；Body 只提供该 id 下的几何候选域。
 2. 所有已初始化 Hand track 先用恒加速度模型预测。CA 状态为 `[cx, cy, w, h, vx, vy, ax, ay, vw, vh]`。
-3. `trackExistingHands` 先处理已有 Hand track：每个 assignment row 都代表一条已初始化轨迹，只使用 `HandMatchLoss` 与 Body ROI 内候选构造 `(trackCount + candidateCount)` 方阵：
+3. `trackExistingHands` 先处理已有 Hand track：每个 assignment row 都代表一条已初始化轨迹，只使用 `HandMatchLoss` 与通过 owner gate 的候选构造 `(trackCount + candidateCount)` 方阵。owner gate 要求 Hand/Body 面积比至少 `0.01`，且 Hand 中心位于 Body 或交叠占 Hand 面积至少 `0.5`；若另一非主驾 Body 的中心包含或交叠证据更强，则拒绝该主驾候选：
 
    `L_hand = 5 × normalizedCenterDistance + sizeContinuity + 1.5 × (1-IoU) + 0.75 × sideAnchorLoss`
 
    匹配结果必须严格小于 `hand.dummyLoss`；命中则修正 CA 并推进 hit，未命中则在这一阶段直接推进 miss。空侧不进入该矩阵，不能与已有轨迹竞争 detection。
-4. `acquireEmptyHandSlots` 只消费 tracking 后仍未使用的 detection，并只为尚未初始化的图像 left/right 侧构造 `(slotCount + candidateCount)` 方阵。这里使用 `HandAnchorLoss`，按 Body 中线和纵向中心初始化空侧；合法结果必须严格小于 `hand.dummyLoss`。
+4. `acquireEmptyHandSlots` 只消费 tracking 后仍未使用且通过同一 owner gate 的 detection，并只为尚未初始化的图像 left/right 侧构造 `(slotCount + candidateCount)` 方阵。这里使用 `HandAnchorLoss`，按 Body 中线和纵向中心初始化空侧；合法结果必须严格小于 `hand.dummyLoss`。
 5. 达到 `hand.missThreshold` 的单侧状态被 reset；两侧均未初始化时删除空 Hand state。Body 删除时同步删除同 id 的完整 Hand state，不保留 retired Body 空间锚点或 orphan Hand。
-6. 发布要求：继承 id 属于本帧稳定 DRIVER Body、Hand 已初始化、hit 达门槛且仍位于同 id Body ROI。内部 left/right 是图像坐标侧；对外按驾驶员实际侧交换映射：image-left 写 `m_rightHandTrackResultMap/RIGHT_HAND`，image-right 写 `m_leftHandTrackResultMap/LEFT_HAND`，map key 始终保持继承 id。miss 预测框不对外发布。
+6. 发布要求：继承 id 属于本帧稳定 DRIVER Body、Hand 已初始化、hit 达门槛且再次通过同一 owner gate。内部 left/right 是图像坐标侧；对外按驾驶员实际侧交换映射：image-left 写 `m_rightHandTrackResultMap/RIGHT_HAND`，image-right 写 `m_leftHandTrackResultMap/LEFT_HAND`，map key 始终保持继承 id。miss 预测框不对外发布。
 
 ## 0.3 Current Internal Architecture Boundary
 
@@ -161,6 +162,7 @@ Face phase 的算法契约如下：
 
 - 稳定 DRIVER Body evidence 下按同一继承 id 维护 `left/right` 两个内部图像侧状态，而不是统一 hand 池或跨 id global assignment。
 - 已有 Hand track 优先匹配；空侧只从剩余 detection 获取，避免 acquisition 与连续轨迹在同一矩阵中竞争。
+- Hand 候选域不再依赖 30% 横向扩张 Body；tracking、acquisition、publish 共享面积/中心/交叠门禁，并使用同帧其他 Body 作为竞争归属证据，避免非主驾小手进入或维持主驾 Hand。
 - 空侧初始化依赖 DRIVER face-bound Body evidence；初始化后只作为该 id 的 bounded cache，不反向创建、扩大或迁移身份。
 - 未命中时 hand 内部可短期保留状态以支持遮挡恢复；对外输出仍要求当前允许发布的 DRIVER body evidence 或等价 owner 证据。
 - Hand 在 Body 存活期间可按自身 hit/miss 保留短期槽位状态；Body 删除时同 owner Hand 整体删除，不允许跨 Body 生命周期继续存活或迁移 owner。
@@ -193,6 +195,7 @@ Face phase 的算法契约如下：
 - Body 已有轨迹一旦 tracking loss 超过 dummyLoss，会立即进入无额外阈值的 Face-anchor selection；邻近乘员 Body 同时满足 Face ROI 时，存在错误重绑定风险。
 - 已有 Hand track 只使用连续性损失，空侧 acquisition 只使用剩余 detection 与 anchor；双手交叉、单手跨过 Body 中线或长时间检测丢失后的重新获取仍需代表性序列验证。
 - 实际左右发布映射当前假设输入图像方向固定；若车型或预处理存在水平翻转，必须验证或配置化映射，不能把单次验收推广到所有输入方向。
+- 当前 `0.01/0.5` owner gate 只在 `/ota/dump` 单一数据集完成目标样本验证；主驾手贴近 Body 边界、多人 Body 重叠和更多车型的召回风险仍需统计。
 - face 区域级唯一输出运行验证：未闭合
 - left_hand / right_hand 区域级唯一输出运行验证：未闭合
 - 运行时 replay / 视频证据：未闭合

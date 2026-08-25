@@ -1,6 +1,6 @@
 ---
 title: Tracking Implementation Current
-summary: Tracking 当前实现文档，以 feat/ljc/track_0812@13efd826 为事实基线，逐步映射 face-first 的 Face、驾驶员选择、Body、Hand 已有轨迹匹配、空侧获取与实际左右发布流程。
+summary: Tracking 当前实现文档，以 feat/ljc/track_0825@b0a8da10 为主线更新事实基线，逐步映射 face-first 的 Face、驾驶员选择、Body、Hand 归属门禁、已有轨迹匹配、空侧获取与实际左右发布流程。
 status: verified
 doc_role: current
 truth_role: current
@@ -42,12 +42,13 @@ sources:
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack基线对比与HeadFirst路线收缩设计记录-2026-06-16.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack 当前分支跟踪架构可读性重构闭环记录-2026-08-12.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/Hand跟踪与空侧获取分离及实际左右发布映射记录-2026-08-17.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/副驾手误关联主驾Hand归属门禁修复与板端回灌验证记录-2026-08-25.md
   - 90_Archive/02_Projects/DMS/04_Tracking/Current Maintenance Records/Tracking方案优化与历史实现归档记录-2026-06-16.md
 scope: 适用于恢复当前 Tracking 在代码中的主要实现结构、接口事实与行为，不覆盖全部调试历史。
 risks:
   - 本文档基于当前代码静态读取、既有编译/审查记录和有限板端样本证据；仍不等价于完整代表性样本集验收。
   - 历史方案、评审结论和每步提交证据保留在 Current Maintenance Records 与 subpower_runs 中，不作为本文主内容。
-updated_at: 2026-08-17
+updated_at: 2026-08-25
 ---
 
 ## 0.1 Core Entry
@@ -190,16 +191,16 @@ updated_at: 2026-08-17
 
 ### 0.6.3 hand
 
-1. `updateHandTracks` 收集 class 1 Hand，并把本帧 `m_bodyTrackResultMap` 作为 `bodyEvidence`。只有 `stablePersonType==DRIVER` 的 Body key 进入 `allowedHandIds`；Hand 直接继承该 `trackId`。
+1. `updateHandTracks` 收集 class 1 Hand，并把本帧 `m_bodyTrackResultMap` 作为 `bodyEvidence`。只有 `stablePersonType==DRIVER` 的 Body key 进入 `allowedHandIds`；Hand 直接继承该 `trackId`。当前不再对 Body 做 30% 横向扩张。
 2. 每个继承 id 在 `m_handTracks[trackId]` 下固定持有 left/right 两个 `HandSideState`。这里的 left/right 是图像坐标侧。已初始化 Hand 先用 CA `PredictMotion` 产生 `predBox`；CA 状态包含位置、尺寸、速度、加速度和尺寸速度。
 3. `trackExistingHands` 是 first pass：
    - 对每个 allowed id 收集已经初始化的侧别；assignment row 表示已有 Hand track，不表示 Body 空槽；
-   - `HandBelongsToBody` 把候选限制在同 id Body ROI；
+   - `IsDriverHandCandidate` 先调用 `HandBelongsToBody`：要求 Hand/Body 面积比不小于 `minHandBodyAreaRatio=0.01`，且 Hand 中心位于 Body 或 `BoxIntersectionOverHand` 不小于 `minHandBodyOverlapRatio=0.5`；若另一非主驾 Body 包含 Hand 中心而主驾不包含，或其交叠占比更高，则拒绝主驾候选；
    - 构造 `(trackCount + candidateCount)` 方阵，真实边统一使用 `HandMatchLoss = 5×NormalizedCenterDistance + HandSizeContinuityLoss + 1.5×(1-IoU) + 0.75×HandAnchorLoss`；
    - 匈牙利 assignment 的 cost 必须严格小于 `hand.dummyLoss`。命中时修正 CA、把 `box/predBox` 设为 detection 并推进 hit；未命中时在本阶段直接 `AdvanceMiss`。
-4. `acquireEmptyHandSlots` 是 second pass：只收集尚未初始化的图像侧，并只消费 first pass 后仍未使用的 detection。每个 allowed id 构造 `(slotCount + candidateCount)` 方阵，真实边使用 `HandAnchorLoss`；命中后初始化 CA、`hitCount=1`、`missCount=0`。已有轨迹不进入这一矩阵，因此 acquisition 不能抢走已由 tracking 匹配的 detection。
+4. `acquireEmptyHandSlots` 是 second pass：只收集尚未初始化的图像侧，并只消费 first pass 后仍未使用且通过同一 `IsDriverHandCandidate` 门禁的 detection。每个 allowed id 构造 `(slotCount + candidateCount)` 方阵，真实边使用 `HandAnchorLoss`；命中后初始化 CA、`hitCount=1`、`missCount=0`。已有轨迹不进入这一矩阵，因此 acquisition 不能抢走已由 tracking 匹配的 detection。
 5. `cleanupExpiredHandSlots`：miss 达 `hand.missThreshold` 的单侧状态 reset；两侧均未初始化时删除空 Hand state。Body 删除时已同步删除同 id Hand，因此不再执行 retired-body/orphan 空间清理。
-6. `publishHands`：只遍历 allowed DRIVER id；Hand 必须 initialized、hit 达门槛且仍属于同 id Body ROI。发布保留继承 key，但交换内部图像侧到实际侧：image-left 写 `m_rightHandTrackResultMap` 并把输出副本设为 `RIGHT_HAND`，image-right 写 `m_leftHandTrackResultMap` 并设为 `LEFT_HAND`。`PublishSanitizedTrack` 仍作用于内部轨迹，保持非法框推进 miss 的既有副作用；miss 预测框不对外发布。
+6. `publishHands`：只遍历 allowed DRIVER id；Hand 必须 initialized、hit 达门槛且再次通过同一 `IsDriverHandCandidate` 门禁。发布保留继承 key，但交换内部图像侧到实际侧：image-left 写 `m_rightHandTrackResultMap` 并把输出副本设为 `RIGHT_HAND`，image-right 写 `m_leftHandTrackResultMap` 并设为 `LEFT_HAND`。`PublishSanitizedTrack` 仍作用于内部轨迹，保持非法框推进 miss 的既有副作用；miss 预测框不对外发布。
 
 ## 0.7 Current Implementation Constraints
 
@@ -211,10 +212,11 @@ updated_at: 2026-08-17
 - 当前实现并未把 `tracking_interfaces_evidence` 提升为默认实现输入；其接口事实已经并入本文件和 spec。
 - `curResult->m_bodyTrackResultMap` 同时承担 body output projection 和 Hand 本帧候选域输入。
 - `track.h` 当前 private surface 新增四个 Hand 子阶段；Face/Body 的无状态计算 helper 保持在 `.cpp` anonymous namespace，避免扩大类接口。
+- Hand owner 几何与竞争归属 helper 保持在 `.cpp` anonymous namespace；`track.h` 只增加两个内部配置参数，没有改变 `DmsTrack::Init/Update` 或外部 SDK ABI。
 
 ## 0.8 Known Gaps
 
-- `13efd826` 已由用户报告完成单次运行验收，但缺少可重放日志、代表性视频集和新增单元测试；6 月 profile/snapshot 路线不是当前实现。
+- 修复已提交为 `b0a8da10`；提交前同内容构建产物已完成 J6B 编译、SDK 校验部署和 `/ota/dump` 999 帧回灌。当前没有新增单元测试，也未覆盖缺失的 `/ota/TC001` 与 `/ota/TC004`；6 月 profile/snapshot 路线不是当前实现。
 - Body tracking 失败后会立即走无额外 dummy 门槛的 Face-anchor selection；这是主驾 Body 消失后可能选到副驾 Body 的直接风险点。
 - tracking 与 acquisition 已分离，但手跨中线、双手交叉或长漏检后重新 acquisition 的稳定性仍需代表性序列验证。
 - 图像侧到实际侧当前为固定交换；若输入链存在水平翻转，需要配置化或按输入方向选择映射。

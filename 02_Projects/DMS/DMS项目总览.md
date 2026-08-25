@@ -3,7 +3,7 @@ type: project_entry
 status: active
 project: DMS
 scope: DMS 项目区模块入口索引；只负责导航和内容简介，不替代各模块 current 文档。
-updated_at: 2026-08-17
+updated_at: 2026-08-25
 ---
 
 # 1 DMS 项目总览
@@ -42,9 +42,9 @@ DMS current 覆盖情况、模块索引状态和待修复项记录在 [[02_Proje
 ## 1.4 当前维护摘要
 
 - Tracking 当前事实源为 [[02_Projects/DMS/04_Tracking/tracking_overview_current]] 及其 current 文档组；项目总览不再枚举 Tracking 的历史提交和逐步 writeback。
-- 当前 Tracking 代码事实以 `feat/ljc/track_0812@13efd826` 为准：架构为 face-first；已有 Body 在 Face 短时 miss 期间继续自身 tracking，Body 删除时级联删除同 id Hand；Hand 已有轨迹先匹配，剩余 detection 再用于空侧 acquisition，发布时把内部图像侧映射为驾驶员实际左右。
-- 当前验证边界：`3a2ed302`、`04da47b8` 有 J6B 全量编译记录；`13efd826` 由用户报告单次编译运行验收通过。代表性视频集、Face 遮挡恢复、Body id 误绑定、双手交叉/长漏检和水平翻转输入仍未系统性闭合。
-- 本轮 Hand 修复与证据边界见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/Hand跟踪与空侧获取分离及实际左右发布映射记录-2026-08-17]]；前置生命周期实施见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/Face遮挡期间Body续跟与Hand级联生命周期修复闭环记录-2026-08-12]]。
+- 当前 Tracking 主线更新事实以 `feat/ljc/track_0825@b0a8da10` 为准：架构为 face-first；Hand tracking、空侧 acquisition 和 publish 已统一增加面积比、Body 中心/交叠及非主驾竞争归属门禁，四类 legacy map ABI 不变。
+- 当前验证边界：提交前同内容构建产物已完成 J6B 全量编译、SDK 校验部署和 `/ota/dump` 999 帧板端回灌；可比窗口保留 241 个 driver-only 输出，并将 non-driver-only/both/none 从 127/7/7 降为 0/0/0。`/ota/TC001`、`/ota/TC004` 不存在，代表性视频集、Body 边界召回、多人重叠、双手交叉/长漏检和水平翻转输入仍未系统性闭合。
+- 本轮修复与证据边界见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/副驾手误关联主驾Hand归属门禁修复与板端回灌验证记录-2026-08-25]]；前置 Hand 两阶段与实际左右发布见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/Hand跟踪与空侧获取分离及实际左右发布映射记录-2026-08-17]]。
 - 历史方案、superseded lambda 路线、整体架构评审和每步验证命令详见 `02_Projects/DMS/04_Tracking/Current Maintenance Records/` 与 `02_Projects/DMS/04_Tracking/subpower_runs/`。
 - SDK Integration 当前补充记录：[[02_Projects/DMS/06_SDK_Integration/DMS回灌方案]] 记录 `start_stage=model` 已实现的模型阶段回灌路径，以及 README 中 `start_stage=postprocess` 预留但暂不支持的边界；该记录仅为源码静态整理，未完成 x86 或板端运行验证。
 - Issue Analysis Skill 当前处于阶段三验证：`ADASL2-1565` 已完成在线飞书、真实 Jira/Data、Evidence Package、308/308 行 A 核准备、Agent review、证据不足结论和真实 Jira 评论闭环；R 核规则已拆分为解释性 reference 与机器可消费 strategy，但 analyser、输入适配和结果合同仍未实现，运行时继续 `skipped/r_core_analyser_not_available`。Skill 瘦身与 R 核 reference 分层后全量 55 项测试通过；多 case、完整 DMS 状态链、并发去重和 recoverability verification 仍未闭环。

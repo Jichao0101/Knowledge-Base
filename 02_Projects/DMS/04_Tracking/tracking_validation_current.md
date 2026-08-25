@@ -1,6 +1,6 @@
 ---
 title: Tracking Validation Current
-summary: Tracking 当前验证状态文档，记录当前代码仓已具备的证据等级、Hand 修复的单次运行验收边界、仍未闭合的系统性验证缺口和 recoverability 判定。
+summary: Tracking 当前验证状态文档，记录当前代码仓已具备的证据等级、副驾手误关联修复的 999 帧板端回灌结果、仍未闭合的系统性验证缺口和 recoverability 判定。
 status: verified
 doc_role: current
 truth_role: current
@@ -41,12 +41,13 @@ sources:
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/DmsTrack 当前分支跟踪架构可读性重构闭环记录-2026-08-12.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/Face遮挡期间Body续跟与Hand级联生命周期修复闭环记录-2026-08-12.md
   - 02_Projects/DMS/04_Tracking/Current Maintenance Records/Hand跟踪与空侧获取分离及实际左右发布映射记录-2026-08-17.md
+  - 02_Projects/DMS/04_Tracking/Current Maintenance Records/副驾手误关联主驾Hand归属门禁修复与板端回灌验证记录-2026-08-25.md
   - /home/jichao/dms/source/utils/track.cpp
 scope: 适用于判断 Tracking 当前有哪些证据已经成立、哪些结论仍需更高等级验证；为默认实现输入链提供验证边界，不承接设计或规范正文。
 risks:
   - 本文档只记录当前验证状态和证据边界；每个历史小步的详细验证记录保留在 Current Maintenance Records 与 subpower_runs。
-  - 当前已有编译/静态审查证据不能替代 runtime replay、单元测试或代表性视频集验收。
-updated_at: 2026-08-17
+  - 当前已有编译、静态检查和单一数据集 runtime replay 不能替代单元测试或代表性视频集验收。
+updated_at: 2026-08-25
 ---
 
 ## 0.1 Evidence Status
@@ -67,6 +68,7 @@ updated_at: 2026-08-17
 - Hand 从 `curResult->m_bodyTrackResultMap` 读取稳定 DRIVER Body evidence，并以相同继承 id 限定 tracking 与空侧 acquisition 候选域
 - `04da47b8` 后 Hand first pass 只匹配已初始化轨迹并直接处理 hit/miss；second pass 只用剩余 detection 获取未初始化侧，旧 `recoverUnmatchedHandSlots` 和内部 Body fallback 已删除
 - `13efd826` 保持内部图像侧跟踪，在 `publishHands` 把 image-left 映射到实际右手、image-right 映射到实际左手，并同步修正输出 `instanceType`
+- `b0a8da10` 删除旧 30% Body 横向扩框，并在 Hand tracking、空侧 acquisition、publish 统一应用面积比、中心/交叠和非主驾竞争归属门禁
 - `m_humanTrackResultMap` 只是导出兼容层，不是上游事实源
 - track 输出在写入四类 track map 前已有统一 sanitize/clamp 与非法框过滤
 - initialized face first pass 已有连续性门控；driver 相关 face 绑定使用更严格的 `distanceLoss <= 0.45`
@@ -84,13 +86,16 @@ updated_at: 2026-08-17
 - 代码审计：public API 未变化；Body phase 使用函数内三阶段局部容器，没有新增领域类型；`m_retiredBodyTracks`、retired-body anchor 和 orphan Hand cleanup 均已移除。
 - 板端/日志样本：2026-06-12 后排误跟踪主驾样本二次回灌中 `face-first driver face select face=1` 为 0 次，`face=0` 为 189 次，`reject back passenger` 为 126 次，`reject smaller face=1` 为 61 次。
 - 历史 coredump 修复已有目标帧覆盖且未再出现 `abort` / `core dumped` 的板端记录，但该记录不代表 hand 功能指标重新验收。
+- 修复已提交为 `b0a8da10`。提交前同内容构建产物通过 `git diff --check` 与 J6B 全量编译；SDK 本地/板端校验均为 `cksum 681389771 6762752`，板端日志保留当时的 `bcbdf40a-dirty` 构建标识和 `E2LB-2` 配置。
+- `/ota/dump` 完整回灌 999 帧：692 个 Hand detection、350 个严格 non-driver-only detection 候选；最终发布 driver-only 291，non-driver-only/both/none 均为 0。可比窗口 `101500000..179800000` 中 driver-only 旧/新均为 241，non-driver-only/both/none 从 127/7/7 变为 0/0/0。
+- 关键帧 `103500000`、`103600000`、`103700000` 只发布真实主驾 Hand；`124600000`、`126000000` 仅有副驾小手 detection 时不发布 Hand。完整日志归档于 `/userdata/dms/handfix_logs_final/`。
 
 ### 0.1.3 当前仍未被充分证据支撑
 
 - face 区域级最终唯一输出
 - left_hand / right_hand 区域级最终唯一输出
 - “较好的 ID 连续性”效果性结论
-- 运行时 replay / 视频流级验证
+- 代表性视频集级 replay / 视频流验证
 - face / hand fallback 路径是否在更广泛运行样本中完全满足唯一性约束
 - 对快速运动恢复的效果改善是否能推广到代表性样本集
 - 主驾 body 消失后是否会重绑定到副驾 body
@@ -99,6 +104,8 @@ updated_at: 2026-08-17
 - stable DRIVER Body 暂时不再发布时，未进入 allowed id 集合的 Hand 状态在 Body 尚存阶段是否需要持续推进 miss
 - 图像水平翻转、不同车型预处理方向下，固定 image-left/right 到实际左右的交换是否仍成立
 - 当前单次 Hand 验收不证明代表性视频集、区域级唯一性或所有输入方向均已闭合
+- `/ota/TC001` 与 `/ota/TC004` 在本轮板端不存在，正常打哈欠和唱歌专项回灌尚未执行
+- Hand owner gate 的 `0.01/0.5` 阈值尚未覆盖主驾手贴近 Body 边界、多人 Body 重叠和更多车型的召回统计
 
 ## 0.2 Current Review Conclusion
 
@@ -108,6 +115,7 @@ updated_at: 2026-08-17
 - DMS 主驾打哈欠误报修复属于 accepted with risks 的项目闭环，不应被提升为正式知识，也不应表述为已完成根因级彻底消除。
 - 跟踪框越界 coredump incident 已有 track-only 修复证据，但不构成所有 hand 相关功能指标已重新验收通过。
 - `04da47b8 + 13efd826` 可视为本次样本级 Hand 问题已通过单次验收；该结论不关闭系统性 Hand 左右稳定性、区域唯一性或水平翻转适配缺口。
+- `b0a8da10` 对应修复的 999 帧板端回灌可关闭当前 `/ota/dump` 中“副驾小手误发布为主驾 Hand”的目标样本，且可比窗口未损失 driver-only 输出；由于专项数据缺失且样本单一，结论为 `passed_with_risks`。
 - 当前 current 组已能在不依赖 baseline 或多篇历史 delta 作为默认入口的前提下恢复 Tracking 主态；但运行效果仍未闭合。
 - 具体历史小步的 review、命令输出、失败轮次和 superseded route 以维护记录与 subpower artifacts 为准，不在 current validation 中逐项展开。
 
@@ -125,6 +133,7 @@ updated_at: 2026-08-17
   2. Hand 继承 id、已有轨迹 hit/miss、空侧 acquisition 在手部大幅运动和多人干扰序列中的统计；
   3. driver identity source 日志，区分 `head_first`、`body_fallback` 与 reject reason；
   4. `13efd826` 与重构前基线的代表性视频输出 diff，并验证 Face 短时 miss、恢复、真正删除以及 Hand 长漏检后重新获取序列。
+- 补齐 `/ota/TC001` 与 `/ota/TC004`，并对 owner gate 同时统计误归属率和真实主驾 Hand 召回率；重点覆盖 Body 边界、多人重叠和不同车型。
 - 对图像方向至少补固定方向确认和水平翻转反例；若输入方向并非全车型一致，应把实际左右映射配置化后重新验收。
 - 若后续使用 HumanPose-assisted hand association，需要单独验证 wrist 已有证据链，以及 elbow/shoulder/arm direction 对 hand owner、left/right、miss recovery 的增益。
 - 若后续继续沿用本轮 sanitize/clamp 方案，建议补一次日志降噪，避免 `track sanitize clamp` 在板端形成噪声洪泛
@@ -145,7 +154,7 @@ updated_at: 2026-08-17
   - 代码里仍存在 fallback 输出路径，但 current 文档已经明确把该风险归入验证边界，而不是恢复入口缺口。
 - 保留限制：
   - 该判定只说明 current 组可恢复当前主态，不等价于运行效果已验证闭环。
-  - 由于仍存在 replay、区域级唯一性、ID 连续性和 face-first 落地验证缺口，本组不声明单次恢复完全闭环。
+  - 由于仍存在代表性 replay、区域级唯一性、ID 连续性和专项数据等缺口，本组不声明单次恢复完全闭环。
   - 若默认恢复 bundle、事实源代码路径或历史文档入口关系变化，必须重新判定本节。
 
 ## 0.6 Historical Mapping
