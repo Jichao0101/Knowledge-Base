@@ -1,0 +1,10 @@
+{
+  "mode": "existing_logs_only",
+  "actions": [
+    "Copy the authorized log files to /tmp for deterministic parsing.",
+    "Extract face-track state and selection/rejection messages by timestamp.",
+    "Parse ALGORITHM_RESULT_Q1 face boxes and person-type counters around transitions.",
+    "Compare observed thresholds and control flow with current and log-time repository history."
+  ],
+  "no_rerun": true
+}

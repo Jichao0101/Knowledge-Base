@@ -33,3 +33,20 @@ pipeline schedule、3D/context/expert parallelism、集群拓扑和大规模 ben
 - 扩展策略依赖实际硬件与互联，必须用 profiler 和吞吐测量验证。
 
 这些结论用于组织学习问题，不直接作为具体 OMS 配置建议。
+
+## 1.4 2026-09-02 补充来源与口径边界
+
+本节为 append-only 补充，不改写前述来源判断。
+
+- 中文翻译页：https://github.com/pprp/ultrascale-playbook-zh/blob/main/docs/The%20UltraScale%20Playbook-Part1.md
+- 显存 profile 原图：https://raw.githubusercontent.com/pprp/blogimagebed/main/image%2012.png
+- 本地项目资产：`02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-llama1b-memory-profile.png`
+- 原图下载后 SHA-256：`e49dd5b22126b662eda4354e0e3c79b5551a6075dcea3a657efcd2db3848d82d`
+
+写入学习文档时保留以下边界：参数量和 activation 公式来自特定简单 Transformer 假设，不直接代表完整 VLM；混合精度下 master weights、梯度 dtype 和 optimizer states 依赖训练栈；activation 对序列长度不能一概称为线性；recomputation、gradient accumulation、DDP 和状态分片解决的问题不同，性能结论必须以目标硬件、shape、软件版本和 profiler 结果复核。
+
+## 1.5 框架实现校验来源
+
+- PyTorch Automatic Mixed Precision examples：https://docs.pytorch.org/docs/stable/notes/amp_examples.html
+
+该文档用于校验 `autocast`、gradient scaling 和 accumulation 的框架语义；它不替代 Ultra-Scale Playbook 的训练扩展主线，也不意味着其他训练栈采用相同的参数、梯度或 master-weight 存储布局。

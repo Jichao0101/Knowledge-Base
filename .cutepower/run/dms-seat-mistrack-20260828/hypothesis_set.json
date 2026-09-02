@@ -1,0 +1,24 @@
+{
+  "hypotheses": [
+    {
+      "id": "H1",
+      "claim": "The driver face remains spatially inside driver_region but crosses the smallFaceAreaRatio threshold during the turn, so computePersonType labels it BACK_PASSENGER and selectDriverFace rejects it.",
+      "priority": 1,
+      "initial_support": [
+        "The source maps a small face inside driver_region to BACK_PASSENGER.",
+        "Driver selection rejects stable BACK_PASSENGER and any currently small face.",
+        "The board log records driver-face misses and explicit seat classifications."
+      ]
+    },
+    {
+      "id": "H2",
+      "claim": "A turn-induced detection discontinuity creates a new track whose early spatial votes bootstrap as BACK_PASSENGER, losing driver continuity until the frontal face is reacquired.",
+      "priority": 2
+    },
+    {
+      "id": "H3",
+      "claim": "The face leaves driver_region or enters a competing passenger region during the turn, independently of face size.",
+      "priority": 3
+    }
+  ]
+}

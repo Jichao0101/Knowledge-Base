@@ -1,0 +1,48 @@
+{
+  "entry_skill": "using-cutepower",
+  "task_goal": "incident investigation: 只分析主驾转头时误跟踪为后排问题；读取 /home/jichao/dms 和板端 /alglog/active_logs/Acore/percep/dms/；不改代码，不写知识库，输出原因和优化方案",
+  "primary_type": "incident_investigation",
+  "primary_type_status": "resolved",
+  "task_modifiers": [
+    "board_execution_required",
+    "review_required"
+  ],
+  "route_id": "incident_investigation_board",
+  "route_status": "resolved",
+  "resolved_skill_chain": [
+    "cute-scope-plan",
+    "cute-incident-investigation",
+    "cute-board-run",
+    "cute-writeback"
+  ],
+  "requires_dispatch": true,
+  "route_reasoning": {
+    "matched_route_modifiers": [
+      "review_required",
+      "board_execution_required"
+    ],
+    "dispatcher_skill": "using-cutepower"
+  },
+  "inferred_context": {
+    "repo_root": "/mnt/d/Knowledge-Base"
+  },
+  "missing_context": [
+    "knowledge_base_root",
+    "board_target"
+  ],
+  "requires_clarification": true,
+  "inference_trace": {
+    "primary_type_terms": [
+      "incident",
+      "investigation",
+      "log"
+    ],
+    "modifier_terms": {
+      "board_execution_required": [
+        "板端"
+      ]
+    }
+  },
+  "explicit_mode": true,
+  "governance_signal": true
+}

@@ -1,0 +1,51 @@
+{
+  "entry_skill": "using-cutepower",
+  "task_goal": "调查 DMS 主驾头部较小时转头被误跟踪为后排、转正后恢复主驾的问题；基于板端日志和代码分析根因并给出优化方案；本轮只分析，不修改代码。",
+  "primary_type": "incident_investigation",
+  "primary_type_status": "resolved",
+  "task_modifiers": [
+    "board_execution_required",
+    "code_change_allowed",
+    "review_required"
+  ],
+  "route_id": "incident_investigation_board",
+  "route_status": "resolved",
+  "resolved_skill_chain": [
+    "cute-scope-plan",
+    "cute-incident-investigation",
+    "cute-board-run",
+    "cute-writeback"
+  ],
+  "requires_dispatch": true,
+  "route_reasoning": {
+    "matched_route_modifiers": [
+      "review_required",
+      "board_execution_required"
+    ],
+    "dispatcher_skill": "using-cutepower"
+  },
+  "inferred_context": {
+    "repo_root": "/mnt/d/Knowledge-Base",
+    "board_target": "root@192.168.1.10"
+  },
+  "missing_context": [],
+  "requires_clarification": false,
+  "inference_trace": {
+    "primary_type_terms": [
+      "调查"
+    ],
+    "modifier_terms": {
+      "board_execution_required": [
+        "板端"
+      ],
+      "code_change_allowed": [
+        "修改"
+      ],
+      "review_required": [
+        "修改"
+      ]
+    }
+  },
+  "explicit_mode": true,
+  "governance_signal": false
+}

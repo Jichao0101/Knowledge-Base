@@ -1,0 +1,22 @@
+{
+  "route_id": "incident_investigation_board",
+  "phase": "analysis",
+  "allowed_actions": [
+    "runtime_discovery_read",
+    "authorized_business_context_read"
+  ],
+  "required_artifacts": [
+    "task_profile",
+    "route_resolution",
+    "runtime_gate",
+    "dispatch_manifest"
+  ],
+  "skill_chain": [
+    "cute-scope-plan",
+    "cute-incident-investigation",
+    "cute-board-run",
+    "cute-writeback"
+  ],
+  "dispatcher_skill": "using-cutepower",
+  "writeback_level": "project_log_write"
+}

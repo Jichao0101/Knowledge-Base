@@ -1,0 +1,11 @@
+{
+  "mode": "read_only_board_log_collection",
+  "steps": [
+    "list_log_files_with_size_and_mtime",
+    "search_for_track_config_load_and_face-first_driver_transition_messages",
+    "extract_context_windows_around_small_face_back_passenger_and_driver_miss_events",
+    "compare_observed_thresholds_and_transitions_with_source"
+  ],
+  "no_rerun_initially": true,
+  "rerun_condition": "existing_logs_do_not_contain_the_failure_or_required_debug_messages"
+}

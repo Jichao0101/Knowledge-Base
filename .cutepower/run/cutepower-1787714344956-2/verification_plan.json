@@ -1,0 +1,17 @@
+{
+  "evidence_sources": [
+    "root@192.168.1.10:/alglog/active_logs/Acore/percep/dms/",
+    "/home/jichao/dms"
+  ],
+  "checks": [
+    "correlate_seat_or_role_switch_with_track_id_bbox_head_pose_and_confidence",
+    "confirm_the_decision_branch_and_thresholds_in_source",
+    "test_each_hypothesis_against_both_turning_and_recovery_transitions",
+    "define_regression_cases_for_small_head_turn_occlusion_and_real_rear_passenger"
+  ],
+  "success_criteria": [
+    "root_cause_supported_by_specific_log_and_code_evidence",
+    "optimization_plan_names_exact_decision_point_and_preserves_rear_seat_detection",
+    "no_code_change_before_user_approval"
+  ]
+}
