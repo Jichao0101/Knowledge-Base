@@ -1,5 +1,0 @@
-{
-  "decision": "collect_board_evidence",
-  "next_skill": "cute-board-run",
-  "reason": "Existing board logs contain the required per-frame detection and track evidence; no board mutation or replay is needed."
-}

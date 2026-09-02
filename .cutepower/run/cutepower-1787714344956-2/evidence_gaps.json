@@ -1,7 +1,0 @@
-{
-  "gaps": [
-    "failure_log_file_and_timestamp_are_unknown",
-    "current_match_logs_do_not_print_bbox_area_or_assignment_score_breakdown_for_every_candidate",
-    "board_runtime_vehicle_model_and_effective_track_config_are_unconfirmed"
-  ]
-}

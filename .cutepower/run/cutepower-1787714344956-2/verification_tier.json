@@ -1,6 +1,0 @@
-{
-  "tier": "incident_analysis_with_board_log_evidence",
-  "board_mode": "read_only_log_collection",
-  "repo_mode": "read_only",
-  "requires_user_approval_before_implementation": true
-}

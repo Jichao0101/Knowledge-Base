@@ -1,8 +1,0 @@
-{
-  "gaps": [
-    "Exact frames and timestamps where the real driver changes stable_person_type.",
-    "Face box area ratio, center position, track ID continuity, and selection rejection reason around each transition.",
-    "Whether the board binary/config corresponds to the current repository commit and track_params version.",
-    "Ground-truth identification of which visible face is the driver in the supplied replay."
-  ]
-}

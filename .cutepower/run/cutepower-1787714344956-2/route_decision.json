@@ -1,5 +1,0 @@
-{
-  "decision": "collect_board_log_evidence",
-  "next_skill": "cute-board-run",
-  "reason": "the_source_exposes_a_direct_small_face_to_back_passenger_path_but_board_logs_are_required_to_confirm_the_observed_incident"
-}
