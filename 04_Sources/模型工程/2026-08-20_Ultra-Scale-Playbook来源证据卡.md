@@ -50,3 +50,16 @@ pipeline schedule、3D/context/expert parallelism、集群拓扑和大规模 ben
 - PyTorch Automatic Mixed Precision examples：https://docs.pytorch.org/docs/stable/notes/amp_examples.html
 
 该文档用于校验 `autocast`、gradient scaling 和 accumulation 的框架语义；它不替代 Ultra-Scale Playbook 的训练扩展主线，也不意味着其他训练栈采用相同的参数、梯度或 master-weight 存储布局。
+
+## 1.6 2026-09-03 ZeRO 与 TP 图片来源补充
+
+本节为 append-only 补充，用于记录 Phase 2-A 学习文档新增图片的原始来源与内容边界。
+
+| 内容 | 原始图片 | 本地项目资产 | SHA-256 |
+|---|---|---|---|
+| Baseline DP 与 ZeRO-1/2/3 模型状态分片 | https://raw.githubusercontent.com/pprp/blogimagebed/main/image%2025.png | `02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-zero-stages-memory.png` | `8bf26ba404491363cce449ac2d7cea2076de384de0903cc5cafe6b5bb40396d1` |
+| ZeRO-1 reduce-scatter、局部更新与 all-gather | https://raw.githubusercontent.com/pprp/blogimagebed/main/image%2026.png | `02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-zero1-step.png` | `3c5ba8309716d2b3f84984db36239d3f0fc001304f2b44b562b9c6e97a6ef912` |
+| Column + Row parallel MLP | https://raw.githubusercontent.com/pprp/blogimagebed/main/image%2036.png | `02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-tp-mlp-column-row.png` | `79b4178619e6781e092c48ddc9c591772c7cfff83aa8bfb31172a86e04686566` |
+| Attention 的 QKV column split 与输出 row split | https://raw.githubusercontent.com/pprp/blogimagebed/main/image%2037.png | `02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-tp-attention.png` | `ef5ef9f34bc99f76872aaad27fe38f146e274f1cc4aa8e6a2503222838f25eba` |
+
+ZeRO 显存公式是忽略 activation、临时 buffer 和峰值参数物化的简化模型；stage 名称描述长期分片对象，collective 与生命周期由实现决定。TP 图片展示一种经典 column/row layout；实际是否执行 broadcast、scatter、all-gather 或 reduce-scatter 取决于相邻算子已经建立的张量布局。原材料中的固定通信量、collective 次数和 TP degree 性能拐点只作为对应配置下的分析示例。
