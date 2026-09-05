@@ -4,6 +4,7 @@ status: planned
 project: AI-Career-Transition
 summary: 结合知识库已有 DMS、端侧部署和 Agent 工程项目，按“能力诊断—LLM 机制—评测练习—VLM 实践—系统加固”推进的 12 个月学习与作品建设方案。
 sources:
+  - 2026-09-05 用户说明有模型训练经验但缺少硬件基础，Part4 阅读抽象；确认 P02A-01 为经 AI 整理优化的个人学习笔记，并要求更新阶段、目标与检查点
   - 2026-07-17 用户确认的学习目标、项目背景与隐私边界
   - 2026-08-10 用户修正 AI Career 主动学习方法：主动学习不得被误用为纯考试，知识大面积缺失时应先给教学骨架再诊断吸收
   - 2026-08-20 用户确认 Phase 1-C 范围关闭，并将模型工程认知设为 Phase 2-A 进入 OMS VLM 适配前的桥接阶段
@@ -17,7 +18,7 @@ risks:
   - 在尚不能解释 LLM/VLM 输入输出、失败机制和评分边界时过早采集 benchmark，容易形成数量化但不可解释的伪基线。
   - 远程模型 API 可降低原型成本，但不能替代数据治理、评测、可靠性、成本和端云降级能力。
   - AI 辅助完成的设计与实现不能直接视为独立掌握证据，必须补充解释、修改、测试或故障定位验证。
-updated_at: 2026-08-20
+updated_at: 2026-09-05
 ---
 
 # 1 多模态 AI 职业转型学习方案
@@ -225,7 +226,9 @@ Phase 0 与 Phase 1 前半段按“教学骨架—主动重建—最小实现—
 
 ### 1.6.2 Phase 2-A：模型工程认知与 OMS 适配准备
 
-在进入 OMS VLM demo 或完整端云原型实现前，先建立模型工程认知桥接：
+当前在 Phase 2-A 内前置“GPU 基础桥接”子阶段。依据 2026-09-05 用户自述，已有训练经验但缺少硬件基础；先补计算与访存、执行与存储模型，结合向量加法和矩阵乘法例子，再返回 Part4、单卡资源观测和后续并行决策。以机制解释和例子迁移验收，不按固定学习次数或视频完成度验收。
+
+P02A-01 定位为经 AI 整理优化的个人学习笔记；当前进度与能力证据以学习记录和 [[02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点]] 为准。原直接从单卡 SFT/显存开始的顺序保留于学习记录第 1.7 节，以下目标作为 GPU 桥接之后的主线：
 
 1. 重建从授权数据、chat template、visual/text tokens、label mask 到 forward/backward、optimizer、checkpoint 的单卡 VLM SFT 主链。
 2. 分解参数、梯度、optimizer state、activation 和 buffer 的训练显存，理解 LoRA/QLoRA、checkpointing、precision 与 FlashAttention 分别改变什么。

@@ -436,3 +436,11 @@ supersedes:
 - 验证证据为 J6B 全量编译、SDK 本地/板端校验及 `/ota/dump` 999 帧完整回灌。可比窗口 driver-only 保持 241，non-driver-only/both/none 从 127/7/7 变为 0/0/0，目标副驾小手误发布样本结论为 `passed_with_risks`。
 - `/ota/TC001`、`/ota/TC004` 在板端不存在；代表性数据、Body 边界召回、多人重叠、不同车型和专项数据仍待验证。回灌日志中的 `bcbdf40a-dirty` 仅表示构建发生时的历史标识，不是 current 代码基线风险。
 - `recoverability_status` 继续保持 `partial`，未新增或保留 `single_pass_recoverable: true`，本轮不提升正式知识。
+
+## 1.48 2026-09-05 AI Career GPU 基础桥接与检查点同步
+
+- AI Career 在 Phase 2-A 内前置 GPU 基础子阶段；同步整体方案、项目总览、学习文档索引、个人学习记录和滚动检查点。
+- P02A-01 明确为经 AI 整理优化的个人学习笔记，仅补定位与阅读路由，保留现有机制正文；个人掌握情况由学习记录承载。
+- 依据为用户自述及本次更新请求；未新增课程完成、能力通过或训练运行证据，未提高 evidence level。
+- 继续采用项目总览 + 学习笔记 + 学习记录 + 滚动检查点，不创建五份 current 文档组；single_pass_recoverable 保持 false。
+- 原 2026-08-20 恢复安排及本次调整关系在 [[02_Projects/AI-Career-Transition/20_学习记录/P02A_VLM模型工程认知_学习记录]] 第 1.7 节保留。

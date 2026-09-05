@@ -5,6 +5,7 @@ project: AI-Career-Transition
 learning_stage: Phase 2-A - VLM model engineering cognition and OMS adaptation preparation
 summary: 以未来 OMS 开源 VLM 数据适配为迁移场景，建立从单卡 SFT/PEFT、训练显存到分布式并行、算子 IO 和 profiler 的模型工程决策地图。
 sources:
+  - 2026-09-05 用户说明有模型训练经验但缺少硬件基础，Part4 阅读抽象；确认 P02A-01 为经 AI 整理优化的个人学习笔记，并要求更新阶段、目标与检查点
   - 04_Sources/模型工程/2026-08-20_Ultra-Scale-Playbook来源证据卡.md
   - 04_Sources/模型工程/2026-08-20_FlashAttention长序列优化来源证据卡.md
   - 02_Projects/AI-Career-Transition/10_学习文档/P01A-02_LLM训练机制_学习文档.md
@@ -21,6 +22,8 @@ updated_at: 2026-09-05
 # 1 Phase 2-A VLM 模型工程认知学习文档
 
 ## 1.1 学习目标
+
+本文定位为用户学习后经 AI 整理优化的个人学习笔记，用于保存机制、例子、推导与适用边界。笔记的完整度不代表个人掌握程度；阅读进度、诊断结果与当前下一步以对应学习记录和滚动检查点为准。
 
 面对可能需要开源 VLM 数据适配的 OMS demo，本阶段需要建立一条可用于工程决策的训练扩展主线：先理解一次训练 step 如何消耗显存和计算资源，再学习单 GPU 上的优化手段；当单卡仍受容量或吞吐限制时，进入多 GPU 数据并行；当数据并行暴露完整副本和通信问题时，再选择后续的状态分片或计算切分方案。
 
@@ -626,6 +629,8 @@ VLM 模块选择需要明确：
 完成代表模型工程认知可用于决策，不代表 SFT、集群训练或 kernel 实现已经验证。
 
 # 14 原文阅读路线
+
+缺少硬件基础时，可先按“计算与访存、吞吐/延迟/带宽 → GPU 执行与存储模型 → 向量加法和简单矩阵乘法 → 合并访存与 tiling → 算子 IO 与 FlashAttention”的顺序建立具体过程，再回到本笔记的训练资源和并行章节。当前材料选择、个人进度和子阶段门禁见 [[02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点]]；以下保留模型工程各主题与原文的对照路线。
 
 Ultra-Scale Playbook Part 1 沿本文前半段阅读：单 GPU 训练与显存、activation recomputation、gradient accumulation、data parallelism、ZeRO-1/2/3、tensor-parallel linear、MLP 和 attention。Part 2 继续阅读 TP+SP、CP/Ring Attention、PP schedules、EP 与多维组合；Part 3 只提取“容量→GBS→吞吐”的配置搜索方法，不背诵特定 H100 集群的参数量或 GPU 数阈值。每一节回答四个问题：原始瓶颈是什么、方案改变什么、代价是什么、用什么 profile 证明。
 
