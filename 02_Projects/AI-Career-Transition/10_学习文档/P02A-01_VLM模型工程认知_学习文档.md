@@ -15,7 +15,7 @@ risks:
   - 本阶段建立认知，不代表已经运行 SFT、掌握集群调优或具备 kernel 开发能力。
   - 外部材料面向特定 LLM/硬件；迁移到 VLM、T4 或 OMS 前必须重新核对架构、shape、版本和 profile。
   - 是否执行 SFT 仍取决于任务合同、合法数据、基线、错误分类和资源预算。
-updated_at: 2026-09-03
+updated_at: 2026-09-05
 ---
 
 # 1 Phase 2-A VLM 模型工程认知学习文档
@@ -52,7 +52,7 @@ updated_at: 2026-09-03
 
 训练链路成功运行只是执行证据。数据是否覆盖目标错误、loss 是否监督预期输出、独立验证数据是否稳定提升，仍由评测合同判断。
 
-本文建立单卡显存、混合精度、activation 优化、gradient accumulation、data parallelism、算子 IO 和 profiling 的认知。完整 SFT、多机训练、复杂 pipeline schedule 以及 CUDA/Triton kernel 实现不属于当前实践门禁。
+本文建立单卡显存、混合精度、activation 优化、gradient accumulation、DP/ZeRO、TP/SP、CP、PP、EP、多维配置、算子 IO 和 profiling 的认知。完整 SFT、多机训练、复杂 pipeline schedule 以及 CUDA/Triton kernel 实现不属于当前实践门禁。
 
 对应学习记录：[[02_Projects/AI-Career-Transition/20_学习记录/P02A_VLM模型工程认知_学习记录]]。
 
@@ -386,7 +386,162 @@ TP 之后的主线继续由剩余瓶颈决定：
 
 两者都让模型状态以 shard 形式常驻，但切入层次不同。ZeRO-3 保持数据并行的完整算子语义，在计算某层时临时恢复该层参数；TP 直接改写 Linear 和 Attention 的执行方式，各 rank 使用本地参数 shard 计算局部结果，再通过 collective 拼接或规约。因此，ZeRO-3 的通信围绕参数生命周期，TP 的通信属于算子本身的数学依赖。
 
-# 6 Profiling：为每一步优化建立证据
+# 6 Sequence Parallelism：补齐 TP 未切分的 activation
+
+TP 主要切分 Linear 和 Attention 中适合按 hidden dimension 分块的矩阵计算。Transformer block 中的 residual、dropout 和 LayerNorm 等区域仍可能在 TP ranks 上保留形状为 $(b,s,h)$ 的复制 activation。这里的 Sequence Parallelism（SP）与 TP 配套使用：TP 区域沿 hidden dimension 分片，非 TP 区域沿 sequence dimension 分片，使原本复制的 activation 也能分摊到各 rank。
+
+本节的 SP 不等于后文的 Context Parallelism。SP 主要优化 TP block 内部的 activation 布局；CP 则让 sequence shard 贯穿 Attention 和 MLP，用于处理超长上下文。
+
+## 6.1 TP 区与 SP 区的布局转换
+
+设 TP degree 为 $t_p$。在 SP 区域，每个 rank 保存约 $(b,s/t_p,h)$ 的 sequence shard，保留完整 hidden dimension，因此 LayerNorm 的均值和方差可以在本地沿 hidden dimension 计算，并不要求先恢复完整 sequence。
+
+进入 column-parallel Linear 前，需要把 sequence shards all-gather 成各 rank 都可使用的完整输入；离开 row-parallel Linear 时，可以用 reduce-scatter 在完成局部结果规约的同时重新得到 sequence shards。反向传播使用对应的共轭通信：前向的 all-gather 对应反向的 reduce-scatter，前向的 reduce-scatter 对应反向的 all-gather。
+
+![Ultra-Scale Playbook 中 TP 区与 SP 区的 activation 布局转换](assets/P02A-01/ultrascale-sp-layout.png)
+
+```text
+sequence-sharded residual / LayerNorm
+→ all-gather sequence，进入 TP Linear/Attention
+→ hidden-sharded 局部计算
+→ reduce-scatter 规约结果并恢复 sequence shard
+→ sequence-sharded residual / dropout / LayerNorm
+```
+
+
+## 6.2 显存收益、通信与边界
+
+SP 让许多需要长期保存的 block activation 从约 $bsh$ 降到约：
+
+$$
+\frac{bsh}{t_p}
+$$
+
+这是稳态 shard 的数量级，不是无条件的瞬时峰值。SP 与 TP 区域转换时，all-gather 可能短暂形成更大的输入；通信 buffer、算子融合和释放时机也会影响实测 peak memory。
+
+在经典 TP block 中，一次 all-reduce 可以按通信语义分解为 reduce-scatter 与 all-gather。SP 用分散在不同边界的 collective 替代完整 all-reduce，因此理论传输量可以同阶，但 collective 次数、启动延迟、buffer 峰值和可重叠窗口并不相同。TP+SP 仍高度依赖高速互联，通常优先限制在节点内。
+
+SP 解决了 TP block 中部分复制 activation，却没有让 Attention 永久摆脱完整 sequence。序列继续增长时，Attention 的 Q/K/V 交互和层边界 activation 仍会成为瓶颈，由此引出 Context Parallelism。
+
+# 7 Context Parallelism：让长序列跨设备展开
+
+Context Parallelism（CP）沿 sequence dimension 把输入分给多个 ranks，并尽量让这种分片贯穿整个 Transformer。MLP、LayerNorm 和多数逐 token 操作可以直接处理本地 sequence shard；Attention 是关键例外，因为每个 query 仍需要访问其可见范围内的全局 K/V。
+
+CP 降低每卡长序列 activation 和局部 attention 工作集，但没有消除全局 attention 的数学依赖。它把“单卡上存放完整上下文”的问题转换为“跨设备交换 K/V 并在线合并 softmax 统计量”的问题。
+
+## 7.1 Ring Attention：轮转 K/V 并重叠计算
+
+Ring Attention 中，每个 rank 保留本地 Q 和一块 K/V。每一轮先异步发送当前 K/V 给下一个 rank，同时用本地 Q 与当前 K/V block 计算部分 attention；收到上一 rank 的下一块 K/V 后继续下一轮。遍历所有 K/V blocks 后，通过在线 softmax 所需的局部最大值、归一化因子和加权和合并出正确结果。
+
+![Ultra-Scale Playbook 中 Ring Attention 的 K/V 环形轮转](assets/P02A-01/ultrascale-cp-ring-attention.png)
+
+```text
+local Q 固定
+→ 计算 local Q × current K/V
+→ current K/V 发送给下一 rank
+→ 接收上一 rank 的 K/V block
+→ 更新 online softmax 统计量
+→ 遍历全部 K/V blocks
+```
+
+这里的 ring 是逐块 point-to-point exchange，不应与 All-to-All collective 混为一谈。另一种实现可以先 all-gather 全部 K/V，再在本地计算；它减少分步调度，却需要临时保存完整 K/V。选择取决于 sequence length、显存、链路带宽、通信延迟和计算能否覆盖传输。
+
+## 7.2 Causal Attention 的负载均衡
+
+如果按连续 token 区间简单分片，causal mask 会让早期 query 看到较少 K/V、后期 query 看到较多 K/V，各 rank 的有效计算量和等待行为不均衡。Zig-zag Ring Attention 把早期与晚期 token 交错分给各 rank，使每个 rank 承担的有效 attention 区域更接近。
+
+![Ultra-Scale Playbook 中 Zig-zag Ring Attention 对 causal mask 工作量的均衡](assets/P02A-01/ultrascale-cp-zigzag.png)
+
+Zig-zag 改善的是负载分配，不会消除全局 K/V 通信。对于短序列，额外通信和调度可能大于分片收益。
+
+# 8 Pipeline Parallelism：按模型深度切分层
+
+当模型状态难以在一个高速互联节点内由 TP 或 FSDP 容纳时，可以把连续层划分为多个 pipeline stages。每个 stage 长期保存并计算一组完整层；forward 把 stage boundary activation 发送给下一 stage，backward 以相反方向传递 activation gradient。
+
+PP 的跨 stage 通信发生在少数层边界，而 TP 几乎每层内部都需要 collective。因此 PP 更适合跨节点扩展，但代价是 stage 之间存在顺序依赖、负载不均和 pipeline bubble。
+
+## 8.1 AFAB：用 micro-batch 填充流水线
+
+AFAB（All-Forward-All-Backward）把 global batch 切成 $m$ 个 micro-batches，先调度全部 forward，再调度全部 backward。不同 stages 可以同时处理不同 micro-batches，从而比整批顺序通过所有 stages 更充分地利用设备。
+
+![Ultra-Scale Playbook 中 AFAB pipeline schedule](assets/P02A-01/ultrascale-pp-afab.png)
+
+在 $p$ 个耗时均衡的 stages、忽略通信和其他不对称的简化模型中，若单个 micro-batch 的 stage forward/backward 时间分别为 $t_f,t_b$，有效计算时间为 $m(t_f+t_b)$，填充和排空流水线带来的额外时间约为 $(p-1)(t_f+t_b)$，因此 bubble ratio 近似为：
+
+$$
+r_{\mathrm{bubble}} \approx \frac{p-1}{m}
+$$
+
+增加 $m$ 可以摊薄 bubble，但会受到目标 global batch、最小 micro-batch、调度开销和数值收敛合同限制。该公式不是任意 pipeline schedule 的通用性能定律。
+
+AFAB 的主要显存问题是：每个 stage 必须保留多个已完成 forward、尚未 backward 的 micro-batch activation，在途数量可随 $m$ 增长。
+
+## 8.2 1F1B：提前 backward 释放 activation
+
+1F1B（One-Forward-One-Backward）经过 warmup 后，在稳态交替执行一个 forward 和一个 backward，使较早 micro-batch 的 activation 更早释放。
+
+![Ultra-Scale Playbook 中 1F1B pipeline schedule](assets/P02A-01/ultrascale-pp-1f1b.png)
+
+相对 AFAB，1F1B 将每个 stage 需要同时保留的在途 activation 从随 $m$ 增长压缩到近似为 $O(p)$。它主要优化 activation memory；在同一简化模型下，基本填充/排空气泡仍然存在。
+
+1F1B 需要每个 stage 正确调度 send/recv、forward/backward 切换和梯度同步。stage 切分不均、embedding/loss head 额外负载、变长样本和通信延迟都会让最慢 stage 决定吞吐。
+
+## 8.3 Interleaved stages 与进一步调度
+
+Interleaved Pipeline Parallelism 让每个物理 rank 持有多个不连续的 model chunks，也称 virtual stages。不同 micro-batches 在这些 chunks 间交错流动，增加可调度工作并缩短部分 bubble；代价是更多 stage-boundary 通信、更复杂的依赖管理和更高实现成本。
+
+![Ultra-Scale Playbook 中每个物理 rank 持有多个 model chunks 的 Interleaved Pipeline schedule](assets/P02A-01/ultrascale-pp-interleaved-stages.png)
+
+Zero-Bubble、DualPipe 等调度进一步拆分 input-gradient 与 weight-gradient 计算，用可延后执行的工作填补空档。这些方案依赖具体算子耗时、双向数据流和精细调度，本阶段只需要理解其优化对象，不把实现设为完成门禁。
+
+## 8.4 PP 与 ZeRO-3：层常驻和参数按需恢复
+
+| 维度       | ZeRO-3 / FSDP               | Pipeline Parallelism                   |
+| -------- | --------------------------- | -------------------------------------- |
+| 常驻参数     | 每个 rank 保存许多层的参数 shards     | 每个 stage 保存少数完整层                       |
+| 计算某层时    | all-gather 当前层参数后执行完整层      | 直接使用本 stage 的完整层参数                     |
+| 主要跨设备传输  | 参数 shards 与 gradient shards | stage boundary activation 与其梯度         |
+| 主要调度问题   | prefetch、reshard、bucket 与重叠 | micro-batch、bubble、stage 平衡与 send/recv |
+| 更偏好的摊销条件 | 足够计算量覆盖参数通信                 | 足够多 micro-batches 填充流水线                |
+
+二者都能降低单设备常驻模型状态，但通信对象和生命周期不同。ZeRO-1/2 只分片 optimizer states 或梯度，通常更容易与 PP 组合；ZeRO-3 与 PP 也能组合，但必须避免对每个 pipeline micro-batch 重复 gather/reshard 同一层参数，否则额外通信可能抵消容量收益。
+
+# 9 Expert Parallelism：只让 token 访问选中的专家
+
+MoE 用多个 expert FFN 替代稠密 FFN，并由 router 为每个 token 选择 top-$k$ experts。Expert Parallelism（EP）把不同 experts 放到不同 ranks：先根据路由结果把 token hidden states dispatch 到负责目标 expert 的 rank，执行本地 expert 计算，再把输出 combine 回原 token 顺序。
+
+![Ultra-Scale Playbook 中 Expert Parallelism 与 Data Parallelism 的组合](assets/P02A-01/ultrascale-ep-dp.png)
+
+EP 的核心 collective 通常是 All-to-All 或等价的 token dispatch/combine。它不需要像 TP 一样拆分每个 expert 的矩阵乘法，但不能因此笼统称为更轻量：通信量取决于 token 数、hidden size、top-$k$ 和跨节点路由，性能还受 expert load imbalance、capacity limit、token drop/padding 与 router 稳定性影响。
+
+EP 只分片 MoE experts。Attention、embedding、LayerNorm 和其他 dense 模块仍需由 DP、TP、PP、ZeRO 或其他维度处理。
+
+# 10 多维并行与配置搜索
+
+并行策略不是按“更高级”依次替换，而是沿不同轴解决不同瓶颈：
+
+| 策略 | 主要分片轴 | 直接缓解 | 主要新增代价 |
+|---|---|---|---|
+| DP | batch | 吞吐与每 rank local batch | 完整模型副本、梯度同步、GBS 上限 |
+| ZeRO/FSDP | DP ranks 上的模型状态 | 参数/梯度/optimizer state 冗余 | 参数与梯度 collective、临时物化 |
+| TP + SP | hidden + block 内 sequence 布局 | 单层参数与部分 activation | 每层关键路径通信、模型特定布局 |
+| CP | 全模型 sequence/context | 超长序列 activation 与 attention 工作集 | K/V 通信、mask 负载均衡 |
+| PP | model depth | 每设备常驻层数 | bubble、stage 平衡、复杂调度 |
+| EP | experts | MoE expert 参数 | token All-to-All、负载不均 |
+
+![Ultra-Scale Playbook 中 DP、TP/SP、CP、PP 与 EP 的分片方向](assets/P02A-01/ultrascale-5d-parallelism.png)
+
+“5D parallelism”通常指 DP、TP、CP、PP、EP 五个可组合的主要并行维度；SP 更准确地看作 TP 的配套 activation 布局优化，而 ZeRO 是沿 DP 维度消除模型状态冗余的 stages。
+
+## 10.1 先容量，再 batch 合同，最后吞吐
+
+配置搜索按以下顺序缩小空间：
+
+1. **先让训练状态放得下**：固定模型、sequence/视觉 token、precision、recomputation 和最小可接受 micro-batch，判断瓶颈来自模型状态、activation、单层算子还是整个节点容量，再选择 ZeRO/FSDP、TP/SP、CP 或 PP；MoE 才考虑 EP。
+2. **再满足目标 global batch**：使用 $GBS=MBS\times GAS\times DP$ 检查 DP degree 与 gradient accumulation steps。CP 切分单个长序列，不应不加说明地当成独立样本数乘入 GBS。
+3. **最后优化吞吐**：在相同训练与质量合同下扫描少量候选，优先让高频 TP collective 留在高速节点内，再比较 DP/FSDP、PP、CP/EP 的跨节点映射、micro-batch、bucket、schedule 和重叠效果。
+
+# 11 Profiling：为每一步优化建立证据
 
 Profiling 贯穿单卡和多卡优化。最小实验合同包括：模型与数据身份、input shape、precision、可训练参数、软件版本、warmup、测量窗口和固定质量检查。
 
@@ -400,6 +555,9 @@ Profiling 贯穿单卡和多卡优化。最小实验合同包括：模型与数�
 | bucketing | bucket ready 时间、消息数量、buffer、step tail | bucket 粒度是否兼顾启动开销和 overlap？ |
 | ZeRO/FSDP | shard/完整参数峰值、all-gather、reduce-scatter、prefetch | 状态显存下降是否覆盖新增通信和临时峰值？ |
 | TP | GEMM 时间、每层 collective、同步点、每卡 activation | 算子分片收益是否被关键路径通信抵消？ |
+| SP/CP | sequence/hidden shard、K/V 通信、mask 负载、峰值 buffer | 长序列显存下降是否覆盖布局转换和 attention 通信？ |
+| PP | stage time、bubble、在途 activation、send/recv | 最慢 stage、micro-batch 数和 schedule 如何限制吞吐？ |
+| EP | 每 expert token 数、All-to-All、capacity/drop、router balance | 专家分片收益是否被路由通信和负载不均抵消？ |
 
 统一诊断流程为：
 
@@ -414,7 +572,7 @@ Profiling 贯穿单卡和多卡优化。最小实验合同包括：模型与数�
 
 GPU utilization 只是现象指标。最终结论应落到具体 kernel、memcpy、同步点、collective、idle gap 或数据等待，并以端到端 step time 和有效 tokens/s 判断收益。
 
-# 7 OMS VLM 适配决策
+# 12 OMS VLM 适配决策
 
 OMS 场景首先确定任务输出与非目标、数据授权、zero/few-shot 或其他基线、错误分类、独立验证数据，以及训练和部署资源预算。只有基线已经证明存在稳定、可由数据适配改善的错误模式时，才打开最小 LoRA/QLoRA 分支。
 
@@ -426,9 +584,9 @@ VLM 模块选择需要明确：
 | projector | 训练或添加 adapter | 调整视觉特征进入语言空间的映射 |
 | language model | 冻结、LoRA 或全量训练 | LoRA 适合资源受限的小规模适配；全量训练需要更高成本和遗忘风险控制 |
 
-当前阶段交付为：单 GPU 训练资源图、优化手段及局限、DP 数据流和通信边界、ZeRO/FSDP 状态分片、TP 算子分片、后续多 GPU 路由、profiler 计划，以及不执行 SFT 或分布式的反例。它不要求实际完成 SFT、集群训练或 kernel 实现。
+当前阶段交付为：单 GPU 训练资源图、优化手段及局限、DP 数据流和通信边界、ZeRO/FSDP 状态分片、TP/SP 算子与 activation 布局、CP 长上下文、PP 调度、EP 路由、多维配置决策、profiler 计划，以及不执行 SFT 或分布式的反例。它不要求实际完成 SFT、集群训练或 kernel 实现。
 
-# 8 主动考核骨架
+# 13 主动考核骨架
 
 每单元按闭卷重建、边界辨析和迁移决策三层检查：
 
@@ -440,11 +598,14 @@ VLM 模块选择需要明确：
 | D Data Parallel | DP 如何并行 micro-batch 并形成一致梯度？ | overlap、bucketing、`no_sync()` 分别解决什么？ | 单卡能放下但速度慢时怎样验证 DP 收益？ |
 | E ZeRO/FSDP | ZeRO-1/2/3 分别切分什么？ | reduce-scatter、all-gather 与 activation 的边界是什么？ | 模型状态 OOM 时应选哪个 stage 并测什么？ |
 | F Tensor Parallel | Column/Row linear 如何组合出完整矩阵乘法？ | TP collective 为什么进入每层关键路径？ | VLM 的 MLP、MHA/GQA 如何选择 TP degree？ |
-| G 后续路由 | PP、CP/SP 分别切分什么？ | ZeRO/TP 的哪个局限引出该方案？ | 当前问题需要深入哪条路线？ |
-| H 算子 IO | FlashAttention 如何减少 HBM 流量？ | IO、显存与 FLOPs 如何区分？ | 高分辨率 VLM 变慢怎样定位？ |
-| I Profiling | 如何分解 step 时间和显存？ | utilization 为什么不足以定位根因？ | 如何设计只改变一个杠杆的 A/B profile？ |
+| G SP / CP | SP 与 CP 分别把 sequence shard 保持到哪里？ | all-gather KV 与 ring exchange 的取舍是什么？ | 长视频或长上下文 VLM 何时需要 CP？ |
+| H Pipeline Parallel | AFAB、1F1B、interleaving 分别改变什么？ | 为什么 1F1B 省 activation 却不自动消除 bubble？ | 模型跨节点时如何决定 PP stages？ |
+| I Expert Parallel | token 如何 dispatch 到 experts 并 combine？ | EP 为什么不等于低通信？ | 稠密 VLM 与 MoE VLM 的适用边界是什么？ |
+| J 多维配置 | 如何按容量、GBS、吞吐三步选择组合？ | 为什么固定 GPU 数阈值不能直接迁移？ | 给定 OMS shape 与拓扑，应先测哪组配置？ |
+| K 算子 IO | FlashAttention 如何减少 HBM 流量？ | IO、显存与 FLOPs 如何区分？ | 高分辨率 VLM 变慢怎样定位？ |
+| L Profiling | 如何分解 step 时间和显存？ | utilization 为什么不足以定位根因？ | 如何设计只改变一个杠杆的 A/B profile？ |
 
-## 8.1 完成门禁
+## 13.1 完成门禁
 
 - [ ] 闭卷画出单卡 VLM SFT 主链并解释 label masking。
 - [ ] 按时间顺序说明参数、activation、梯度和 optimizer states 的生命周期。
@@ -454,17 +615,19 @@ VLM 模块选择需要明确：
 - [ ] 用分片对象和显存公式解释 ZeRO-1/2/3，并画出 reduce-scatter、局部更新和 all-gather 的 step 数据流。
 - [ ] 从并行语义、参数获取、局部计算、activation 和通信位置五个维度对比 ZeRO-3 与 TP。
 - [ ] 用矩阵分块推导 column/row parallel，并迁移到 Transformer MLP 与 MHA/GQA。
-- [ ] 从 ZeRO 和 TP 的剩余限制，路由到 PP 或 CP/SP 的后续学习方向。
+- [ ] 解释 TP+SP 的 sequence/hidden 布局转换，并区分 SP 与 CP。
+- [ ] 画出 Ring Attention 的 K/V 轮转，解释 causal imbalance 与 Zig-zag 的作用。
+- [ ] 用简化公式解释 PP bubble，并比较 AFAB、1F1B 与 interleaved stages。
+- [ ] 说明 EP 的 token dispatch/combine、All-to-All 与负载均衡边界。
+- [ ] 按“容量→global batch→吞吐”给出一套多维并行配置搜索计划。
 - [ ] 为 OMS VLM 适配写 profiler/评测计划，并说明何时不执行 SFT 或分布式。
 - [ ] 完成至少两道新情境迁移题，不依赖背诵框架名。
 
 完成代表模型工程认知可用于决策，不代表 SFT、集群训练或 kernel 实现已经验证。
 
-# 9 原文阅读路线
+# 14 原文阅读路线
 
-Ultra-Scale Playbook 第一轮沿本文顺序阅读：单 GPU 训练与显存、activation recomputation、gradient accumulation、data parallelism、ZeRO-1/2/3、tensor-parallel linear、MLP 和 attention。每一节回答四个问题：原始瓶颈是什么、方案改变什么、代价是什么、用什么 profile 证明。
-
-PP 和 CP/SP 当前保留为 ZeRO/TP 局限之后的阅读入口，进入对应单元时再扩展为完整机制与实验计划。
+Ultra-Scale Playbook Part 1 沿本文前半段阅读：单 GPU 训练与显存、activation recomputation、gradient accumulation、data parallelism、ZeRO-1/2/3、tensor-parallel linear、MLP 和 attention。Part 2 继续阅读 TP+SP、CP/Ring Attention、PP schedules、EP 与多维组合；Part 3 只提取“容量→GBS→吞吐”的配置搜索方法，不背诵特定 H100 集群的参数量或 GPU 数阈值。每一节回答四个问题：原始瓶颈是什么、方案改变什么、代价是什么、用什么 profile 证明。
 
 FlashAttention 原文重点重建 HBM→片上存储的 tiling、recomputation 和端到端边界。通读不作为门禁。
 

@@ -63,3 +63,33 @@ pipeline schedule、3D/context/expert parallelism、集群拓扑和大规模 ben
 | Attention 的 QKV column split 与输出 row split | https://raw.githubusercontent.com/pprp/blogimagebed/main/image%2037.png | `02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-tp-attention.png` | `ef5ef9f34bc99f76872aaad27fe38f146e274f1cc4aa8e6a2503222838f25eba` |
 
 ZeRO 显存公式是忽略 activation、临时 buffer 和峰值参数物化的简化模型；stage 名称描述长期分片对象，collective 与生命周期由实现决定。TP 图片展示一种经典 column/row layout；实际是否执行 broadcast、scatter、all-gather 或 reduce-scatter 取决于相邻算子已经建立的张量布局。原材料中的固定通信量、collective 次数和 TP degree 性能拐点只作为对应配置下的分析示例。
+
+## 1.7 2026-09-05 SP、CP、PP、EP 与多维并行来源补充
+
+本节为 append-only 补充，用于记录 Phase 2-A 学习文档继续扩展时使用的原始页面、图片和口径边界。
+
+- 中文翻译 Part 2：https://github.com/pprp/ultrascale-playbook-zh/blob/main/docs/The%20UltraScale%20Playbook-Part2.md
+- 中文翻译 Part 3：https://github.com/pprp/ultrascale-playbook-zh/blob/main/docs/The%20UltraScale%20Playbook-Part3.md
+
+| 内容 | 原始图片 | 本地项目资产 | SHA-256 |
+|---|---|---|---|
+| TP 区与 SP 区的 activation 布局转换 | https://raw.githubusercontent.com/pprp/blogimagebed/main/part_2_image%202.png | `02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-sp-layout.png` | `25b98fbf13ebfc92c90271d84ceb03106fa59acdbd1e562fd5d8ca8d36269225` |
+| Ring Attention 的 K/V 环形轮转 | https://raw.githubusercontent.com/pprp/blogimagebed/main/part_2_image%2010.png | `02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-cp-ring-attention.png` | `da8bc790b8413a33cc8f66e631ab312da1755070eb8f2cae93d5dc6976688a42` |
+| Zig-zag Ring Attention 的 causal mask 负载均衡 | https://raw.githubusercontent.com/pprp/blogimagebed/main/part_2_image%2012.png | `02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-cp-zigzag.png` | `1137cf8b6135527382a7f1f5ce97a7d37287eee38231f5feb62cdae654e7087f` |
+| AFAB pipeline schedule | https://raw.githubusercontent.com/pprp/blogimagebed/main/part_2_image%2017.png | `02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-pp-afab.png` | `8fb15ca3f9a2adcab642b00ad6d675f7f841c223848a5280cd8e3dc70aef00c8` |
+| 1F1B pipeline schedule | https://raw.githubusercontent.com/pprp/blogimagebed/main/part_2_image%2018.png | `02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-pp-1f1b.png` | `5c26ea7a05630c87f88d74e2870e7f4bead77f6964409b8a997270826cf1161a` |
+| Expert Parallelism 与 Data Parallelism 组合 | https://raw.githubusercontent.com/pprp/blogimagebed/main/part_2_image%2027.png | `02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-ep-dp.png` | `dee1c6ff9d9658604865d231d2495d9bf62987e91ae91c89d8546eb83c9e219e` |
+| DP、TP/SP、CP、PP 与 EP 的分片方向 | https://raw.githubusercontent.com/pprp/blogimagebed/main/part_2_image%2031.png | `02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-5d-parallelism.png` | `a0194ceffc34bf10c954c423400f1957b48367131bcd2fa3e2cc807062312888` |
+
+写入学习文档时保留以下边界：SP 是与 TP 配套的 activation 布局优化，不等于让 Attention 始终保持 sequence shard 的 CP；LayerNorm 在保留完整 hidden dimension 的 sequence shard 上可本地计算，复制参数梯度同步与 activation all-reduce 不应混为一谈；ring K/V exchange 不是 All-to-All；PP 的 $(p-1)/m$ 气泡比例依赖等 stage 耗时等简化假设；1F1B 主要降低在途 activation，不自动消除 bubble；EP 的 token dispatch/combine、All-to-All、capacity 与负载均衡不能被“比 TP 更轻量”掩盖。
+
+Part 3 中按模型参数量、GPU 数量给出的组合是特定 H100 集群、固定 sequence length、global batch 和实现版本下的经验案例。可复用的是先满足容量、再校准 global batch、最后 profile 吞吐的搜索顺序，而不是固定的 10B、512 GPU 或 1024 GPU 阈值。
+
+## 1.8 2026-09-05 Interleaving Stage 图片来源补充
+
+本节为 append-only 补充，不改写 1.7 节既有记录。
+
+- 内容：每个物理 pipeline rank 持有多个 model chunks 的 Interleaved Pipeline schedule
+- 原始图片：https://raw.githubusercontent.com/pprp/blogimagebed/main/part_2_image%2020.png
+- 本地项目资产：`02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-pp-interleaved-stages.png`
+- SHA-256：`c0d75c8ab4bfa02d684e23f4445ccf6bf397c9aacd36acf08e27daff5093741d`
