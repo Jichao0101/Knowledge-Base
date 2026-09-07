@@ -3,8 +3,9 @@ type: project_learning_document
 status: active
 project: AI-Career-Transition
 learning_stage: Phase 2-A - VLM model engineering cognition and OMS adaptation preparation
-summary: 以未来 OMS 开源 VLM 数据适配为迁移场景，建立从单卡 SFT/PEFT、训练显存到分布式并行、算子 IO 和 profiler 的模型工程决策地图。
+summary: 以 GPU 执行与数据移动为前置桥梁，面向未来 OMS 开源 VLM 数据适配，建立从单卡 SFT/PEFT、训练显存到分布式并行、算子 IO 和 profiler 的模型工程决策地图。
 sources:
+  - 2026-09-07 用户更新的 GPU 基础学习笔记：并行、延迟与吞吐、访存、局部性、算术强度和 Roofline
   - 2026-09-05 用户说明有模型训练经验但缺少硬件基础，Part4 阅读抽象；确认 P02A-01 为经 AI 整理优化的个人学习笔记，并要求更新阶段、目标与检查点
   - 04_Sources/模型工程/2026-08-20_Ultra-Scale-Playbook来源证据卡.md
   - 04_Sources/模型工程/2026-08-20_FlashAttention长序列优化来源证据卡.md
@@ -16,7 +17,7 @@ risks:
   - 本阶段建立认知，不代表已经运行 SFT、掌握集群调优或具备 kernel 开发能力。
   - 外部材料面向特定 LLM/硬件；迁移到 VLM、T4 或 OMS 前必须重新核对架构、shape、版本和 profile。
   - 是否执行 SFT 仍取决于任务合同、合法数据、基线、错误分类和资源预算。
-updated_at: 2026-09-05
+updated_at: 2026-09-07
 ---
 
 # 1 Phase 2-A VLM 模型工程认知学习文档
@@ -58,6 +59,126 @@ updated_at: 2026-09-05
 本文建立单卡显存、混合精度、activation 优化、gradient accumulation、DP/ZeRO、TP/SP、CP、PP、EP、多维配置、算子 IO 和 profiling 的认知。完整 SFT、多机训练、复杂 pipeline schedule 以及 CUDA/Triton kernel 实现不属于当前实践门禁。
 
 对应学习记录：[[02_Projects/AI-Career-Transition/20_学习记录/P02A_VLM模型工程认知_学习记录]]。
+
+## 1.3 GPU 基础桥接：从并行计算到数据移动
+
+模型训练中的 FLOPs、显存和通信最终都落到硬件执行。当前先建立一个最小心智模型：GPU 用大量并发工作追求吞吐，通过线程切换覆盖等待；数据需要在不同层级之间移动，而算子能否复用已经搬近计算单元的数据，决定计算资源能否被充分利用。
+
+这部分不是 CUDA kernel 开发教程，而是后续理解 mixed precision、tiling、fusion、FlashAttention 和 profiler 结果的前置桥梁。
+
+### 1.3.1 Latency、throughput 与 bandwidth
+
+- **Latency**：一个任务或一次操作从开始到完成所经历的时间。例如，一次 HBM load 发出后多久数据才可用。
+- **Throughput**：系统单位时间完成的工作量。例如每秒处理的 tokens、samples 或 FLOPs。
+- **Bandwidth**：单位时间能够传输的数据量。例如 HBM 每秒可搬运多少 bytes。
+
+三者不能互相替代。增加并发请求可以让内存控制器持续工作，从而更接近峰值 bandwidth，并提高整体 throughput；单个请求从发出到返回的 latency 却未必降低。训练中“GPU 很忙”也不等于单个样本更快，它可能只是同时处理了更多工作。
+
+### 1.3.2 CPU 与 GPU 的设计重点
+
+CPU 和 GPU 都能并行执行，但典型设计取舍不同：
+
+| 维度 | CPU 常见侧重 | GPU 常见侧重 |
+|---|---|---|
+| 核心 | 数量较少、单核能力强 | 大量相对简单的计算单元 |
+| 控制流 | 强分支预测、乱序执行，擅长复杂控制 | 偏好大量结构相似、可同时推进的工作 |
+| 存储 | 较大的多级 cache，优先降低单线程等待 | 高带宽设备内存与大量并发，优先维持吞吐 |
+| 优化目标 | 常重视单任务 latency | 常重视总体 throughput |
+
+这是设计倾向，不是绝对分类。CPU 也能通过 SIMD 和多核获得高吞吐，GPU 也有 cache、控制逻辑和低延迟任务；是否适合 GPU 仍取决于并行度、数据移动和算子规模。
+
+### 1.3.3 SIMD、SIMT 与 warp
+
+SIMD（Single Instruction, Multiple Data）表示一条指令同时作用于多个数据元素。CUDA 面向程序员暴露的模型通常称为 SIMT（Single Instruction, Multiple Threads）：程序写成许多具有独立索引和状态的 threads，硬件再把 threads 成组调度。
+
+在 NVIDIA GPU 上，threads 被组织为 blocks，blocks 被分配到 SM；一个 block 内的 threads 通常以 32 个线程组成的 warp 为调度单位。同一 warp 在同一时刻执行共同的指令路径。若线程因条件分支走向不同路径，硬件通常需要分批执行这些路径，产生 branch divergence，降低有效吞吐。
+
+程序中的 grid、block、thread 是工作组织方式；SM、warp scheduler、计算单元是硬件执行资源。线程总数可以远大于物理计算单元数，因为硬件并不是让所有线程在同一瞬间执行，而是在可驻留和可调度的 warps 之间推进工作。
+
+### 1.3.4 为什么大量线程能够隐藏等待
+
+若一个 warp 发出 HBM load 后必须等待数据，相关指令暂时不能继续。只要同一 SM 上还有其他依赖已经满足的 ready warps，scheduler 就可以先发射它们的指令：
+
+```text
+warp A 发出 memory request → 等待
+warp B ready → 执行
+warp C ready → 执行
+warp A 数据返回 → 继续执行
+```
+
+这种机制隐藏的是 latency 对计算流水线造成的空档，而不是消除 memory latency。它也不是“线程越多越快”：寄存器和 shared memory 占用会限制一个 SM 能同时驻留的 blocks/warps；长依赖链、低并行度、访存拥塞或所有 warps 同时等待时，scheduler 仍找不到 ready work。
+
+Occupancy 描述理论上可驻留 warps 相对硬件上限的比例。足够 occupancy 有助于 latency hiding，但 occupancy 达到最大并不保证算子最快；寄存器复用、cache 行为、指令吞吐和数据依赖同样重要。
+
+### 1.3.5 Memory hierarchy 与 locality
+
+GPU 的存储层级可先按“越靠近计算单元，通常容量越小、访问越快”理解：
+
+```text
+每线程 registers
+→ 每个 SM 的 shared memory / L1
+→ GPU 共享 L2
+→ device HBM
+→ host memory 或远端设备
+```
+
+实际 cache 结构、容量和带宽依赖 GPU 架构，不能只凭层级名称推断性能。优化的共同目标是减少高成本数据移动，并让一次搬运产生更多有效计算。
+
+- **Temporal locality**：刚使用的数据很快再次使用，尽量留在 register、shared memory 或 cache 中。
+- **Spatial locality**：相邻线程访问相邻地址，使硬件能用更少的 memory transactions 搬运连续数据。
+- **Coalesced access**：一个 warp 的访问能够合并为少量连续内存事务；它利用空间局部性，但不等同于 cache 命中。
+- **Tiling**：把较大的计算拆成能装入片上存储的数据块，在 tile 内重复使用数据，再处理下一块。
+
+Cache 通常由硬件管理，而 shared memory 往往需要 kernel 显式安排数据与同步。两者都可以利用局部性，但控制方式和容量边界不同。
+
+### 1.3.6 向量加法与矩阵乘法的差异
+
+向量加法 $C_i=A_i+B_i$ 对每个元素只做一次加法，却至少需要读取 $A_i$、读取 $B_i$ 并写回 $C_i$。若这些数据来自 HBM 且没有额外复用，计算量相对传输字节很少，通常更容易受 memory bandwidth 限制。增加更多 ALU 不会自动减少这些 bytes。
+
+矩阵乘法：
+
+$$
+C_{ij}=\sum_k A_{ik}B_{kj}
+$$
+
+具有更高的数据复用潜力：同一个 $A_{ik}$ 会参与多个不同 $j$ 的输出，同一个 $B_{kj}$ 会参与多个不同 $i$ 的输出。朴素实现若每次乘加都重新从 HBM 取数，仍会浪费这一性质；tiled GEMM 把 $A$、$B$ 的子块搬到 shared memory 或 registers，在 tile 内完成多次乘加，使数据移动增长慢于 FLOPs 增长。
+
+因此，“矩阵乘法适合 GPU”不只因为可以创建很多线程，还因为规则并行、连续访问和数据复用能够共同提高计算单元利用率。矩阵过小、形状不友好、精度或 kernel 不匹配时，也可能无法达到高吞吐。
+
+### 1.3.7 Arithmetic Intensity 与 Roofline
+
+Arithmetic Intensity（AI）衡量每搬运一个 byte 完成多少浮点运算：
+
+$$
+AI=\frac{\mathrm{FLOPs}}{\mathrm{Bytes\ moved}}
+$$
+
+这里的 `Bytes moved` 必须说明观察的是哪一级存储，例如 HBM traffic；若把 register、cache 或主机传输混在一起，不同计算得到的 AI 无法直接比较。
+
+Roofline 模型给出一个性能上界：
+
+$$
+P_{\mathrm{attainable}}
+\le
+\min\left(P_{\mathrm{peak}},\ BW_{\mathrm{peak}}\times AI\right)
+$$
+
+其中 $P_{\mathrm{peak}}$ 是峰值计算吞吐，$BW_{\mathrm{peak}}$ 是目标存储层级的峰值带宽。二者交点对应 ridge point：
+
+$$
+AI^*=\frac{P_{\mathrm{peak}}}{BW_{\mathrm{peak}}}
+$$
+
+- 当 $AI<AI^*$，Roofline 上界主要由 $BW_{\mathrm{peak}}\times AI$ 决定，运行更可能是 memory-bound；应优先减少 HBM traffic、改善 coalescing、增加复用或进行 fusion。
+- 当 $AI>AI^*$，上界主要由 $P_{\mathrm{peak}}$ 决定，运行更可能是 compute-bound；更低精度、Tensor Core、并行计算与更高效指令实现可能更有价值。
+
+Compute-bound 和 memory-bound 不是算子的永久标签。它们取决于输入 shape、dtype、kernel 实现、cache 命中、硬件和测量层级。Roofline 也是上界模型；launch overhead、同步、依赖、分支和通信会让实际性能低于这条上界。
+
+### 1.3.8 与模型工程优化的连接
+
+后续技术可以放回同一数据移动框架理解：mixed precision 同时改变计算吞吐和 tensor bytes；fusion 减少中间结果写回与再次读取；FlashAttention 用 tiling、online softmax 和 recomputation 减少 attention 的 HBM traffic；activation recomputation 则主动增加 FLOPs 以减少长期保存的数据。TP、SP、CP 和 PP 把一部分本地数据移动转化为设备间通信，因此必须同时观察 kernel 与 collective。
+
+下一步不是直接背优化名词，而是补齐 host/device、kernel、grid/block/thread、warp/SM 和存储层级的执行图，再分别追踪一次向量加法与 tiled matrix multiplication 中数据位于哪里、何时搬运、何时同步。完成这层桥接后，再返回单 GPU 训练资源和 profiler。
 
 # 2 单 GPU 训练与优化
 
@@ -595,6 +716,7 @@ VLM 模块选择需要明确：
 
 | 单元 | 闭卷主问题 | 边界题 | OMS 迁移题 |
 |---|---|---|---|
+| A0 GPU 基础 | GPU 如何用并发隐藏等待，并用 Roofline 判断优化方向？ | latency、bandwidth、throughput 为什么不能混用？ | visual tokens 增长后应先怀疑计算还是数据移动？ |
 | A 训练主链 | 从多模态样本到 optimizer step 发生什么？ | loss mask 与 attention mask 有何不同？ | 哪些 VLM 模块参与训练？ |
 | B 单卡显存 | 一个 step 中各类显存何时出现？ | 权重能放下为什么仍可能 OOM？ | T4 OOM 应按什么顺序检查？ |
 | C 单卡优化 | precision、recomputation、accumulation 各改变什么？ | 哪些状态仍未被减少？ | 哪种组合适合当前 shape 和资源？ |
@@ -610,6 +732,9 @@ VLM 模块选择需要明确：
 
 ## 13.1 完成门禁
 
+- [ ] 区分 latency、throughput、bandwidth，并解释增加并发为何不等于降低单次访存 latency。
+- [ ] 画出 thread/block/grid 到 warp/SM 的执行关系，解释 ready warps 如何隐藏等待及 occupancy 的边界。
+- [ ] 对比向量加法和矩阵乘法的数据复用，用 Arithmetic Intensity 与 Roofline 说明 tiling 可能加速的原因。
 - [ ] 闭卷画出单卡 VLM SFT 主链并解释 label masking。
 - [ ] 按时间顺序说明参数、activation、梯度和 optimizer states 的生命周期。
 - [ ] 用参数量和 activation 公式建立显存数量级预算，并列出 VLM 的额外变量。
