@@ -93,3 +93,18 @@ Part 3 中按模型参数量、GPU 数量给出的组合是特定 H100 集群、
 - 原始图片：https://raw.githubusercontent.com/pprp/blogimagebed/main/part_2_image%2020.png
 - 本地项目资产：`02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-pp-interleaved-stages.png`
 - SHA-256：`c0d75c8ab4bfa02d684e23f4445ccf6bf397c9aacd36acf08e27daff5093741d`
+
+## 1.9 2026-09-08 GPU 执行与存储模型图片来源补充
+
+本节为 append-only 补充，用于记录 GPU 基础桥接继续扩展时使用的 Part 4 原始页面、图片和口径边界。
+
+- 中文翻译 Part 4：https://github.com/pprp/ultrascale-playbook-zh/blob/main/docs/The%20UltraScale%20Playbook-Part4.md
+
+| 内容 | 原始图片 | 本地项目资产 | SHA-256 |
+|---|---|---|---|
+| SM、register/shared/L1、L2 与 global memory 层级 | https://raw.githubusercontent.com/pprp/blogimagebed/main/part_4_image%202.png | `02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-gpu-memory-hierarchy.png` | `38d1ae2057d116ced76376c8766ea7607df7f40b0ef3e8d4ddb2c564611ce01b` |
+| 普通 attention 物化 $S/P$ 时的 HBM 与片上存储数据移动 | https://raw.githubusercontent.com/pprp/blogimagebed/main/part_4_image%2012.png | `02_Projects/AI-Career-Transition/10_学习文档/assets/P02A-01/ultrascale-attention-hbm-sram-baseline.png` | `fcddef96411eb96ab445224e8f535d7257dca94a70b4378769ea389bb21e0857` |
+
+写入学习文档时保留以下边界：grid/block/thread 是 CUDA 编程组织，block/warp/SM 是映射到硬件执行时的相关层级；PTX 是虚拟 ISA，不直接等同于目标 GPU 最终执行的机器指令；global memory 是地址空间，HBM 是常见物理承载；shared memory 和 L1 都靠近 SM，但访问与管理语义不同；coalescing、cache hit、tiling 和 control divergence 分别作用于不同性能环节。
+
+Attention 图片展示的是普通实现物化 $S$ 和 $P$ 所产生的数据移动，不是 FlashAttention 已优化后的数据流。FlashAttention 的边界仍以“不在 HBM 中物化完整 $S/P$、通过 tiling 与 online softmax 降低 IO，但不消除 attention 数学依赖”为准；图片中的 H100 容量和带宽仅是特定硬件示例。

@@ -5,6 +5,7 @@ project: AI-Career-Transition
 learning_stage: Phase 2-A - VLM model engineering cognition and OMS adaptation preparation
 summary: 以 GPU 执行与数据移动为前置桥梁，面向未来 OMS 开源 VLM 数据适配，建立从单卡 SFT/PEFT、训练显存到分布式并行、算子 IO 和 profiler 的模型工程决策地图。
 sources:
+  - 2026-09-08 用户更新的 GPU 学习笔记：CUDA 编程/调度/内存模型、coalescing、tiling、control divergence 与 FlashAttention
   - 2026-09-07 用户更新的 GPU 基础学习笔记：并行、延迟与吞吐、访存、局部性、算术强度和 Roofline
   - 2026-09-05 用户说明有模型训练经验但缺少硬件基础，Part4 阅读抽象；确认 P02A-01 为经 AI 整理优化的个人学习笔记，并要求更新阶段、目标与检查点
   - 04_Sources/模型工程/2026-08-20_Ultra-Scale-Playbook来源证据卡.md
@@ -17,7 +18,7 @@ risks:
   - 本阶段建立认知，不代表已经运行 SFT、掌握集群调优或具备 kernel 开发能力。
   - 外部材料面向特定 LLM/硬件；迁移到 VLM、T4 或 OMS 前必须重新核对架构、shape、版本和 profile。
   - 是否执行 SFT 仍取决于任务合同、合法数据、基线、错误分类和资源预算。
-updated_at: 2026-09-07
+updated_at: 2026-09-08
 ---
 
 # 1 Phase 2-A VLM 模型工程认知学习文档
@@ -26,7 +27,7 @@ updated_at: 2026-09-07
 
 本文定位为用户学习后经 AI 整理优化的个人学习笔记，用于保存机制、例子、推导与适用边界。笔记的完整度不代表个人掌握程度；阅读进度、诊断结果与当前下一步以对应学习记录和滚动检查点为准。
 
-面对可能需要开源 VLM 数据适配的 OMS demo，本阶段需要建立一条可用于工程决策的训练扩展主线：先理解一次训练 step 如何消耗显存和计算资源，再学习单 GPU 上的优化手段；当单卡仍受容量或吞吐限制时，进入多 GPU 数据并行；当数据并行暴露完整副本和通信问题时，再选择后续的状态分片或计算切分方案。
+阶段需要建立一条可用于工程决策的训练扩展主线：先理解一次训练 step 如何消耗显存和计算资源，再学习单 GPU 上的优化手段；当单卡仍受容量或吞吐限制时，进入多 GPU 数据并行；当数据并行暴露完整副本和通信问题时，再选择后续的状态分片或计算切分方案。
 
 训练扩展持续处理三个相互制约的问题：
 
@@ -87,15 +88,69 @@ CPU 和 GPU 都能并行执行，但典型设计取舍不同：
 
 这是设计倾向，不是绝对分类。CPU 也能通过 SIMD 和多核获得高吞吐，GPU 也有 cache、控制逻辑和低延迟任务；是否适合 GPU 仍取决于并行度、数据移动和算子规模。
 
-### 1.3.3 SIMD、SIMT 与 warp
+### 1.3.3 Host、device 与 kernel
+
+CUDA 程序同时包含 CPU 上的 host code 和 GPU 上的 device work。Host code 负责准备输入、分配 host/device memory、发起数据传输、配置并启动 kernel，以及在 CPU 需要读取结果或复用资源前建立必要同步。Kernel 是一次 GPU 并行工作的程序入口；同一段 kernel code 会由大量 threads 针对不同数据索引执行。
+
+```text
+host 准备数据
+→ 分配 device memory
+→ host-to-device copy
+→ launch kernel(grid, block)
+→ device 执行 threads
+→ 必要的同步或事件依赖
+→ device-to-host copy / 后续 device kernel
+```
+
+Kernel launch 和许多 device 操作对 host 可以是异步的：CPU 提交工作后可以继续执行，但同一 stream 内的依赖、跨 stream 协作和 host 读取结果仍需要正确的顺序或同步。频繁在 host 与 device 间往返、发起大量微小 kernels，可能让 launch 和同步开销占据明显比例。
+
+CUDA C++ 源码通常先形成 PTX 这一虚拟指令集表示，再由工具链生成目标 GPU 架构执行的机器指令。Triton、CUDA 和框架生成 kernel 提供不同抽象层级与控制能力。
+
+### 1.3.4 Grid、block 与 thread：程序如何表达并行
+
+一次 kernel launch 产生一个 grid；grid 由多个 blocks 组成，每个 block 再包含多个 threads：
+
+```text
+grid
+├─ block 0
+│  ├─ thread 0
+│  ├─ thread 1
+│  └─ ...
+├─ block 1
+│  └─ ...
+└─ ...
+```
+
+Thread 是 CUDA 编程模型中的最小逻辑执行实例，具有自己的 thread index、program-counter 语义、local variables 和逻辑上的私有 registers。以一维向量加法为例，thread 可以用全局索引选择一个元素：
+
+$$
+i=\mathrm{blockIdx.x}\times\mathrm{blockDim.x}+\mathrm{threadIdx.x}
+$$
+
+当 $i<n$ 时执行 $C_i=A_i+B_i$。边界判断使 grid size 不必恰好整除数组长度。
+
+Block 是协作与调度边界。同一 block 内的 threads 可以访问该 block 分配的 shared memory。不同 blocks 不能直接访问彼此的 shared-memory allocation，也不能在普通 kernel 中假设 block 的执行先后顺序；需要跨 block 交换的数据通常经过 global memory 或拆分为多个 kernel 阶段，特殊 cooperative launch 另论。
+
+### 1.3.5 Block、warp 与 SM：程序如何映射到硬件
+
+Kernel 启动后，GPU 把 blocks 分配给 Streaming Multiprocessors（SM）。一个 block 一旦开始驻留在某个 SM 上，其 threads 不会再拆到其他 SM；一个 SM 可以同时驻留多个 blocks，前提是 threads、registers、shared memory 和其他资源配额允许。
+
+NVIDIA GPU 不逐 thread 独立发射指令，而是把同一 block 内的连续 threads 自动组成通常为 32 threads 的 warps。SM 内的 warp scheduler 从 resident warps 中选择 ready warp 发射指令，具体计算由 CUDA cores、Tensor Cores、load/store units 等执行资源完成。因此：
+
+```text
+编程模型：grid → blocks → threads
+硬件执行：GPU → SMs → resident blocks → warps → execution units
+```
+
+Thread 数可以远大于物理计算单元数，因为 blocks 会分批驻留，warps 也会随依赖是否满足而交替推进；“创建了多少 threads”不等于“同一时刻有多少计算同时发生”。
+
+### 1.3.6 SIMD、SIMT 与控制流
 
 SIMD（Single Instruction, Multiple Data）表示一条指令同时作用于多个数据元素。CUDA 面向程序员暴露的模型通常称为 SIMT（Single Instruction, Multiple Threads）：程序写成许多具有独立索引和状态的 threads，硬件再把 threads 成组调度。
 
-在 NVIDIA GPU 上，threads 被组织为 blocks，blocks 被分配到 SM；一个 block 内的 threads 通常以 32 个线程组成的 warp 为调度单位。同一 warp 在同一时刻执行共同的指令路径。若线程因条件分支走向不同路径，硬件通常需要分批执行这些路径，产生 branch divergence，降低有效吞吐。
+SIMT 让每个 thread 可以拥有独立索引和控制流，但同一 warp 仍共享指令发射。当 warp 内 threads 因条件分支走向不同路径时，硬件通常需要分别执行各路径并屏蔽暂不参与的 lanes，形成 control divergence。分支本身不必然昂贵；代价取决于 warp 内路径是否分化、每条路径的工作量以及编译器和架构处理方式。
 
-程序中的 grid、block、thread 是工作组织方式；SM、warp scheduler、计算单元是硬件执行资源。线程总数可以远大于物理计算单元数，因为硬件并不是让所有线程在同一瞬间执行，而是在可驻留和可调度的 warps 之间推进工作。
-
-### 1.3.4 为什么大量线程能够隐藏等待
+### 1.3.7 为什么大量线程能够隐藏等待
 
 若一个 warp 发出 HBM load 后必须等待数据，相关指令暂时不能继续。只要同一 SM 上还有其他依赖已经满足的 ready warps，scheduler 就可以先发射它们的指令：
 
@@ -106,11 +161,11 @@ warp C ready → 执行
 warp A 数据返回 → 继续执行
 ```
 
-这种机制隐藏的是 latency 对计算流水线造成的空档，而不是消除 memory latency。它也不是“线程越多越快”：寄存器和 shared memory 占用会限制一个 SM 能同时驻留的 blocks/warps；长依赖链、低并行度、访存拥塞或所有 warps 同时等待时，scheduler 仍找不到 ready work。
+这种机制隐藏的是 latency 对计算流水线造成的空档，而不是消除 memory latency。它也不是“线程越多越快”：寄存器和 shared memory 占用会限制一个 SM 能同时驻留的 blocks/warps
 
 Occupancy 描述理论上可驻留 warps 相对硬件上限的比例。足够 occupancy 有助于 latency hiding，但 occupancy 达到最大并不保证算子最快；寄存器复用、cache 行为、指令吞吐和数据依赖同样重要。
 
-### 1.3.5 Memory hierarchy 与 locality
+### 1.3.8 Memory hierarchy：数据离执行单元有多远
 
 GPU 的存储层级可先按“越靠近计算单元，通常容量越小、访问越快”理解：
 
@@ -118,20 +173,29 @@ GPU 的存储层级可先按“越靠近计算单元，通常容量越小、访�
 每线程 registers
 → 每个 SM 的 shared memory / L1
 → GPU 共享 L2
-→ device HBM
+→ global-memory address space，通常由 device HBM 承载
 → host memory 或远端设备
 ```
 
-实际 cache 结构、容量和带宽依赖 GPU 架构，不能只凭层级名称推断性能。优化的共同目标是减少高成本数据移动，并让一次搬运产生更多有效计算。
+![Ultra-Scale Playbook 中 SM、register/shared/L1、L2 与 global memory 的层级关系](assets/P02A-01/ultrascale-gpu-memory-hierarchy.png)
 
-- **Temporal locality**：刚使用的数据很快再次使用，尽量留在 register、shared memory 或 cache 中。
-- **Spatial locality**：相邻线程访问相邻地址，使硬件能用更少的 memory transactions 搬运连续数据。
-- **Coalesced access**：一个 warp 的访问能够合并为少量连续内存事务；它利用空间局部性，但不等同于 cache 命中。
-- **Tiling**：把较大的计算拆成能装入片上存储的数据块，在 tile 内重复使用数据，再处理下一块。
+Registers 是 thread 私有、低延迟但数量有限的存储资源；单个 thread 使用过多 registers 会降低一个 SM 能同时驻留的 warps，极端情况下还可能发生 register spilling。Shared memory 和 L1 都位于 SM 附近，但职责不同：shared memory 由程序按 block 分配和显式协作访问，L1 cache 主要由硬件管理。L2 服务整个 GPU；global memory 是 CUDA 地址空间，离芯片执行单元较远的主要数据通常物理存放在 HBM。HBM 具有很高的总体 bandwidth，但单次访问 latency 仍显著高于片上存储。
 
-Cache 通常由硬件管理，而 shared memory 往往需要 kernel 显式安排数据与同步。两者都可以利用局部性，但控制方式和容量边界不同。
+实际 cache 结构、shared/L1 配置、容量和带宽依赖 GPU 架构。图中的 H100 容量和带宽只是具体示例，不能直接作为其他 GPU 的参数。
 
-### 1.3.6 向量加法与矩阵乘法的差异
+### 1.3.9 Locality、coalescing 与 control divergence
+
+优化 memory access 的共同目标是减少高成本数据移动，并让一次搬运产生更多有效计算：
+
+- **Temporal locality**：刚使用的数据很快再次使用，尽量留在 registers、shared memory 或 cache 中。
+- **Spatial locality**：相邻地址的数据会被相邻时间或线程访问，使连续搬运更有效。
+- **Coalesced access**：同一 warp 的 active threads 访问相邻且适当对齐的地址，使硬件用较少的 memory transactions 服务这些请求。
+
+Coalescing 利用的是 warp 地址模式，并不保证所有请求总能合并成一次“大访问”；元素大小、地址对齐、访问跨度、active lanes 和具体架构都会影响事务数量。Cache hit 与 coalescing 也不是同一问题：前者回答数据是否已在更近层级，后者回答一次 warp 请求需要怎样的内存事务。
+
+Control divergence 则作用于指令路径。若 warp 内 threads 执行不同分支，部分 lanes 会在另一条路径执行时闲置。优化时不应机械删除所有 `if`；边界检查可能不可避免，真正需要关注的是热路径中分支是否在 warp 内高度分化，以及重排数据或工作分配能否让相邻 threads 走相同路径。
+
+### 1.3.10 从向量加法到 tiled matrix multiplication
 
 向量加法 $C_i=A_i+B_i$ 对每个元素只做一次加法，却至少需要读取 $A_i$、读取 $B_i$ 并写回 $C_i$。若这些数据来自 HBM 且没有额外复用，计算量相对传输字节很少，通常更容易受 memory bandwidth 限制。增加更多 ALU 不会自动减少这些 bytes。
 
@@ -141,11 +205,21 @@ $$
 C_{ij}=\sum_k A_{ik}B_{kj}
 $$
 
-具有更高的数据复用潜力：同一个 $A_{ik}$ 会参与多个不同 $j$ 的输出，同一个 $B_{kj}$ 会参与多个不同 $i$ 的输出。朴素实现若每次乘加都重新从 HBM 取数，仍会浪费这一性质；tiled GEMM 把 $A$、$B$ 的子块搬到 shared memory 或 registers，在 tile 内完成多次乘加，使数据移动增长慢于 FLOPs 增长。
+具有更高的数据复用潜力：同一个 $A_{ik}$ 会参与多个不同 $j$ 的输出，同一个 $B_{kj}$ 会参与多个不同 $i$ 的输出。朴素实现若每次乘加都重新从 HBM 取数，仍会浪费这一性质。
+
+Tiled GEMM 沿 $M$、$N$、$K$ 维把矩阵拆成小块。以 shared-memory tiling 为例，一轮通常包含：
+
+1. Block 内 threads 协作把 $A$ 的 $M\times K$ tile 和 $B$ 的 $K\times N$ tile 从 global memory 载入 shared memory。
+2. 在开始消费 tile 前完成必要的 block-level synchronization。
+3. 每个 thread 从 shared memory 或 registers 多次复用数据，累加自己负责的 $C$ 子块。
+4. 在覆盖 shared-memory buffer 前再次保证上一轮读取已完成，然后推进下一个 $K$ tile。
+5. 处理不能整除 tile size 的边界，并把最终 accumulator 写回 global memory。
+
+Tiling 基本不改变矩阵乘法的数学 FLOPs，却减少重复 HBM loads，提高 Arithmetic Intensity。Tile 也不能无限增大：shared memory、registers、occupancy、bank conflict、访存对齐和矩阵 shape 共同限制最佳 tile。
 
 因此，“矩阵乘法适合 GPU”不只因为可以创建很多线程，还因为规则并行、连续访问和数据复用能够共同提高计算单元利用率。矩阵过小、形状不友好、精度或 kernel 不匹配时，也可能无法达到高吞吐。
 
-### 1.3.7 Arithmetic Intensity 与 Roofline
+### 1.3.11 Arithmetic Intensity 与 Roofline
 
 Arithmetic Intensity（AI）衡量每搬运一个 byte 完成多少浮点运算：
 
@@ -174,11 +248,15 @@ $$
 
 Compute-bound 和 memory-bound 不是算子的永久标签。它们取决于输入 shape、dtype、kernel 实现、cache 命中、硬件和测量层级。Roofline 也是上界模型；launch overhead、同步、依赖、分支和通信会让实际性能低于这条上界。
 
-### 1.3.8 与模型工程优化的连接
+### 1.3.12 FlashAttention：把执行与数据移动模型带回 Transformer
 
-后续技术可以放回同一数据移动框架理解：mixed precision 同时改变计算吞吐和 tensor bytes；fusion 减少中间结果写回与再次读取；FlashAttention 用 tiling、online softmax 和 recomputation 减少 attention 的 HBM traffic；activation recomputation 则主动增加 FLOPs 以减少长期保存的数据。TP、SP、CP 和 PP 把一部分本地数据移动转化为设备间通信，因此必须同时观察 kernel 与 collective。
+普通 attention 若把完整 score matrix $S=QK^T$ 和 probability matrix $P=\mathrm{softmax}(S)$ 物化到 HBM，会在 $Q/K/V$、$S$、$P$ 和输出 $O=PV$ 之间产生大量 HBM↔片上存储流量：
 
-下一步不是直接背优化名词，而是补齐 host/device、kernel、grid/block/thread、warp/SM 和存储层级的执行图，再分别追踪一次向量加法与 tiled matrix multiplication 中数据位于哪里、何时搬运、何时同步。完成这层桥接后，再返回单 GPU 训练资源和 profiler。
+![Ultra-Scale Playbook 中普通 attention 物化 S/P 时的 HBM 与片上存储数据移动](assets/P02A-01/ultrascale-attention-hbm-sram-baseline.png)
+
+FlashAttention 按 Q/K/V tiles 计算，并用 online softmax 维护局部最大值、归一化因子和输出累加量，从而避免把完整 $S$ 和 $P$ 写入 HBM。它的关键收益不是减少 attention 的核心数学依赖，而是降低 HBM traffic 和中间矩阵物化；backward 还可以从保存的统计量和输入重算部分结果，在 FLOPs 与 memory IO 之间交换。
+
+其他模型工程技术也可放回同一框架理解：mixed precision 同时改变计算吞吐和 tensor bytes；fusion 减少中间结果写回与再次读取；activation recomputation 主动增加 FLOPs 以减少长期保存的数据；TP、SP、CP 和 PP 把一部分本地数据移动转化为设备间通信，因此必须同时观察 kernel 与 collective。
 
 # 2 单 GPU 训练与优化
 
@@ -716,7 +794,7 @@ VLM 模块选择需要明确：
 
 | 单元 | 闭卷主问题 | 边界题 | OMS 迁移题 |
 |---|---|---|---|
-| A0 GPU 基础 | GPU 如何用并发隐藏等待，并用 Roofline 判断优化方向？ | latency、bandwidth、throughput 为什么不能混用？ | visual tokens 增长后应先怀疑计算还是数据移动？ |
+| A0 GPU 基础 | 从 host launch 到 SM 执行，画出一次向量加法的数据与调度路径。 | grid/block/thread 与 block/warp/SM 分别描述什么？ | visual tokens 增长后应先怀疑计算还是数据移动？ |
 | A 训练主链 | 从多模态样本到 optimizer step 发生什么？ | loss mask 与 attention mask 有何不同？ | 哪些 VLM 模块参与训练？ |
 | B 单卡显存 | 一个 step 中各类显存何时出现？ | 权重能放下为什么仍可能 OOM？ | T4 OOM 应按什么顺序检查？ |
 | C 单卡优化 | precision、recomputation、accumulation 各改变什么？ | 哪些状态仍未被减少？ | 哪种组合适合当前 shape 和资源？ |
@@ -733,6 +811,7 @@ VLM 模块选择需要明确：
 ## 13.1 完成门禁
 
 - [ ] 区分 latency、throughput、bandwidth，并解释增加并发为何不等于降低单次访存 latency。
+- [ ] 画出 CPU 发起向量加法、host/device copy、kernel launch、thread indexing、结果同步与回传过程。
 - [ ] 画出 thread/block/grid 到 warp/SM 的执行关系，解释 ready warps 如何隐藏等待及 occupancy 的边界。
 - [ ] 对比向量加法和矩阵乘法的数据复用，用 Arithmetic Intensity 与 Roofline 说明 tiling 可能加速的原因。
 - [ ] 闭卷画出单卡 VLM SFT 主链并解释 label masking。
