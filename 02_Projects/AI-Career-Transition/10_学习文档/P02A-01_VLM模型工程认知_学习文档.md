@@ -5,6 +5,7 @@ project: AI-Career-Transition
 learning_stage: Phase 2-A - VLM model engineering cognition and OMS adaptation preparation
 summary: 以 GPU 执行与数据移动为前置桥梁，面向未来 OMS 开源 VLM 数据适配，建立从单卡 SFT/PEFT、训练显存到分布式并行、算子 IO 和 profiler 的模型工程决策地图。
 sources:
+  - 2026-09-11 Data Parallelism 与 ZeRO/FSDP 主动学习诊断中暴露的归一化、关键路径、collective 通信量和参数生命周期混淆
   - 2026-09-08 用户更新的 GPU 学习笔记：CUDA 编程/调度/内存模型、coalescing、tiling、control divergence 与 FlashAttention
   - 2026-09-07 用户更新的 GPU 基础学习笔记：并行、延迟与吞吐、访存、局部性、算术强度和 Roofline
   - 2026-09-05 用户说明有模型训练经验但缺少硬件基础，Part4 阅读抽象；确认 P02A-01 为经 AI 整理优化的个人学习笔记，并要求更新阶段、目标与检查点
@@ -18,7 +19,7 @@ risks:
   - 本阶段建立认知，不代表已经运行 SFT、掌握集群调优或具备 kernel 开发能力。
   - 外部材料面向特定 LLM/硬件；迁移到 VLM、T4 或 OMS 前必须重新核对架构、shape、版本和 profile。
   - 是否执行 SFT 仍取决于任务合同、合法数据、基线、错误分类和资源预算。
-updated_at: 2026-09-08
+updated_at: 2026-09-11
 ---
 
 # 1 Phase 2-A VLM 模型工程认知学习文档
@@ -258,7 +259,7 @@ FlashAttention 按 Q/K/V tiles 计算，并用 online softmax 维护局部最大
 
 其他模型工程技术也可放回同一框架理解：mixed precision 同时改变计算吞吐和 tensor bytes；fusion 减少中间结果写回与再次读取；activation recomputation 主动增加 FLOPs 以减少长期保存的数据；TP、SP、CP 和 PP 把一部分本地数据移动转化为设备间通信，因此必须同时观察 kernel 与 collective。
 
-## 1.4 GPU 基础易混机制与贯穿例子
+## 1.4 GPU 基础易混机制与诊断例子
 
 本章补充第 1.3 节的 GPU 基础与第 11 章的 profiling 方法，通过概念对比、数值例子和推导，解释资源限制如何影响性能。教学补充依据见 [[02_Projects/AI-Career-Transition/20_学习记录/P02A_VLM模型工程认知_学习记录#1.8 2026-09-09 GPU 基础对话诊断与教学补充]]；个人作答和完成状态保存在学习记录中。
 
@@ -638,6 +639,22 @@ DP 通过并行样本提高吞吐，每个 rank 的模型状态显存基本保�
 
 因此 DP 的有效扩展条件为：完整训练副本能够单卡容纳，目标 global batch 允许增加并行 rank，并且新增计算吞吐大于通信与同步成本。
 
+## 3.6 Data Parallelism 易混机制与诊断例子
+
+本节集中补充第 3.1～3.5 节的全局归一化、通信关键路径和扩展口径。对应学习观察见 [[02_Projects/AI-Career-Transition/20_学习记录/P02A_VLM模型工程认知_学习记录#1.10 2026-09-11 Data Parallelism 与 ZeRO/FSDP 对话诊断]]。
+
+### 3.6.1 被隐藏的通信仍然发生
+
+设某 bucket ready 后剩余 backward 计算为 $C$，该 bucket 的通信为 $M$。忽略资源争用和启动依赖时，串行为 $C+M$，理想重叠路径为 $\max(C,M)$；隐藏通信为 $\min(C,M)$，暴露通信为 $\max(0,M-C)$。被隐藏只表示通信不再增加关键路径时长，通信本身仍会占用互联和执行资源。
+
+### 3.6.2 Bucket 总通信量不等于关键路径代价
+
+不能只比较 collective 次数或通信总时长，还要比较暴露在 step 尾部的通信。例如多个小 bucket 总通信为 6 ms、其中 5 ms 被 backward 覆盖时，只暴露 1 ms；一个大 bucket 即使只通信 3 ms，如果必须等 backward 全部结束才 ready，仍会暴露完整 3 ms。若多个 bucket 都较晚 ready，还可能在同一通信流或链路上排队。
+
+### 3.6.3 `no_sync()` 仍需保持正确归一化
+
+若每 rank 累积 $k$ 个等大、等有效计数的 micro-batch，且每个 loss 已取局部均值，则每次 backward 前通常将 loss 除以 $k$，使本地累积梯度等价于合并后的均值。前 $k-1$ 次 backward 放在 `no_sync()` 中，最后一次正常 backward 会在 bucket ready 时同步“此前本地累积梯度 + 当前梯度”；所有 bucket 完成后才能 `optimizer.step()`。`zero_grad()` 应位于累积周期开始前，而不是每个 micro-batch 之间。                               
+
 # 4 从 DP 到 ZeRO/FSDP：消除模型状态冗余
 
 标准 DP 在每个 rank 上复制完整参数、梯度和 optimizer states。增加 DP ranks 可以并行处理更多数据，却不会降低每卡模型状态显存。ZeRO（Zero Redundancy Optimizer）沿 data-parallel 维度逐步分片这些重复状态，让每个 rank 只长期保存自己负责的部分，并在计算需要时通过 collective 恢复一致视图。
@@ -710,6 +727,30 @@ FSDP 与 ZeRO-3 共享 fully-sharded data-parallel 的核心思想。它们的�
 ZeRO 主要减少跨 DP ranks 重复的参数、梯度和 optimizer states。每个 rank 处理不同 micro-batch，其 activation 由本地样本产生；ZeRO stages 本身不系统切分这些 activation。长序列、高分辨率图像或视频 token 仍可能让 activation 成为峰值主体。
 
 ZeRO-3 还需要在算子执行前恢复当前层参数。更细的分片可以降低长期显存，同时增加 collective 频率、临时全参数峰值和调度复杂度。当问题进一步表现为“单层矩阵和中间 activation 也需要跨设备拆分”时，优化主线进入 Tensor Parallelism。
+
+## 4.7 ZeRO/FSDP 易混机制与诊断例子
+
+本节集中补充第 4.1～4.6 节的 Ring 通信量、ZeRO-2 参数生命周期和 ZeRO-3 显存/通信取舍。对应学习观察见 [[02_Projects/AI-Career-Transition/20_学习记录/P02A_VLM模型工程认知_学习记录#1.10 2026-09-11 Data Parallelism 与 ZeRO/FSDP 对话诊断]]。
+
+### 4.7.1 Ring 的轮次不等于重复传输完整张量
+
+设 collective 张量总大小为 $S$，rank 数为 $N$。典型 ring 将张量切成 $N$ 个约 $S/N$ 的 chunks；虽然 Reduce-Scatter 或 All-Gather 各需要 $N-1$ 轮，但每轮只传一个 chunk。按“每 rank 发送字节数”这一口径，单个 Reduce-Scatter 或 All-Gather 约为：
+
+$$
+\frac{N-1}{N}S
+$$
+
+每 rank 的接收量同阶；若统计发送与接收之和，需要再乘 2，使用公式时必须先说明口径。Ring All-Reduce 包含一次 Reduce-Scatter 和一次 All-Gather，所以每 rank 发送量约为 $2(N-1)S/N$，而不是因为有 $N-1$ 轮就传输 $(N-1)S$。
+
+沿用相同发送量口径并忽略 overlap、bucket 和框架差异，ZeRO-2 的一次 gradient Reduce-Scatter 加一次 parameter All-Gather 约为 $2(N-1)\Psi/N$；ZeRO-3 若 forward 与 backward 各 All-Gather 一次参数，再 Reduce-Scatter 一次梯度，则约为 $3(N-1)\Psi/N$。全系统聚合流量、每 rank 关键路径字节数和链路实际流量不是同一个指标，不能混用。
+
+### 4.7.2 ZeRO-2 分片更新后仍恢复完整参数副本
+
+规约后的完整梯度不必重新 all-gather：每个 rank 已能用本地 gradient shard 和对应 optimizer-state shard 更新自己负责的 parameter shard，后续 forward 也不直接消费梯度。ZeRO-2 的参数仍长期以完整副本驻留在每个 rank，因此局部参数更新后必须 all-gather 各 rank 更新的 parameter shards，使所有完整副本重新一致。
+
+### 4.7.3 Reshard 与 prefetch 都受峰值显存约束
+
+`reshard_after_forward=true` 倾向于在 forward 后立即释放完整层参数，以额外的 backward all-gather 换取更低峰值；保留完整层参数直到对应 backward 则以显存换通信。Prefetch 可以在计算当前层时提前 all-gather 后续层，从关键路径隐藏部分通信，但会让当前层和未来层参数同时驻留。prefetch depth 受显存余量限制，不能无限增加；若下一层必须完整取得参数才能计算，而余量不足以容纳它，则无法实现完整预取。只有框架和算子支持更细粒度分块时，部分预取才可能减少后续等待。
 
 # 5 Tensor Parallelism：切分算子本身
 
@@ -1064,5 +1105,3 @@ FlashAttention 原文重点重建 HBM→片上存储的 tiling、recomputation �
 
 - [[04_Sources/模型工程/2026-08-20_Ultra-Scale-Playbook来源证据卡]]
 - [[04_Sources/模型工程/2026-08-20_FlashAttention长序列优化来源证据卡]]
-
-

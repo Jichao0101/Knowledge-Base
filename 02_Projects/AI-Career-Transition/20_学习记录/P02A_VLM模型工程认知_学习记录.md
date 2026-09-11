@@ -4,8 +4,9 @@ status: active
 project: AI-Career-Transition
 learning_stage: Phase 2-A - VLM model engineering cognition and OMS adaptation preparation
 record_role: durable_stage_learning_record
-summary: 保存 Phase 2-A GPU 基础桥接的自述起点、学习安排与证据状态；个人笔记已整理，硬件基础和模型工程能力仍待诊断。
+summary: 保存 Phase 2-A 的 GPU 基础、单卡训练与分布式模型工程对话诊断；Data Parallelism 与 ZeRO/FSDP 主干已完成本轮问答，当前入口转为 Tensor Parallelism，运行实践仍未验证。
 sources:
+  - 2026-09-11 Data Parallelism、通信重叠、bucketing、DDP accumulation、扩展边界与 ZeRO/FSDP 主动学习问答；用户要求更新文档和学习进度后继续 TP
   - 2026-09-05 用户说明有模型训练经验但缺少硬件基础，Part4 阅读抽象；确认 P02A-01 为经 AI 整理优化的个人学习笔记，并要求更新阶段、目标与检查点
   - 2026-08-20 用户确认 Phase 1-C 范围关闭，并同意先建立模型工程认知、暂不要求完整 SFT
   - 2026-08-20 用户要求补全下一阶段学习骨架，以支持原文阅读和考核
@@ -13,11 +14,11 @@ sources:
   - 02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
 scope: Phase 2-A 的个人掌握状态、诊断、缺口、阅读进度、迁移能力和恢复任务。
 risks:
-  - 当前缺口依据用户自述，尚未形成正式诊断；各能力状态保持 not_verified。
+  - 对话诊断中的 working 只表示机制解释可用；提示后修正的通信量与状态驻留边界仍需复习，不等于独立实践验证。
   - 阅读或复述术语不等于能独立做资源判断和故障定位。
   - 本阶段不要求完成 SFT、集群训练或 kernel 实现，不得把范围豁免写成实现完成。
 single_pass_recoverable: false
-updated_at: 2026-09-05
+updated_at: 2026-09-11
 ---
 
 # 1 Phase 2-A VLM 模型工程认知学习记录
@@ -25,7 +26,7 @@ updated_at: 2026-09-05
 ## 1.1 当前状态
 
 - 对应笔记：[[02_Projects/AI-Career-Transition/10_学习文档/P02A-01_VLM模型工程认知_学习文档]]；用户确认其为经 AI 整理优化的个人学习笔记。
-- 主阶段：Phase 2-A；当前子阶段：GPU 基础桥接，安排已明确，课程完成状态未报告。
+- 主阶段：Phase 2-A；当前子阶段：Tensor Parallelism 理论。Data Parallelism 与 ZeRO/FSDP 本轮对话主干已收束，课程与运行实践状态未新增。
 - 已有基础：用户自述有模型训练经验；此前训练实践证据边界仍以项目总览和原记录为准。
 - 当前缺口：用户自述无硬件基础，阅读 Playbook Part4 感到抽象；这是自述证据，不是闭卷评测结论。
 - 笔记整理不代表阅读全部完成或能力已验证；GPU 基础、模型工程迁移与 profiling 仍为 `not_verified`。
@@ -148,3 +149,35 @@ kernel 实现：not_required_in_current_scope
 本轮没有实际执行单卡训练、OOM 复现、显存 profile、DDP 或两节点训练。VLM 输入分辨率迁移题未作答；完整 SFT 主链、QLoRA 和 profiling 仍保留待验证。单卡实践和两节点实践条件保持有效，但不阻塞当前的数据并行理论学习。
 
 学习正文新增第 2.8 节，集中解释参数梯度与 activation 梯度、冻结与反向路径、按 token 归一化及混合精度状态布局。下一次从第 3.1 节的梯度同步问题恢复，不重复启动 GPU 基础问答，也不默认插入 VLM 扩展题。
+
+## 1.10 2026-09-11 Data Parallelism 与 ZeRO/FSDP 对话诊断
+
+### 1.10.1 来源、范围与阶段决定
+
+来源：2026-09-10～11 连续主动学习对话。用户完成学习文档第 3 章 Data Parallelism 和第 4 章 ZeRO/FSDP 的机制题，并明确要求先更新文档与学习进度，再继续 Tensor Parallelism。
+
+本轮只形成对话作答与教学纠正，没有运行 DDP、FSDP/ZeRO、多节点训练或 profiler，也没有新增课程观看证据。当前入口按章节顺序转为第 5 章 Tensor Parallelism；这不表示分布式训练实践完成，也不解除两节点实践前的单卡基线要求。
+
+### 1.10.2 作答证据与局部诊断
+
+| 主题 | 作答与纠正证据 | 本轮判断 |
+|---|---|---|
+| 梯度同步与全局归一化 | 正确计算两卡等样本梯度均值及 10/30 样本加权梯度，能说明各副本需用一致的 global-batch 梯度更新。 | working（对话） |
+| backward/通信重叠 | 正确计算 4 ms 通信与 6 ms 计算完全重叠后的 6 ms 路径，以及 8 ms 通信时隐藏 6 ms、暴露 2 ms。 | working（对话） |
+| gradient bucketing | 正确计算逐张量通信 2.0 ms 与单 bucket 0.8 ms；最初把 bucket 上限归因于带宽，教学后能用暴露通信比较小 bucket 与大 bucket，并识别尾部排队风险。 | 主干可用；bucket readiness 与带宽边界有提示纠正 |
+| DDP accumulation 与 `no_sync()` | 正确给出 loss 除以 4、2 卡×8 样本×4 次累积得到 global batch 64，以及同步轮次从 4 降为 1；“四卡/前三张卡”为术语口误，已纠正为每卡四个 micro-batch。 | working（对话） |
+| DDP 扩展效率 | 正确计算 30 ms step、约 2.67 倍加速和约 66.7% 并行效率；弱扩展题能判断吞吐翻倍、每 epoch step 减半，达到相同效果还受 global batch 优化语义影响，该点由教学补充。 | 计算主干可用；time-to-quality 边界经提示补齐 |
+| DDP 容量前提 | 能说明标准 DDP 每 rank 保留完整参数、梯度、master weights 和 Adam states；最小 activation 已不能继续通过 batch 缩小，因此 46 GiB 副本不能装入 24 GiB GPU。 | working（对话） |
+| ZeRO stages 显存 | 正确识别 ZeRO-1/2/3 的分片对象，ZeRO-2 18 GiB、ZeRO-3 11 GiB；ZeRO-1 曾将 8+8+3+6 算为 27 GiB，正确值 25 GiB，不改变“ZeRO-2 最早可装入”的判断。 | 机制可用；一次算术错误已纠正 |
+| Reduce-Scatter / All-Gather | 正确从两 rank 梯度 `[2,4]`、`[6,8]` 得到规约结果 `[8,12]`、两个 shard `[8]`/`[12]` 及 All-Gather 恢复结果。 | working（对话） |
+| ZeRO-2 与 ZeRO-3 参数生命周期 | 能说明局部 optimizer 更新只需对应梯度 shard，forward 需要当前算子的完整参数；经澄清后明确 ZeRO-2 长期保留完整参数，ZeRO-3 按层临时恢复。 | 主干可用；长期驻留与临时视图曾需澄清 |
+| collective 通信量 | 曾把 ring 的 rank 轮次误算为每轮传输完整 8 GiB，得到 `(rank+1)×8 GiB` 与 `(rank+2)×8 GiB`。已教学纠正为每轮传输约 `Ψ/N` 的 chunk：每 rank 的 ZeRO-2 约 `2(N-1)Ψ/N`，ZeRO-3 约 `3(N-1)Ψ/N`。 | partial，需在后续迁移题复核 |
+| reshard 与 prefetch | 能判断 forward 后立即 reshard 是以通信换显存，保留到 backward 是以显存换通信；正确计算 6 ms 计算隐藏 4 ms All-Gather，并指出只有支持细粒度分块时才可能部分预取。 | working with implementation boundary |
+
+### 1.10.3 当前边界与恢复任务
+
+Data Parallelism 的梯度等价性、All-Reduce、通信重叠、bucketing、`no_sync()` 和扩展边界达到对话诊断意义上的 working。ZeRO/FSDP 的状态分片、Reduce-Scatter/All-Gather、reshard 和 prefetch 主干可用；ring collective 的每-rank 通信量仍为明确复习点。
+
+针对本轮测试暴露的稳定机制缺口，学习正文已按统一格式在章末新增第 3.6 节“Data Parallelism 易混机制与诊断例子”和第 4.7 节“ZeRO/FSDP 易混机制与诊断例子”，集中保存非等分母全局梯度、关键路径、bucketing、`no_sync()`、扩展口径、ring 通信量、参数生命周期及 reshard/prefetch 边界。个人作答与纠正过程仍只保存在本记录中。
+
+当前从学习文档第 5.1 节恢复，先用 `Y=XW` 的 column-parallel shape 推导区分“算子分片”与 ZeRO-3 的“参数生命周期分片”，再进入 row-parallel、MLP 配对和 attention head 布局。完整 SFT、单卡 profiling、DDP/FSDP/ZeRO 运行及两节点训练仍为 `not_verified`；`single_pass_recoverable` 保持 `false`。
