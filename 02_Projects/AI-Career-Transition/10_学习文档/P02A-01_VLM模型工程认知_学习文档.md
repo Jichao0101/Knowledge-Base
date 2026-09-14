@@ -5,6 +5,7 @@ project: AI-Career-Transition
 learning_stage: Phase 2-A - VLM model engineering cognition and OMS adaptation preparation
 summary: 以 GPU 执行与数据移动为前置桥梁，面向未来 OMS 开源 VLM 数据适配，建立从单卡 SFT/PEFT、训练显存到分布式并行、算子 IO 和 profiler 的模型工程决策地图。
 sources:
+  - 2026-09-11～14 TP至profiling连续主动学习对话；用户要求在OMS适配前补充章末机制说明和诊断记录
   - 2026-09-11 Data Parallelism 与 ZeRO/FSDP 主动学习诊断中暴露的归一化、关键路径、collective 通信量和参数生命周期混淆
   - 2026-09-08 用户更新的 GPU 学习笔记：CUDA 编程/调度/内存模型、coalescing、tiling、control divergence 与 FlashAttention
   - 2026-09-07 用户更新的 GPU 基础学习笔记：并行、延迟与吞吐、访存、局部性、算术强度和 Roofline
@@ -19,7 +20,7 @@ risks:
   - 本阶段建立认知，不代表已经运行 SFT、掌握集群调优或具备 kernel 开发能力。
   - 外部材料面向特定 LLM/硬件；迁移到 VLM、T4 或 OMS 前必须重新核对架构、shape、版本和 profile。
   - 是否执行 SFT 仍取决于任务合同、合法数据、基线、错误分类和资源预算。
-updated_at: 2026-09-11
+updated_at: 2026-09-14
 ---
 
 # 1 Phase 2-A VLM 模型工程认知学习文档
@@ -732,7 +733,7 @@ ZeRO-3 还需要在算子执行前恢复当前层参数。更细的分片可以�
 
 本节集中补充第 4.1～4.6 节的 Ring 通信量、ZeRO-2 参数生命周期和 ZeRO-3 显存/通信取舍。对应学习观察见 [[02_Projects/AI-Career-Transition/20_学习记录/P02A_VLM模型工程认知_学习记录#1.10 2026-09-11 Data Parallelism 与 ZeRO/FSDP 对话诊断]]。
 
-### 4.7.1 Ring 的轮次不等于重复传输完整张量
+·### 4.7.1 Ring 的轮次不等于重复传输完整张量
 
 设 collective 张量总大小为 $S$，rank 数为 $N$。典型 ring 将张量切成 $N$ 个约 $S/N$ 的 chunks；虽然 Reduce-Scatter 或 All-Gather 各需要 $N-1$ 轮，但每轮只传一个 chunk。按“每 rank 发送字节数”这一口径，单个 Reduce-Scatter 或 All-Gather 约为：
 
@@ -744,11 +745,11 @@ $$
 
 沿用相同发送量口径并忽略 overlap、bucket 和框架差异，ZeRO-2 的一次 gradient Reduce-Scatter 加一次 parameter All-Gather 约为 $2(N-1)\Psi/N$；ZeRO-3 若 forward 与 backward 各 All-Gather 一次参数，再 Reduce-Scatter 一次梯度，则约为 $3(N-1)\Psi/N$。全系统聚合流量、每 rank 关键路径字节数和链路实际流量不是同一个指标，不能混用。
 
-### 4.7.2 ZeRO-2 分片更新后仍恢复完整参数副本
+### 4.7.1 ZeRO-2 分片更新后仍恢复完整参数副本
 
 规约后的完整梯度不必重新 all-gather：每个 rank 已能用本地 gradient shard 和对应 optimizer-state shard 更新自己负责的 parameter shard，后续 forward 也不直接消费梯度。ZeRO-2 的参数仍长期以完整副本驻留在每个 rank，因此局部参数更新后必须 all-gather 各 rank 更新的 parameter shards，使所有完整副本重新一致。
 
-### 4.7.3 Reshard 与 prefetch 都受峰值显存约束
+### 4.7.2 Reshard 与 prefetch 都受峰值显存约束
 
 `reshard_after_forward=true` 倾向于在 forward 后立即释放完整层参数，以额外的 backward all-gather 换取更低峰值；保留完整层参数直到对应 backward 则以显存换通信。Prefetch 可以在计算当前层时提前 all-gather 后续层，从关键路径隐藏部分通信，但会让当前层和未来层参数同时驻留。prefetch depth 受显存余量限制，不能无限增加；若下一层必须完整取得参数才能计算，而余量不足以容纳它，则无法实现完整预取。只有框架和算子支持更细粒度分块时，部分预取才可能减少后续等待。
 
@@ -851,6 +852,44 @@ TP 之后的主线继续由剩余瓶颈决定：
 
 两者都让模型状态以 shard 形式常驻，但切入层次不同。ZeRO-3 保持数据并行的完整算子语义，在计算某层时临时恢复该层参数；TP 直接改写 Linear 和 Attention 的执行方式，各 rank 使用本地参数 shard 计算局部结果，再通过 collective 拼接或规约。因此，ZeRO-3 的通信围绕参数生命周期，TP 的通信属于算子本身的数学依赖。
 
+## 5.8 Tensor Parallelism 知识补充
+
+### 5.8.1 从算子的依赖轴理解通信位置
+
+判断是否需要通信，先看每个输出元素依赖哪些输入坐标，再看这些坐标位于哪些设备。张量的 shape 只说明它有多少个位置，并不说明每个位置的数值是否已经算完。
+
+在线性层 Y=XW 中，一个输出元素是输入 hidden 维上的点积。Column parallel 保留完整输入维，把不同输出列交给不同 rank；每卡得到的是一部分输出坐标的完整值。Row parallel 则把点积求和的输入维拆开；每卡虽然都得到完整输出 shape，但其中的每个数都只是局部部分和。因此前者在需要完整输出时拼接，后者需要规约求和。MLP 的 Column→逐元素激活→Row 配对能够直接传递匹配的 hidden shards，因为激活函数逐元素作用，不要求先恢复其他输出坐标。
+
+Attention 的依赖轴与此不同。标准多头 attention 中，各 head 分别用自己的 Q、K、V 计算位置间关系，softmax 沿可见 key 位置归一化，不跨 heads 归一化。只要一个 rank 持有完整 heads 及这些 heads 所需的完整可见序列，就能本地完成 attention。以 [B,S,H,d] 表示 Q/K/V，按 H 切分会保留本地 head 的完整 S、d 维；随后输出投影沿 heads 拼接后的 hidden 维组合信息，才需要规约各 rank 的部分贡献。
+
+因此，“计算了 activation”本身不能决定是否通信。关键是算子所依赖的维度是否跨卡分片。CP 将序列维也拆开后，本地 query 缺少远端可见位置的 K/V，attention 内部便出现新的通信需求。
+
+### 5.8.2 GQA 如何保留不同查询并共享历史表示
+
+Q 表示当前 token 发起的查询；K 用于计算查询与各位置的匹配分数，V 提供被加权聚合的信息。GQA 让一组不同的 Q heads 使用相同的 K/V 表示。对第 i 个 query head，可写为：
+
+$$
+O_i=\operatorname{softmax}\left(Q_iK_{g(i)}^\top/\sqrt d\right)V_{g(i)}
+$$
+
+其中 g(i) 表示它所属的 KV 组。共享 K/V 不会把 Q 合并：不同 Q 可以生成不同的位置权重，因此仍有与 Q heads 数量相同的输出 heads。组内共享的是被查询的表示，而不是最后的注意力权重。
+
+固定 head dimension 时，减少 KV heads 会缩小 K/V 投影及其输出宽度，减少需保存的历史 KV。忽略跨卡复制、padding和额外元数据，解码 KV cache 的逻辑容量约为：
+
+$$
+M_{\mathrm{KV}}=2LBSH_{\mathrm{KV}}d\,s_{\mathrm{elem}}
+$$
+
+L为层数，B为batch，S为缓存长度，d为head维度，s_elem为每元素字节数，系数2对应K和V。这个表达式说明为何长上下文下KV共享有价值。但每个Q仍需计算它自己的注意力分布，Q与输出投影也未因此按相同比例缩小，所以不能把KV容量减少比例直接作为整个attention计算量或端到端提速比例。
+
+### 5.8.3 模型中的共享与设备上的复制
+
+模型中只有一份逻辑KV，不代表设备间只有一份物理存储。按完整heads做TP时，每张卡需要取得本地Q对应的完整K/V。如果一个KV组的Q被分到多张卡，这些卡可以各保存同一KV的副本，以换取本地独立计算。
+
+例如32个Q共享8对KV，模型中每4个Q属于一组；当TP=16、每卡2个Q时，一组Q跨两张卡，两卡可以各持有该组KV。此时每卡KV并没有继续减半，所有卡的物理副本总量反而增加。分析显存时，应分别计算逻辑唯一数据、每卡驻留数据和全系统物理合计，不能只用“总量除以卡数”。
+
+KV cache跨解码步骤保存历史token的信息，与ZeRO-3按层临时物化参数的生命周期不同。物理复制可以来自重复投影计算或数据传输，不能据“有副本”就断定每步发生跨卡复制。更高TP也会让单卡矩阵变小，计算效率和collective等待可能抵消分片收益；选TP degree要同时考虑head布局、物理副本和完整step性能。
+
 # 6 Sequence Parallelism：补齐 TP 未切分的 activation
 
 TP 主要切分 Linear 和 Attention 中适合按 hidden dimension 分块的矩阵计算。Transformer block 中的 residual、dropout 和 LayerNorm 等区域仍可能在 TP ranks 上保留形状为 $(b,s,h)$ 的复制 activation。这里的 Sequence Parallelism（SP）与 TP 配套使用：TP 区域沿 hidden dimension 分片，非 TP 区域沿 sequence dimension 分片，使原本复制的 activation 也能分摊到各 rank。
@@ -888,6 +927,22 @@ $$
 
 SP 解决了 TP block 中部分复制 activation，却没有让 Attention 永久摆脱完整 sequence。序列继续增长时，Attention 的 Q/K/V 交互和层边界 activation 仍会成为瓶颈，由此引出 Context Parallelism。
 
+## 6.3 Sequence Parallelism 知识补充
+
+### 6.3.1 沿序列分片为何不妨碍逐token归一化
+
+标准LayerNorm对单个token的hidden向量计算均值和方差，其依赖范围是该token的全部hidden坐标，而不是整个序列。SP在这些区域保存[B,S/p,h]：本卡token变少，但每个token的h个元素仍完整，所以各卡可以独立执行归一化及逐token操作。
+
+这一判断依赖归一化的具体维度。如果某个算子需要跨token统计，就不能仅凭它位于SP区域而认定无需通信。布局设计必须与算子的数学依赖一致。
+
+### 6.3.2 在序列分片和特征分片之间转换
+
+SP与TP配合时，设备的分工会沿计算图改变。SP区域按token分工；column-parallel Linear按输出特征分工。为了让所有token都获得全部输出特征，每个TP rank先通过All-Gather获取完整序列输入，再计算自己负责的特征列。
+
+Row-parallel Linear结束后，各卡拥有相同输出shape上的不同部分和。Reduce-Scatter既将这些贡献求和，又把不同token区间分给不同rank，于是回到SP布局。这里“先求和再切片”描述数学结果，不要求先在每张卡物化完整的规约输出。
+
+理解这种转换，应同时标注shape和含义：完整输入、特征shard、输出部分和、序列shard。数值shape偶然相同，也不能互换。SP减少的是部分区域中重复驻留的activation，All-Gather期间仍可能出现完整输入和通信buffer峰值；它没有消除attention对可见序列的依赖。CP进一步将这种依赖放到跨卡KV交换中处理。
+
 # 7 Context Parallelism：让长序列跨设备展开
 
 Context Parallelism（CP）沿 sequence dimension 把输入分给多个 ranks，并尽量让这种分片贯穿整个 Transformer。MLP、LayerNorm 和多数逐 token 操作可以直接处理本地 sequence shard；Attention 是关键例外，因为每个 query 仍需要访问其可见范围内的全局 K/V。
@@ -918,6 +973,30 @@ local Q 固定
 ![Ultra-Scale Playbook 中 Zig-zag Ring Attention 对 causal mask 工作量的均衡](assets/P02A-01/ultrascale-cp-zigzag.png)
 
 Zig-zag 改善的是负载分配，不会消除全局 K/V 通信。对于短序列，额外通信和调度可能大于分片收益。
+
+## 7.3 Context Parallelism 知识补充
+
+### 7.3.1 分块attention需要保留怎样的全局信息
+
+一个query的输出由所有可见key的位置权重共同决定。CP让query留在本卡，但可见K/V分布在其他卡，因此要逐块取得这些K/V：K决定分数，V决定加权聚合的信息。远端Q用于远端自己的输出，不参与本地query输出的计算。
+
+能把K/V分块读取，不等于能把每块独立softmax的结果直接相加。独立归一化会把每一块的权重和都变成1，从而丢失该块在整个可见范围内应占多大权重。例如一块分数整体很低，另一块很高，直接相加却给了两块各一份归一化后的贡献。
+
+正确方法是让各块共同构建同一个分母与未归一化分子。为了数值稳定，每个query保存已处理分数的最大值m、相对m计算的指数和l、指数加权V的向量和u。新块到达时最大值可能增大到m'，于是旧状态要转换到新尺度：
+
+$$
+\alpha=e^{m-m'},\qquad
+l'=\alpha l+\sum_{j\in\mathrm{new}}e^{s_j-m'},\qquad
+u'=\alpha u+\sum_{j\in\mathrm{new}}e^{s_j-m'}V_j
+$$
+
+遍历全部可见块后输出u/l。这样保留了跨块的相对权重，同时无需长期保存完整分数矩阵；详细推导见第1.4.6节。通信收发buffer、局部KV和在线状态仍占显存，不能把“逐块”理解为总共只需一块KV容量。数学等价也不要求不同浮点执行顺序逐位一致。
+
+### 7.3.2 位置语义与负载分配
+
+Causal attention中，后部query拥有更多可见历史位置，连续等长分片可能造成不同rank承担不同数量的有效Q–K配对。Zigzag把较早和较晚的query块组合分配，使每卡的有效工作量更接近，而不改变模型的计算目标。
+
+设备位置与序列位置是两个坐标系统。本地数组中的相邻元素未必是原序列相邻token；mask和位置编码必须继续使用原始位置。早期query不能因为某个未来token与它同卡就访问它。重新分配只调整负载与传输，不改变可见关系；实际性能仍要由kernel能否跳过masked区域、通信重叠和最慢rank共同判断。
 
 # 8 Pipeline Parallelism：按模型深度切分层
 
@@ -971,6 +1050,35 @@ Zero-Bubble、DualPipe 等调度进一步拆分 input-gradient 与 weight-gradie
 
 二者都能降低单设备常驻模型状态，但通信对象和生命周期不同。ZeRO-1/2 只分片 optimizer states 或梯度，通常更容易与 PP 组合；ZeRO-3 与 PP 也能组合，但必须避免对每个 pipeline micro-batch 重复 gather/reshard 同一层参数，否则额外通信可能抵消容量收益。
 
+## 8.5 Pipeline Parallelism 知识补充
+
+### 8.5.1 反向传播跨stage传递的是局部导数的结果
+
+PP把模型函数分解为前后相接的子函数。设前一stage输出H，后一stage计算余下网络和loss。后一stage完成反向后得到dL/dH，这个边界梯度已经概括了下游网络对H的影响。前一stage用它和本地计算图继续应用链式法则，无需取得后续层的参数。
+
+因此，stage之间存在activation及梯度依赖；无需远端参数是计算职责划分的结果。在线性层Y=XW中，dW=XᵀdY、dX=dY Wᵀ，反向需要当前层输入、权重和上游梯度。非线性层可能还需要本地保存的前向状态，但跨stage接口依然可以是边界activation及其梯度。
+
+### 8.5.2 Activation生命周期与权重版本一致性
+
+Activation保存到何时，由相应backward是否仍需它决定；权重何时更新，则由优化器更新合同和在途计算的参数版本决定。同步1F1B使较早micro-batch尽早反向，释放它的activation，却通常仍在整个累积周期结束后统一更新权重。
+
+其原因是多个micro-batch同时在流水线中。一个micro-batch的forward使用W_old，若其backward却使用其他micro-batch更新后的W_new，就会把原前向的上游梯度与另一版本的局部导数混合。例如dX应为dY W_oldᵀ，不能任意替换为dY W_newᵀ。异步逐micro-batch更新需要专门的版本管理或排空策略。
+
+AFAB会积累更多已前向、未反向的activation；固定micro-batch大小时增加micro-batch数会提高这部分驻留压力。若固定global batch而减小单个micro-batch，数量与大小同时变化，不能只凭数量判断峰值。
+
+### 8.5.3 延迟、吞吐和空闲时间分别描述什么
+
+单个micro-batch无等待经过所有stage的延迟，是各段耗时之和。流水线中多个micro-batch并行流动时，稳定产出速度则受最慢stage限制。在只考虑前向、资源独立且忽略通信的模型中：
+
+$$
+T_{\mathrm{latency}}=\sum_i t_i,\qquad
+T_{\mathrm{interval}}=\max_i t_i
+$$
+
+快stage不能自动替慢stage计算其负责的层，所以平均stage耗时不能决定稳定吞吐。重新分配层能降低最大t_i，即使总和不变，也能改善吞吐。训练中的forward/backward交错、通信和资源争用更复杂，仍需检查完整时间线。
+
+Bubble是设备因填充、排空或依赖等待而空闲的时间，不是上述完成间隔的别名。交错调度把每卡模型段切得更细，为填补空档提供更多可调度工作，但同卡chunks仍共享物理资源，同时增加边界传输。判断收益要看减少的空闲是否超过新增通信和调度成本。
+
 # 9 Expert Parallelism：只让 token 访问选中的专家
 
 MoE 用多个 expert FFN 替代稠密 FFN，并由 router 为每个 token 选择 top-$k$ experts。Expert Parallelism（EP）把不同 experts 放到不同 ranks：先根据路由结果把 token hidden states dispatch 到负责目标 expert 的 rank，执行本地 expert 计算，再把输出 combine 回原 token 顺序。
@@ -980,6 +1088,28 @@ MoE 用多个 expert FFN 替代稠密 FFN，并由 router 为每个 token 选择
 EP 的核心 collective 通常是 All-to-All 或等价的 token dispatch/combine。它不需要像 TP 一样拆分每个 expert 的矩阵乘法，但不能因此笼统称为更轻量：通信量取决于 token 数、hidden size、top-$k$ 和跨节点路由，性能还受 expert load imbalance、capacity limit、token drop/padding 与 router 稳定性影响。
 
 EP 只分片 MoE experts。Attention、embedding、LayerNorm 和其他 dense 模块仍需由 DP、TP、PP、ZeRO 或其他维度处理。
+
+## 9.1 Expert Parallelism 知识补充
+
+### 9.1.1 Router同时决定计算路径与设备负载
+
+MoE的router选择专家，是模型前向函数的一部分。不同专家参数不同，输入token送到哪个专家会影响其输出。EP把这些专家放到不同设备，所以同一个路由决定也会转化为各设备本轮的工作量。专家参数均匀分布，不意味着token流量均匀；负载可能随输入变化，也可能长期偏向某些专家。
+
+Capacity限制用于约束单次接收量，但处理溢出token时需要说明计算合同。跳过专家分支可能保留token的残差路径，却丢失该专家贡献；改送另一专家则换了前向函数。两者都会影响loss和训练信号。只要backward跟随实际前向，它并非算错了导数，而是对改变后的路径求导。应分别检查“路由策略是否符合任务要求”与“反向是否实现正确”。
+
+若保持权重版本、随机性和逐token独立计算条件，让溢出token等待后由原专家分批处理，可以保持原路由语义。代价主要是最忙设备的等待队列以及额外调度，原本应完成的有效计算并未凭空增加。这与PP最慢stage拖长关键路径相似，但负载形成机制不同。
+
+### 9.1.2 Token分发与专家结果合并
+
+Top-k让同一token的hidden state被多个选中专家消费。Dispatch按目标设备收集并发送这些输入，专家输出返回后，combine恢复token对应关系并按路由权重求和：
+
+$$
+O=\sum_{e\in\mathrm{selected}}a_eE_e(H)
+$$
+
+只有权重归一化到和为1时，才可直接称为加权平均；具体归一化与容量处理由模型合同决定。
+
+通信量应按实际发送的token副本数、hidden宽度和精度估算，而非只按原始token数。增加top-k通常会增加专家输入和返回输出数量，但远端比例、同设备复用和打包策略影响实际字节数；专家并发、负载和链路带宽又决定这些字节对应多少暴露时间。因此EP不能仅因不切专家内部矩阵，就被视为低通信方案。
 
 # 10 多维并行与配置搜索
 
@@ -1005,6 +1135,35 @@ EP 只分片 MoE experts。Attention、embedding、LayerNorm 和其他 dense 模
 1. **先让训练状态放得下**：固定模型、sequence/视觉 token、precision、recomputation 和最小可接受 micro-batch，判断瓶颈来自模型状态、activation、单层算子还是整个节点容量，再选择 ZeRO/FSDP、TP/SP、CP 或 PP；MoE 才考虑 EP。
 2. **再满足目标 global batch**：使用 $GBS=MBS\times GAS\times DP$ 检查 DP degree 与 gradient accumulation steps。CP 切分单个长序列，不应不加说明地当成独立样本数乘入 GBS。
 3. **最后优化吞吐**：在相同训练与质量合同下扫描少量候选，优先让高频 TP collective 留在高速节点内，再比较 DP/FSDP、PP、CP/EP 的跨节点映射、micro-batch、bucket、schedule 和重叠效果。
+
+## 10.2 多维并行知识补充
+
+### 10.2.1 先区分独立样本与协作计算
+
+TP、PP共同组成一个执行完整模型的计算副本：TP ranks处理相同样本的不同算子分片，PP stages接力处理相同样本的不同层。DP副本才承担不同样本。在不含其他并行维度的配置中：
+
+$$
+N_{\mathrm{GPU}}=TP\times PP\times DP,\qquad
+GBS=MBS\times GAS\times DP
+$$
+
+MBS是每个DP副本一次处理的样本数，GAS是累积次数。TP/PP不额外增加样本数，也不能把逻辑DP副本直接等同于一个物理节点。
+
+固定GPU总数时，增加TP会压缩可用DP副本数。若还要求GBS不变，就需要增加每副本batch或累积次数。于是局部micro-batch加速，可能被更少的数据并行和更多串行累积抵消。配置比较应固定样本、loss归一化及质量合同，测完整optimizer step和有效吞吐，不能只比较局部GEMM或单micro-batch耗时。
+
+### 10.2.2 用通信对象、阶段和范围统一计量
+
+通信字节数必须同时说明：统计哪个张量、覆盖哪些阶段、按一个rank还是全系统、只计发送还是合计收发。Ring All-Reduce首先Reduce-Scatter，把各rank完整本地梯度规约成分布式shards；随后All-Gather，让每rank得到完整规约结果。停在第一阶段得到的不是完整All-Reduce结果。
+
+设张量字节数S、rank数N，理想ring中每阶段有N−1轮，每轮发送S/N的chunk，因此：
+
+$$
+V_{\mathrm{send,rank}}=2(N-1)S/N
+$$
+
+系数2来自两个阶段。每rank接收量相同；若再合计收发则另乘2。全系统发送合计应乘N，不再把接收端也算一遍，否则对同一传输重复计数。比如8 ranks、8 GiB张量，对应每rank发送14 GiB、收发合计28 GiB、全系统发送112 GiB。
+
+公式计算的是特定算法下的数据量，不直接给出时间。随着N增加，每rank传输量并非N倍增长，但轮次、启动延迟、拓扑和争用仍可能使通信变慢。比较ZeRO、TP或其他策略时应先统一dtype与字节口径，再分析关键路径。
 
 # 11 Profiling：为每一步优化建立证据
 
@@ -1036,6 +1195,53 @@ Profiling 贯穿单卡和多卡优化。最小实验合同包括：模型与数�
 ```
 
 GPU utilization 只是现象指标。最终结论应落到具体 kernel、memcpy、同步点、collective、idle gap 或数据等待，并以端到端 step time 和有效 tokens/s 判断收益。
+
+## 11.1 Profiling 知识补充
+
+### 11.1.1 测量边界应覆盖真实完成事件
+
+CPU向GPU提交工作通常是异步的，因此“调用返回”与“计算完成”不是同一时刻。CPU计时器包住调用时，可能只测到排队和提交时间。计时包装、装饰器或打印位置本身不保证测量包含GPU工作。
+
+测GPU执行区间，可在目标工作前后记录CUDA Events，等待结束事件完成后读取时间差；多stream必须建立能覆盖目标工作的依赖。测端到端墙钟时间时，先同步隔离旧工作，再开始CPU计时；提交目标工作后再次同步，确保完成才停止计时。前者关注GPU区间，后者还包含范围内的CPU提交与等待。前置同步缺失会把尚未完成的旧任务混入本次窗口。
+
+首次执行可能包含初始化和缓存建立，应与预热后的稳定执行分开记录。对多个样本重复测量、报告典型值和波动，比单次数字更能支持比较；测量窗口是否包含读取、搬运、前向、反向和更新必须明确。
+
+### 11.1.2 通过生命周期解释峰值显存
+
+显存峰值是某个时刻同时存活的对象与运行开销的叠加，不是各阶段当前值的简单相加。Activation在前向保存、反向使用后逐步释放；梯度在反向产生；Adam状态可能在首次step才创建。因此backward结束后的当前值，既可能漏掉早期activation峰值，也可能未包含随后优化器初始化的峰值。
+
+Allocated反映分配器当前交给活跃对象的内存，reserved反映分配器向设备保留的内存块，其中可能含可复用空间。二者存在包含关系，不能直接相加当成总占用。分配器之外的CUDA上下文、通信库或其他进程占用还需单独考虑；碎片也会影响可分配性。
+
+应分别观察首次完整step和稳定完整step，测量窗口包含optimizer更新，并在窗口开始前重置峰值统计。比较batch时保持模型、精度和优化器一致；同一完整测量已包含的高精度状态不能再次加到账面预算。固定项加随batch增长项只能提供局部近似，算子workspace和算法切换会造成非线性，不能仅凭两点拟合保证更大batch可运行。
+
+优化要对应峰值来源：activation主导时考虑batch、输入规模或重计算；optimizer状态主导时先评估状态分片，任务允许时考虑减少可训练参数。先验证能满足容量的简单候选，再评估更复杂并行组合，避免用“更多技术”代替归因。
+
+### 11.1.3 用对照实验区分数据准备和传输
+
+GPU空闲说明计算没有持续获得可执行工作，但不能独立证明是梯度通信瓶颈。数据读取、解码、增强、batch拼装、队列等待和CPU→GPU搬运都可能形成供给延迟。应将GPU时间线与CPU数据路径对应，确定空档之前缺了什么。
+
+可用三个保持内容、shape和训练计算一致的测量范围逐步隔离：
+
+| 测量范围 | 保留的主要工作 | 对照目的 |
+|---|---|---|
+| 正常流水线 | 数据准备、搬运、训练 | 建立端到端基线 |
+| 预处理结果驻留CPU | 搬运、训练 | 检查数据准备路径是否限制供给 |
+| 数据驻留GPU | 训练 | 检查搬运及相关同步的暴露开销 |
+
+预处理对照必须仍从CPU搬运；若直接预放GPU，就同时排除了两类原因。绕过数据准备后加速，只能支持该路径有贡献，具体是读取、解码还是队列需进一步定位；没有加速也不能直接证明只剩传输问题。缓存、pinned memory、预取和重叠会影响差值，所以对照结果要结合时间线解释，不能把差值机械当成独立环节耗时。
+
+### 11.1.4 从局部优化推导整体收益
+
+优化价值取决于目标环节在整体关键路径中占多少。设原总时间T，可优化部分占比f，该部分加速s倍，忽略其他变化与重叠，则：
+
+$$
+T'=T[(1-f)+f/s],\qquad
+\mathrm{speedup}=\frac{1}{(1-f)+f/s}
+$$
+
+即使该部分趋近零耗时，最大加速也只有1/(1−f)。这解释了为何局部快一倍不等于训练快一倍；优化后瓶颈也可能转移，应重新检查整体路径。
+
+同时区分三个指标：耗时降低比例为(T−T')/T，加速比为T/T'，相同工作量下吞吐提高比例为T/T'−1。例如100 ms降为90 ms，耗时降10%，加速约1.11倍，而吞吐提高约11.1%。数字的分母不同，不能互换。该公式是无重叠的简化模型，真实流水线收益最终以完整step或任务指标验证。
 
 # 12 OMS VLM 适配决策
 
