@@ -2,9 +2,10 @@
 type: project_learning_document
 status: active
 project: AI-Career-Transition
-learning_stage: Phase 2-A - VLM model engineering cognition and OMS adaptation preparation
-summary: 以 GPU 执行与数据移动为前置桥梁，面向未来 OMS 开源 VLM 数据适配，建立从单卡 SFT/PEFT、训练显存到分布式并行、算子 IO 和 profiler 的模型工程决策地图。
+learning_stage: Phase 2-A - model engineering and minimal runtime verification
+summary: 以GPU执行与数据移动为桥梁，建立单卡训练、显存、分布式并行、算子IO、profiling和通用多模态适配的机制与实验方法。
 sources:
+  - 2026-09-14 用户要求通用能力路线、明确OMS尚未立项并继续优化；报告硬件简称pro5000，具体配置待核实
   - 2026-09-11～14 TP至profiling连续主动学习对话；用户要求在OMS适配前补充章末机制说明和诊断记录
   - 2026-09-11 Data Parallelism 与 ZeRO/FSDP 主动学习诊断中暴露的归一化、关键路径、collective 通信量和参数生命周期混淆
   - 2026-09-08 用户更新的 GPU 学习笔记：CUDA 编程/调度/内存模型、coalescing、tiling、control divergence 与 FlashAttention
@@ -15,7 +16,7 @@ sources:
   - 02_Projects/AI-Career-Transition/10_学习文档/P01A-02_LLM训练机制_学习文档.md
   - 02_Projects/AI-Career-Transition/10_学习文档/P01C-01_VLM基线与Benchmark_学习文档.md
   - 2026-08-20 用户确认 Phase 1-C 范围关闭，并要求补全可阅读原文、可主动考核的下一阶段骨架
-scope: VLM 单卡训练、SFT/PEFT、显存/计算/通信、分布式概念、算子 IO、profiling 与 OMS 适配边界。
+scope: 单卡训练、SFT/PEFT、显存/计算/通信、分布式概念、算子IO、profiling与通用多模态适配边界。
 risks:
   - 本阶段建立认知，不代表已经运行 SFT、掌握集群调优或具备 kernel 开发能力。
   - 外部材料面向特定 LLM/硬件；迁移到 VLM、T4 或 OMS 前必须重新核对架构、shape、版本和 profile。
@@ -39,9 +40,9 @@ updated_at: 2026-09-14
 
 常见优化都在这三者之间做交换。例如 activation recomputation 用计算换显存，data parallelism 用更多设备换吞吐，同时引入梯度通信。学习每种技术时都应回答：它直接改变了什么、代价是什么、什么条件下会失效、应该用什么 profile 证据验证。
 
-## 1.2 OMS VLM 训练背景
+## 1.2 通用 VLM 训练背景
 
-本阶段沿用以下 VLM SFT 主链作为应用场景：
+以下VLM SFT主链适用于多种任务；文中的OMS、T4等是具体例子，不预设实际任务或设备：
 
 ```text
 授权数据与任务合同
@@ -1243,9 +1244,19 @@ $$
 
 同时区分三个指标：耗时降低比例为(T−T')/T，加速比为T/T'，相同工作量下吞吐提高比例为T/T'−1。例如100 ms降为90 ms，耗时降10%，加速约1.11倍，而吞吐提高约11.1%。数字的分母不同，不能互换。该公式是无重叠的简化模型，真实流水线收益最终以完整step或任务指标验证。
 
-# 12 OMS VLM 适配决策
+## 11.2 最小训练运行验证：合同、观测与归因
 
-OMS 场景首先确定任务输出与非目标、数据授权、zero/few-shot 或其他基线、错误分类、独立验证数据，以及训练和部署资源预算。只有基线已经证明存在稳定、可由数据适配改善的错误模式时，才打开最小 LoRA/QLoRA 分支。
+一次资源实验要能回答“改变了什么，以及变化如何产生”。先冻结模型与软件版本、输入和有效token、可训练参数、精度、micro batch、累积次数和更新次数，再选测量窗口。小型LLM可用于隔离训练资源变量；迁移到VLM时，还需核对视觉输入分辨率、视觉token与预处理成本。
+
+第一次optimizer更新可能建立新的状态，warmup也可能包含初始化开销。容量评估要观察首次更新的峰值，稳定吞吐则应在warmup后测量。GPU事件计时描述所覆盖的设备工作；端到端时间还需包含数据准备、搬运和必要同步。两种口径分别报告，不能用一段GPU计算时长代替整个训练step。
+
+比较micro batch与累积时，固定有效global batch和更新语义，记录每个optimizer step的样本数或有效token数。若token数量不等，还应核对loss权重，防止把目标函数变化误当资源优化。对照先只改一个变量，记录完整step时间、吞吐、峰值allocated与reserved，并解释首次更新与稳定窗口的差异。
+
+观测之后才能归因。若怀疑预处理，保持模型和输入内容一致，对照预先处理的数据；若怀疑activation，改变micro batch并补偿累积。每个实验先写预测、观察量和反例，再用结果修正判断；一次优化没有加速也能揭示瓶颈。方法解释见第2章与第11.1节，具体运行配置和个人结论保存在实践记录。
+
+# 12 通用多模态适配决策
+
+多模态任务首先确定任务输出与非目标、数据授权、zero/few-shot 或其他基线、错误分类、独立验证数据，以及训练和部署资源预算。只有基线已经证明存在稳定、可由数据适配改善的错误模式时，才打开最小 LoRA/QLoRA 分支。
 
 VLM 模块选择需要明确：
 
@@ -1255,13 +1266,15 @@ VLM 模块选择需要明确：
 | projector | 训练或添加 adapter | 调整视觉特征进入语言空间的映射 |
 | language model | 冻结、LoRA 或全量训练 | LoRA 适合资源受限的小规模适配；全量训练需要更高成本和遗忘风险控制 |
 
-当前阶段交付为：单 GPU 训练资源图、优化手段及局限、DP 数据流和通信边界、ZeRO/FSDP 状态分片、TP/SP 算子与 activation 布局、CP 长上下文、PP 调度、EP 路由、多维配置决策、profiler 计划，以及不执行 SFT 或分布式的反例。它不要求实际完成 SFT、集群训练或 kernel 实现。
+决策需连接单GPU资源、并行与状态分片、算子IO和profiler证据，并解释不适合微调或分布式的情形。教学性小型训练只验证链路与资源机制；要声称任务适配有效，仍需独立数据、稳定评分与基线对照。LoRA规定哪些参数如何更新，蒸馏规定使用什么教师信号训练学生；两者可以组合。教师质量、数据授权和学生资源目标未明确时，不应仅因教师规模更大就启动蒸馏。
+
+具体阶段交付由主学习方案管理，个人状态由学习记录管理；本文机制覆盖不代表实践已完成。
 
 # 13 主动考核骨架
 
 每单元按闭卷重建、边界辨析和迁移决策三层检查：
 
-| 单元 | 闭卷主问题 | 边界题 | OMS 迁移题 |
+| 单元 | 闭卷主问题 | 边界题 | 迁移题（设备与场景仅为例子） |
 |---|---|---|---|
 | A0 GPU 基础 | 从 host launch 到 SM 执行，画出一次向量加法的数据与调度路径。 | grid/block/thread 与 block/warp/SM 分别描述什么？ | visual tokens 增长后应先怀疑计算还是数据移动？ |
 | A 训练主链 | 从多模态样本到 optimizer step 发生什么？ | loss mask 与 attention mask 有何不同？ | 哪些 VLM 模块参与训练？ |
@@ -1273,7 +1286,7 @@ VLM 模块选择需要明确：
 | G SP / CP | SP 与 CP 分别把 sequence shard 保持到哪里？ | all-gather KV 与 ring exchange 的取舍是什么？ | 长视频或长上下文 VLM 何时需要 CP？ |
 | H Pipeline Parallel | AFAB、1F1B、interleaving 分别改变什么？ | 为什么 1F1B 省 activation 却不自动消除 bubble？ | 模型跨节点时如何决定 PP stages？ |
 | I Expert Parallel | token 如何 dispatch 到 experts 并 combine？ | EP 为什么不等于低通信？ | 稠密 VLM 与 MoE VLM 的适用边界是什么？ |
-| J 多维配置 | 如何按容量、GBS、吞吐三步选择组合？ | 为什么固定 GPU 数阈值不能直接迁移？ | 给定 OMS shape 与拓扑，应先测哪组配置？ |
+| J 多维配置 | 如何按容量、GBS、吞吐三步选择组合？ | 为什么固定 GPU 数阈值不能直接迁移？ | 给定任务 shape 与拓扑，应先测哪组配置？ |
 | K 算子 IO | FlashAttention 如何减少 HBM 流量？ | IO、显存与 FLOPs 如何区分？ | 高分辨率 VLM 变慢怎样定位？ |
 | L Profiling | 如何分解 step 时间和显存？ | utilization 为什么不足以定位根因？ | 如何设计只改变一个杠杆的 A/B profile？ |
 
@@ -1296,7 +1309,7 @@ VLM 模块选择需要明确：
 - [ ] 用简化公式解释 PP bubble，并比较 AFAB、1F1B 与 interleaved stages。
 - [ ] 说明 EP 的 token dispatch/combine、All-to-All 与负载均衡边界。
 - [ ] 按“容量→global batch→吞吐”给出一套多维并行配置搜索计划。
-- [ ] 为 OMS VLM 适配写 profiler/评测计划，并说明何时不执行 SFT 或分布式。
+- [ ] 为通用多模态适配写 profiler/评测计划，并说明何时不执行 SFT 或分布式。
 - [ ] 完成至少两道新情境迁移题，不依赖背诵框架名。
 
 完成代表模型工程认知可用于决策，不代表 SFT、集群训练或 kernel 实现已经验证。
