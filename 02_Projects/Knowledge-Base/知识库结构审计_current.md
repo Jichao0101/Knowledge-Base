@@ -2,7 +2,7 @@
 type: structure_audit
 status: active
 scope: 记录知识库结构化、current 标准化、总览内容化的当前迁移状态；不作为具体主题事实源。
-updated_at: 2026-08-17
+updated_at: 2026-09-15
 supersedes:
   - 02_Projects/Knowledge-Base/知识库结构审计-2026-06-05.md
 ---
@@ -444,3 +444,11 @@ supersedes:
 - 依据为用户自述及本次更新请求；未新增课程完成、能力通过或训练运行证据，未提高 evidence level。
 - 继续采用项目总览 + 学习笔记 + 学习记录 + 滚动检查点，不创建五份 current 文档组；single_pass_recoverable 保持 false。
 - 原 2026-08-20 恢复安排及本次调整关系在 [[02_Projects/AI-Career-Transition/20_学习记录/P02A_VLM模型工程认知_学习记录]] 第 1.7 节保留。
+
+## 2026-09-15 AI Career独立实验方案与恢复入口同步
+
+- 新增[[02_Projects/AI-Career-Transition/00_规划/Qwen3.5-9B睁闭眼分类微调与部署实验方案]]，跨阶段实验全貌独立于P2A教学正文；当前仅planned。
+- 同步整体学习方案、阶段记录、固定检查点、项目总览和项目区入口；旧前瞻路线及检查点快照保留，替代原因与授权见阶段记录1.13。
+- 来源卡先入04_Sources并同步来源索引；教学正文只局部补机制，未提升正式知识。
+- 当前恢复为数据/标签审计，截图硬件信息不等于模型运行验证；无新增训练、DDP或部署完成声明。
+- 保持现有“项目总览+学习文档/记录+滚动检查点”，不创建overview_current组，不提高single_pass_recoverable或evidence level。
