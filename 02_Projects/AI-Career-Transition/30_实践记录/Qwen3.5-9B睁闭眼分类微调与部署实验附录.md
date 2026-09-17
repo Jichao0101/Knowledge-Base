@@ -48,6 +48,15 @@ user_reported：本轮截图`codex-clipboard-b15e2939-4b4f-4762-a8d4-62e2411bc9f
 
 本结果接续R008，并接替正文与检查点的“processor结果待返回”；旧事件保留。截图中的script_sha256与R008所存本地脚本hash不同，故仅记录所报告输出，不认定云端脚本与归档脚本逐字一致；完整输出JSON及云端代码尚未归档核验。截图显示样本来自67批次，不能等同此前样本身份。当前先解释输入维度并确定起始预算，尚未冻结全数据输入上限。
 
+
+### S01-R010：模型加载结果（2026-09-17）
+
+user_reported，来源为截图`codex-clipboard-d07f7d89-6ab6-4f32-a6f7-e1195759f41b.png`中的load_metrics.json；stage=model_loaded_no_forward，torch=2.10.0+cu128、transformers=5.2.0、GPU=RTX PRO 5000 72GB Blackwell。加载耗时17.924108689650893秒（开启memory history）。
+
+before：allocated/reserved及两项peak均0；device_used=0.33416748046875GiB，free=70.78955078125GiB。after：allocated=17.52721929550171GiB、reserved=17.541015625GiB、peak_allocated=17.52722930908203GiB、peak_reserved=17.541015625GiB、device_used=17.92791748046875GiB、free=53.19580078125GiB。parameter_layout只有cuda:0/torch.bfloat16，numel=9409813744，bytes=18819627488。
+
+R010接替正文/检查点模型加载待测状态，旧事件不改。数值与本地header报告进行算术对照；MTP/dtype解释仅为总量吻合的推断。未读取云端完整JSON、加载日志或snapshot，不声称视觉化快照已检查、推理或训练已成功。按已有逐步记录授权写回，下一步为单图推理；阶段整体仍进行中。
+
 ## B 创建与修订历史
 
 ## 1.6 创建依据与替代关系
