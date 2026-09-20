@@ -23,7 +23,7 @@ risks:
   - 本阶段建立认知，不代表已经运行 SFT、掌握集群调优或具备 kernel 开发能力。
   - 外部材料面向特定 LLM/硬件；迁移到 VLM、T4 或 OMS 前必须重新核对架构、shape、版本和 profile。
   - 是否执行 SFT 仍取决于任务合同、合法数据、基线、错误分类和资源预算。
-updated_at: 2026-09-15
+updated_at: 2026-09-20
 ---
 
 # 1 Phase 2-A VLM 模型工程认知学习文档
@@ -415,6 +415,55 @@ GPU 操作可以异步执行，CPU 提交工作结束不代表 GPU 已完成计�
 例如，总推理耗时为 100 ms，其中 attention 占 10 ms。将 attention 耗时减半后，其余 90 ms 不变，总耗时为 95 ms，仅缩短 5%。局部加速的端到端收益，受该部分在总耗时中的占比限制。
 
 其他算子、数据搬运、kernel 启动和同步都可能占据剩余时间。下一步优化应依据耗时分解和执行依赖，识别哪些步骤限制了整体完成时间；仅凭 GPU utilization 或算子名称无法定位瓶颈。
+
+## 1.5 多模态输入数据形态知识补充
+
+### 1.5.1 Token、token ID与embedding分别表示什么
+
+文本token是分词单位，可能是词片段、标点或特殊标记；token ID是该单位在词表中的整数编号；embedding是模型根据编号查询可学习矩阵得到的浮点向量。图像中的“视觉token”通常指视觉序列位置或对应特征向量，不意味着图像经过离散词表编码。
+
+以当前Qwen3.5单图路径为例，processor阶段同时保留两种图像表示：`input_ids`中的占位位置负责安排序列结构，`pixel_values`中的像素数据负责承载图像内容。两者到model forward才汇合。以下说明对应首轮包含整图的prefill，不把缓存解码或其他VLM架构默认视为同一路径。源码依据见[[04_Sources/模型工程/2026-09-15_Qwen3.5与DDP微调部署来源证据卡#2026-09-20 processor到forward的数据形态补充]]。
+
+### 1.5.2 从一个图像标记到N个占位ID
+
+调用`apply_chat_template(..., tokenize=False)`后仍是字符串。单图位置可表示为`<|vision_start|><|image_pad|><|vision_end|>`：中间只有一个图像标记，实际图片仍由独立image对象传入，尚无input_ids或视觉embedding。
+
+随后`processor(text=[prompt], images=[image], ...)`先做图像缩放、归一化及patch整理，得到浮点`pixel_values`和整数网格`image_grid_thw`。若网格为`[T,Hg,Wg]`，空间合并系数为m，则最终视觉位置数为`N=T×Hg×Wg/m²`。Hg、Wg是patch网格尺寸，不是原图像素尺寸。
+
+processor按N将一个image标记展开为N个相同标记，然后tokenizer对整个字符串编码。由此生成的input_ids包含普通文本/特殊标记ID，以及N个相同的图像占位ID。它们是有效视觉位置，不是需要mask掉的序列补齐padding；相同ID不表示图像内容相同，因为内容另存于pixel_values。
+
+### 1.5.3 从像素与ID到统一向量序列
+
+设总输入长度为S，LLM隐藏维度为D，视觉网络隐藏维度为Dv。单图batch的形态变化如下：
+
+| 阶段 | 文本与序列位置路径 | 图像内容路径 |
+|---|---|---|
+| messages/chat template | 带一个图像标记的字符串 | 独立图像对象 |
+| processor结束 | `[1,S]`整数input_ids，内含N个图像占位ID | pixel_values是整理后的浮点patch像素；grid描述网格 |
+| forward初始 | 对所有ID查表，得到`[1,S,D]` | patch embedding将像素映射为`[T×Hg×Wg,Dv]`特征 |
+| 视觉编码 | 图像占位处暂为相同的查表向量 | 位置机制与视觉blocks形成上下文特征，merger合并并映射为`[N,D]` |
+| 多模态汇合 | 将N个占位位置的向量替换为视觉向量，仍为`[1,S,D]` | N个视觉向量按约定顺序填入 |
+| 语言模型 | 混合inputs_embeds结合位置、mask等信息进入语言主干 | 已成为统一输入序列的一部分 |
+
+pixel_values虽为浮点数，但尚未经过可学习视觉变换，因此不能仅凭dtype称其为embedding。patch embedding与最终image embedding也不是同一阶段：前者供视觉网络处理，后者经视觉编码、空间合并和维度对齐后供LLM使用。视觉上下文交互使最终向量的信息不限于其初始局部像素区域。
+
+多模态forward会先对包括图像占位ID在内的全部input_ids查表，再以视觉特征替换占位处的向量。替换对象是inputs_embeds，不是整数input_ids；也不是在原序列后追加N个向量。因此替换前后序列长度S不变，视觉边界标记继续作为特殊token的embedding保留。
+
+### 1.5.4 单图规模示例与观测边界
+
+用当前实验的已记录输入规模作形态示例：grid=`[1,162,112]`，m=2，合并前有18144个patch位置，最终N=4536。检测prompt总长度S=4732，非视觉部分为196，包含文本和模板特殊标记。
+
+```text
+字符串中1个image标记 → 展开为4536个标记 → 4536个相同占位ID
+                                               ↓ 查表
+                                       临时占位向量的位置
+                                               ↑ 替换
+图像 → 18144个patch位置的像素 → 视觉编码 → 4536个D维视觉向量
+                                               ↓
+                              混合inputs_embeds：[1,4732,D]
+```
+
+这些shape中的forward部分是按机制推导，不是新增运行测量。`actual_image_tokens == visual_tokens`只确认预留位置数与预期视觉输出数一致，不证明视觉网络已执行。处理器可根据网格提前算出输出数量，无需先运行视觉网络；仅加载模型权重同样不会生成图像embedding。实际模型前向、显存和输出验证仍以实验记录为准。
 
 # 2 单 GPU 训练与优化
 

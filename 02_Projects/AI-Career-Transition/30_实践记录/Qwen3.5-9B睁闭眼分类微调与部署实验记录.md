@@ -15,7 +15,7 @@ risks:
   - 依赖导入和权重文件检查不能替代GPU推理、训练或服务验证。
   - 权重头部检查不校验全部payload，也不能代替模型revision和完整文件hash。
 single_pass_recoverable: false
-updated_at: 2026-09-18
+updated_at: 2026-09-20
 ---
 
 # 1 Qwen3.5-9B驾驶员眼睛检测与状态分类实验记录
@@ -134,6 +134,8 @@ H、W是processor处理后的图像高和宽，p是patch边长，m是每个空�
 image processor不把图像编码成离散视觉码，也没有生成视觉embedding；pixel_values仍是展开的预处理像素数据。预处理阶段可按grid确定合并后的token数量，无需实际执行模型中的空间合并。
 
 因此，本次4536个视觉token表示将占用的视觉序列位置数，4732表示包含这些占位位置的输入ID序列长度；两者都不表示embedding已经生成。图像占位token ID不承载图像内容，图像内容由pixel_values在后续模型前向计算中编码。仅加载模型权重也不会完成上述计算，需要到单图推理步骤才执行。
+
+完整机制见[[02_Projects/AI-Career-Transition/10_学习文档/P02A-01_VLM模型工程认知_学习文档#1.5 多模态输入数据形态知识补充]]。对应本样本，1个图像标记展开为4536个占位ID，另有18144个patch位置的像素数据；未来forward生成4536个视觉向量并替换占位处的embedding，总输入长度仍为4732。该对应关系用于解释已有processor结果，不构成新增forward或推理验证。
 
 #### 1.4.2.3 结果与决定
 
