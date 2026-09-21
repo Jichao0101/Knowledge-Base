@@ -23,7 +23,7 @@ risks:
   - 本阶段建立认知，不代表已经运行 SFT、掌握集群调优或具备 kernel 开发能力。
   - 外部材料面向特定 LLM/硬件；迁移到 VLM、T4 或 OMS 前必须重新核对架构、shape、版本和 profile。
   - 是否执行 SFT 仍取决于任务合同、合法数据、基线、错误分类和资源预算。
-updated_at: 2026-09-20
+updated_at: 2026-09-21
 ---
 
 # 1 Phase 2-A VLM 模型工程认知学习文档
@@ -1216,6 +1216,13 @@ $$
 系数2来自两个阶段。每rank接收量相同；若再合计收发则另乘2。全系统发送合计应乘N，不再把接收端也算一遍，否则对同一传输重复计数。比如8 ranks、8 GiB张量，对应每rank发送14 GiB、收发合计28 GiB、全系统发送112 GiB。
 
 公式计算的是特定算法下的数据量，不直接给出时间。随着N增加，每rank传输量并非N倍增长，但轮次、启动延迟、拓扑和争用仍可能使通信变慢。比较ZeRO、TP或其他策略时应先统一dtype与字节口径，再分析关键路径。
+
+### 10.2.3 混合并行中的 DP group 与 ZeRO 分片对象
+
+DP 沿 batch 维复制模型计算、分配不同样本；TP 在层内沿 hidden 等维度切分参数与算子；SP 在 TP group 中进一步沿 sequence 分片部分 activation；CP 将同一样本的 context 沿 sequence 分布，并通过 K/V 通信保持全局注意力；PP 则沿层深度把模型拆成多个 pipeline stages。
+
+组合 TP/PP/CP 后，同一**纯 DP group** 中的 ranks 对应**相同语义位置的 local model shard**，各自处理不同的数据样本。**ZeRO 将这些 ranks 之间原本重复保存的训练状态进一步分片**：ZeRO-1 分片 optimizer states，ZeRO-2 再分片梯度，ZeRO-3 再分片参数，并在计算时按需恢复所需参数。
+
 
 # 11 Profiling：为每一步优化建立证据
 

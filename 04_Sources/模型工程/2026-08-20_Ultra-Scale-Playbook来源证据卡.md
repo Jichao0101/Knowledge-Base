@@ -108,3 +108,13 @@ Part 3 中按模型参数量、GPU 数量给出的组合是特定 H100 集群、
 写入学习文档时保留以下边界：grid/block/thread 是 CUDA 编程组织，block/warp/SM 是映射到硬件执行时的相关层级；PTX 是虚拟 ISA，不直接等同于目标 GPU 最终执行的机器指令；global memory 是地址空间，HBM 是常见物理承载；shared memory 和 L1 都靠近 SM，但访问与管理语义不同；coalescing、cache hit、tiling 和 control divergence 分别作用于不同性能环节。
 
 Attention 图片展示的是普通实现物化 $S$ 和 $P$ 所产生的数据移动，不是 FlashAttention 已优化后的数据流。FlashAttention 的边界仍以“不在 HBM 中物化完整 $S/P$、通过 tiling 与 online softmax 降低 IO，但不消除 attention 数学依赖”为准；图片中的 H100 容量和带宽仅是特定硬件示例。
+
+## 1.10 2026-09-21 混合并行与 ZeRO 分片范围核对
+
+本节为 append-only 补充，支持关联学习文档第 10.2.3 节的局部机制解释，不替代此前结论，不代表集群运行验证。
+
+- [Megatron Core Context Parallel Package](https://docs.nvidia.com/megatron-core/developer-guide/latest/user-guide/features/context_parallel.html)：Megatron 风格 SP 只切分部分 activation；CP 将输入及 activation 沿序列分片，Attention 通过 K/V 通信处理跨 token 依赖。
+- [Megatron Core parallel_state](https://docs.nvidia.com/megatron-core/developer-guide/latest/apidocs/core/core.parallel_state.html)：CP 不切权重，CP ranks 存在参数副本；框架区分纯 DP 与包含 CP 的数据并行通信组。
+- [DeepSpeed ZeRO 配置](https://www.deepspeed.ai/docs/config-json/)：ZeRO-1/2/3 依次分片 optimizer states、再加梯度、再加参数。
+
+核对日期：2026-09-21。适用范围为经典 dense Transformer 的 TP/SP/CP/PP/DP 组合；具体状态分片组以框架配置为准，不能把合并 DP×CP 组内的所有 ranks 都解释成不同样本副本。ZeRO-3 的参数常驻分片与 TP 定义的逻辑算子分片属于不同层次；以上来源不保证任意框架均支持任意并行组合。
