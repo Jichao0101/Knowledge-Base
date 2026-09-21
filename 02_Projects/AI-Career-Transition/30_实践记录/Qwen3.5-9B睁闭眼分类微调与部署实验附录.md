@@ -318,3 +318,245 @@ summary: 以Qwen3.5-9B为部署目标及学生模型，使用自采集整图睁�
 | 起始context     | 输入长度加128生成token预留 | 所需至少4742；4860试验预算不足，考虑可能的提示词扩展，设置5600                    |
 
 ````
+
+## K 2026-09-21 单图推理运行报告与状态接替
+
+证据级别为user_reported，来自本会话用户5张截图及明确回写授权；未独立复跑，未读取云端完整JSON、脚本、原图、GT或其hash。临时截图未复制归档，不提高证据等级或recoverability。
+截图路径前缀C:/Users/Jichao/AppData/Local/Temp/：
+- codex-clipboard-e3112015-dffc-4eea-b9b6-50f582875287.png：repeat_03。
+- codex-clipboard-55b078c1-9758-4b50-81a4-cfdbb393e5ce.png：summary。
+- codex-clipboard-03dd33db-b089-461e-a3c0-9d63bddbfdf6.png：first_metrics。
+- codex-clipboard-12ffd358-9281-4b65-870c-9a769b04f3d8.png：load_metrics局部，仅见generation_config及transformers_version=5.2.0，非完整环境核验。
+- codex-clipboard-19191582-4ab7-427d-a2f6-967591bf8738.png：prompt局部，1808×2592、单个image_pad和空think块，长指令未完全显示。
+
+可见运行目录vlm_eye_experiment/runs/s01/infer_20260921_155244_025105；相关文件first_metrics.json、repeat_03_metrics.json、summary.json、load_metrics.json、prompt.txt。未读取repeat_01/02完整记录，不补造。首次及repeat_03为95 tokens，上限256、EOS结束、未触顶；summary报告4次一致、均EOS结束、严格格式失败、quality_evaluated=false。
+
+可见原始回答带json代码围栏，内部为数组：bbox_2d=[290,415,323,433],label=image_left_eye,state=open；bbox_2d=[355,392,390,409],label=image_right_eye,state=open。解析错误为Expecting value: line 1 column 1 (char 0)，不等于没有预测或几何判错。完整精确指标和分析见[[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录#1.4.4.3 结果与决定]]。
+
+写前审查：按维护规范1.7和本轮授权，仅更新有关待测状态；直接截图支持单样本执行与资源测量，不支持格式通过、定位正确、训练成功或稳定性能基准。旧128为历史预算，本次实际上限256；4614是旧分类输入，4732有检测记录与本次截图支持。采用原文路径，无失效索引或未决替代冲突；无受保护事实或正式提升。检查点有重复历史表格，修改限定为历史快照之前的当前表格，历史保持原样。写前校验目标原文及输入未变，写后核对。
+
+双向接替：本K节支持主记录1.2/1.4.4.3/1.4.6及下一步、检查点与项目总览2026-09-21状态；上述正文指向本事件。下面的旧待测文字由新运行报告接替，原文保留，不否定旧加载测量或历史事件。S01保持in_progress，下一步先叠框核对定位/尺度并处理格式；质量和LoRA仍待验证。事实入口及current结构未变。
+
+### 被接替原文快照
+
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+updated_at: 2026-09-20
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+summary: 9B整图眼睛检测与状态分类；已有processor及模型加载结果，检测合同适配、长度复核和单图推理待完成。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+in_progress；理论已建，远端实测pending
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+当前尚未完成模型GPU推理、反向传播、质量评分或显存峰值测量。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+坐标尺度及缺失/遮挡规则在检测生成前冻结。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+Qwen3.5多模态接口导入通过；GPU执行待验证
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+单样本processor已完成；输入4614 tokens，预算待确定
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+| 待步骤1～2完成 |
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+当前已完成单样本输入规模检查与模型加载，下一步为单图推理。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+当前采用5600总预算，暂预留128个生成token。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+128是暂定生成预留，并非已测得的检测JSON输出长度。当前只确认输入加该预留能放入5600；完整检测输出是否可在128内结束，仍需目标JSON分词计数或实际生成结果验证。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+BF16模型已加载到GPU 0，当前尚未执行forward。加载结果如下：
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+GPU推理、JSON输出、首次/稳定峰值和延迟均待测。输出格式通过只说明单图链路可用，不代表定位与状态质量达标。若输入导致资源不足，每次只调整一个变量并记录影响；输入调整后重新确认眼部信息是否仍可辨认。功能与余量满足后进入步骤4。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+单样本4536视觉/4614总输入tokens；含生成预留需4742
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+首次/稳定峰值、延迟、输出待测
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+运行时剩余容量待测
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+9B BF16整图推理与LoRA目前仍是待验证方案，不能提前填入显存、吞吐或质量结果。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录.md
+
+~~~~text
+当前下一步：先固定检测框坐标尺度、单眼/遮挡输出和评分规则，按框中心x适配样本并复核检测输入/输出预算，再进入S01单图检测推理。已完成模型加载测量继续有效，不为任务修改重做加载实验。执行代码仍只在对话中提供。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
+
+~~~~text
+updated_at: 2026-09-17
+~~~~
+
+路径：02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
+
+~~~~text
+current_focus: S01模型加载已完成；下一步适配眼睛检测合同及画面左右排序、复核token预算，然后执行单图检测推理。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
+
+~~~~text
+summary: 单样本processor及BF16模型加载已有报告；单图推理、LoRA及其运行峰值待验证。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
+
+~~~~text
+远端VLM推理、LoRA、DDP、蒸馏和部署效果均未验证。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
+
+~~~~text
+模型加载和旧processor测量保留，新检测合同及长度待验证。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
+
+~~~~text
+4536视觉token、4614总输入token。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
+
+~~~~text
+3. GPU 0已释放；输入预算明确后，实测BF16推理、LoRA首次完整更新及稳定窗口，比较理论/实测并决定方案。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
+
+~~~~text
+平均时间与吞吐迁移正确，无实测。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
+
+~~~~text
+显存和质量基线待执行。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
+
+~~~~text
+| 完整VLM SFT、profiling与运行实践 | 未验证 | 无新增代码运行、测量或分布式实验。 |
+~~~~
+
+路径：02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
+
+~~~~text
+2. 单样本输入规模与BF16加载已完成，当前进入实验正文1.4.4单图推理；实操在对话中提供。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点.md
+
+~~~~text
+3. 旧5600/128预算需按检测prompt和坐标JSON复核；完成坐标/缺失规则及左右排序适配后继续单图检测与峰值测量；把结果用于是否采用BF16/是否开启checkpointing等决策。
+~~~~
+
+路径：02_Projects/AI-Career-Transition/AI职业转型项目总览.md
+
+~~~~text
+updated_at: 2026-09-16
+~~~~
+
+路径：02_Projects/AI-Career-Transition/AI职业转型项目总览.md
+
+~~~~text
+## 1.5 当前状态
+~~~~
+
+
+## L 单图推理详细测量
+
+本节承接K节同一次运行的详细指标与分析，按用户要求从实验正文移至此处；不是新增运行或状态变化。正文1.4.4.3保留关键结果、主要问题与下一步。
+
+2026-09-21单样本图文生成已完成首次及3次重复，4次输出一致且均以EOS结束。证据及旧状态接替见[[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验附录#K 2026-09-21 单图推理运行报告与状态接替]]。这只证明本样本生成链路执行成功，严格输出合同仍失败，S01保持in_progress。
+
+| 指标 | 首次 | 第3次重复/汇总 |
+|---|---:|---:|
+| 输入token | 4732 | 4732 |
+| 生成token（含特殊标记） | 95 | 95 |
+| max_new_tokens | 256 | 256 |
+| generate耗时（秒） | 43.29743397794664 | 第3次2.643217164091766 |
+| 后续3次耗时（秒） | — | 均值2.7742946908498802；中位数2.643217164091766 |
+| 推理前allocated（GiB） | 17.58002471923828 | 17.58893632888794 |
+| 峰值allocated（GiB） | 18.549700260162354 | 18.511788845062256 |
+| 相对起点峰值增量（GiB） | 0.9696755409240723 | 0.9228525161743164 |
+| 推理后allocated（GiB） | 17.588972568511963 | 17.588972568511963 |
+| 推理后/峰值reserved（GiB） | 19.021484375 | 19.021484375 |
+| 推理后设备空闲（GiB） | 51.44384765625 | 51.44384765625 |
+
+计时仅覆盖同步后的model.generate，不含模型加载、预处理、输入搬运、解码和文件写入，未启用memory history。首次明显慢于后续，初始化/编译等只是候选解释，没有profiler证据不能精确归因。3次重复是初步热运行观测，不是稳定p95。结束allocated接近而reserved保留符合缓存现象，当前未见持续累积；峰值增量不能全部归为KV或activation，推理余量也不能外推到训练。
+
+原始输出带json代码围栏，内部为列表，元素使用bbox_2d、label、state；要求则是裸JSON对象，以image_left_eye/image_right_eye为键，各值包含bbox与state。解析在第一个反引号失败，prediction=null不表示没有预测；去围栏也不能满足schema，几何检查未实际通过。4次相同输出不是4个独立质量样本。
+
+可见预测：image_left_eye框[290,415,323,433]、image_right_eye框[355,392,390,409]，均为open。按1808×2592原图数值检查，框为正面积且在界内，中心x为306.5与372.5，顺序正确；未见原图叠框/GT，坐标尺度、定位及状态正确性未验证。95 tokens且EOS结束、不触及256，排除本次输出被预算截断，不能据此冻结全数据输出长度。
+
+prompt.txt中的单个image_pad是processor展开前的模板；空think块不代表生成了思考正文。下一步优先叠框核对坐标与眼睛位置，并单独处理格式合同；诊断转换不得改记为模型原生schema通过。LoRA更新、训练峰值、正式质量基线继续待验证。
