@@ -4,6 +4,7 @@ status: planned
 project: AI-Career-Transition
 summary: 以Qwen3.5-9B为部署目标及学生，整图输出驾驶员眼睛位置与四类状态；按图片坐标定义左右，以评测闭环推进训练与部署。
 sources:
+  - 2026-10-01 用户附件授权双轨优化、坐标合同补全及条件分支收紧；替代记录见实验附录O
   - 2026-09-16 用户授权连续实验记录及逐步更新规则
   - 2026-09-15 本会话用户对工业微调部署目标、模型角色、整图分类、双卡DP和独立文档的连续确认及回写授权
   - 04_Sources/模型工程/2026-09-15_Qwen3.5与DDP微调部署来源证据卡.md
@@ -15,42 +16,73 @@ risks:
   - 数据目录、完整标签、人员/session划分、预算和精确运行版本尚待确认。
   - 方案和环境截图不构成模型训练、部署或性能验证。
 single_pass_recoverable: false
-updated_at: 2026-09-30
+updated_at: 2026-10-01
 ---
 
 # 1 Qwen3.5-9B驾驶员眼睛检测与状态分类实验方案
 
 ## 1.1 目标、决定与文档边界
 
-实际路径与当前步骤见[[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录]]；按维护规范1.7逐步追加。先完成S01“理论预算→实测→方案决定”，再进入原始质量基线。
+实际路径、已有结果与当前步骤见[[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录]]；按维护规范1.7维护。已完成的推理与开发基线继续复用；后续按质量主线与工程学习线分别推进。
 
 目标是形成可评测、可微调、可恢复、可部署和可回滚的模型服务。训练机制服务于工业微调与部署；不以完成大模型训练全课程作为服务部署的前置条件。
 
 - 最终部署目标和蒸馏学生均为Qwen3.5-9B。
-- 若9B定位或状态判断质量不足，先评估更大教师是否解决同一任务的主要错误，再启动蒸馏；不默认把9B蒸馏到4B。
+- 质量训练优先使用GT监督与困难样本/类别平衡的针对性SFT；稳定能力缺口仍存在时，评估更大教师。学生与部署模型始终保持9B。
 - 主任务为整图驾驶员眼睛检测＋状态分类：生成框、画面左右字段及四类状态。检测直接作为基线和后续优化目标，不强制纯分类A/B；仅有具体归因需要时增加分类对照。条件性GT-crop诊断不改变整图部署输入。
-- 不加入纯文本Qwen3-8B对比，不以0.6B全参数训练为主交付，不并行开展建筑或路标任务。
-- 双卡LoRA DDP为计划内实验；若运行时资源不可用，记录阻塞或延期，不标记完成。
+- 双卡LoRA DDP保留为工程学习与扩展实验，完成情况独立记录；质量候选按自身评测结果进入部署验证。资源不可用时记录延期。
 - 全参数训练、ZeRO/FSDP、TP/PP实作、在线logits蒸馏不作为当前门禁；蒸馏为条件分支。
 - 本方案承载跨阶段全貌。P2A正文保存机制，阶段学习记录保存个人诊断，全局学习检查点保存整个学习方案的当前阶段与任务指向，连续主实验记录保存本实验内部路径、事件与证据。不创建五份current文档组。
 
-替代原因：原先小型LLM训练优先的顺序偏离用户工业微调/部署目标；本轮用户明确任务、9B角色与双卡范围。旧安排保留于整体方案第1.15节和阶段记录1.12，新决定与证据边界见阶段记录1.13；不抹除旧诊断、既有Phase 1关闭或实践豁免。
+### 1.1.1 Track A：模型质量主线
 
-### 1.1.1 评测驱动闭环与独立决策轴
-
-起始模型是本实验的Qwen3.5-9B checkpoint，不特指未经后训练的预训练基座。采用以下闭环，不预设SFT→DPO→RL或SFT→蒸馏等流水线：
+本轨回答：Qwen3.5-9B在驾驶舱真实整图输入下，能否满足双眼检测＋四类状态的业务要求，以及最小需要什么干预。起点是已有Qwen3.5-9B checkpoint，固定整图、任务指令与输出合同后建立zero-shot / limited few-shot基线。
 
 ```text
-起始模型与输入合同 → zero-shot/few-shot baseline → 错误归因与瓶颈验证
-  → 非训练干预（prompt/解码/输入/架构）或针对性训练
-  → 复评质量、成本与回归 → 达标则部署；未达标则困难样本挖掘并进入下一轮
+Qwen3.5-9B + 固定整图输入/输出合同
+                    ↓
+          zero-shot / limited few-shot baseline
+                    ↓
+                 错误归因
+      ┌──────────┬───────────┬───────────┐
+ prompt/schema  resolution   grounding   state/类别分布
+      ↓             ↓            ↓             ↓
+ 模板/解码修正  整图像素预算调整  定位监督     GT/类别平衡SFT
+      └──────────┴───────────┴───────────┘
+                    ↓
+                validation
+          ┌─────────┴─────────┐
+        达标                 未达标
+          ↓                    ↓
+     冻结最终候选        困难样本 / 扩大适配范围
+          ↓             教师评估（有依据时）
+       冻结测试                 ↓
+          ↓                返回validation
+       部署回归
 ```
 
-训练分支分别决定：监督来源（GT、Teacher、Human Preference、Rule/Verifier、自生成信号）→训练目标（SFT、KD、偏好优化、奖励优化）→参数更新方式（LoRA、Partial FT、Full FT）。目标可组合；教师答案用于SFT同时可构成sequence-level distillation。QLoRA还引入冻结底座量化这一资源维度，不是能力升级等级；DDP等是独立的执行方式。
+模型容量问题需结合输入、标注、训练曲线及干预结果判断；每轮围绕一个主要错误组，选择能检验假设的最小干预。监督来源、训练目标和更新范围分别决定；LoRA是更新方式，SFT/KD是训练目标，QLoRA另涉及底座量化。
 
-E0～E6/S01～S07是工作包而非必经方法顺序。质量优化由评测决定；单卡更新/恢复与双卡DDP仍为工程学习交付。原模型达标可直接评估部署，工程练习产物不自动成为上线版本。Full FT、在线logits/feature KD、偏好优化与RL均非强制门禁。
+E0～E6与S01～S07保留为工作包编号，可采用E1→E5、E1→targeted E2→E5，或在SFT后仍有能力缺口时采用E1→E2→条件性E4→E5。达到质量要求的候选可进入E5；工程学习进度独立记录。候选在validation上冻结后才进入测试；测试反馈用于最终验收，后续改动返回开发/验证侧，并记录原测试集已被观察。
 
-每轮记录错误组、干预假设、监督、目标、更新范围、预算、接受条件与复评决定。困难样本从训练/开发侧挖掘，先排查错标、不可判定输入和重复帧，保留普通样本回放与回归。冻结测试集不参与挖掘、教师筛选或训练；不为尝试方法而训练。
+每轮记录错误组、干预假设、监督、目标、更新范围、预算、接受条件与复评决定。困难样本从训练/开发侧挖掘，先处理错标、不可判定输入和重复帧，并保留普通样本回归。冻结测试集隔离于训练、prompt搜索、hard-example mining、teacher筛选、threshold调整和量化校准。DPO按可靠偏好信号与比较收益另行论证；RL当前缺少任务证据，保留教学边界，暂不安排主实验。
+
+### 1.1.2 Track B：模型工程学习线
+
+本轨解释模型更新、资源消耗、扩展效率与服务行为。沿用原生PyTorch＋Transformers＋PEFT＋Accelerate训练栈，使用同一9B底座和可追溯产物。
+
+```text
+LoRA forward/backward生命周期 + label masking + optimizer state
+    → gradient accumulation与checkpoint save/resume
+    → 单卡 / 双卡DDP：归一化、no_sync、rank一致性与扩展成本
+    → profiler归因
+    → vLLM服务 / 量化对照 / multi-replica serving
+    → failure / recovery / rollback
+```
+
+这条线用于组织学习内容，按需要选择实验。工程学习完成与否独立于质量候选的部署资格；例如，达标候选可先验证部署，DDP学习随后继续。真正用于该候选的训练正确性、引擎质量回归和服务安全恢复检查，仍需在对应工作包完成。
+
+两轨共享底座、adapter/checkpoint、输入合同和评测工具，各自维护验收证据。工程练习产物成为部署候选时，同样接受Track A质量评测。历史范围与本次替代关系见1.16及实验附录O。
 
 ## 1.2 当前证据与待确认项
 
@@ -73,7 +105,22 @@ image_left_eye:  {bbox: [x_min, y_min, x_max, y_max], state: 四类之一}
 image_right_eye: {bbox: [x_min, y_min, x_max, y_max], state: 四类之一}
 ```
 
-bbox与state属于同一只眼。模型生成和训练监督统一采用0～1000整数xyxy坐标，后处理以实际图片宽高分别乘x/1000和y/1000，转为像素后叠框及评分；GT像素框反向转换为训练目标，不能重复归一化。接受裸JSON或完整单个JSON围栏，剥离围栏后严格解析，不自动补框或换左右。原标注两点转xyxy后按中心x排序，同步保持状态对应；镜像增强须变换框并重新排序。坐标约定依据及旧合同接替见来源证据卡和实验附录M。
+bbox与state属于同一只眼。原始annotation保留pixel xyxy；model adapter将其转换为0～1000整数xyxy训练目标，模型生成采用同一尺度。该约定与[ms-swift Qwen3.5 grounding文档](https://swift.readthedocs.io/en/v4.1/BestPractices/Qwen3_5-Best-Practice.html)一致，本项目原生adapter显式执行转换。来源区补充见2026-10-01核对记录，既有坐标适配运行证据仍见实验附录M。
+
+设W、H为进入任务合同的整图实际宽高：
+
+```text
+x_norm = round(x_pixel / W * 1000)
+y_norm = round(y_pixel / H * 1000)
+x_pixel = x_norm / 1000 * W
+y_pixel = y_norm / 1000 * H
+```
+
+normalization仅存在于model adapter / model I/O，原始标注文件保持原值。读取时标记pixel或norm1000，adapter只转换一次。训练目标按统一round规则生成；评测反变换保留浮点精度，在原图pixel空间计算IoU。越界、退化或非法框按合同计失败，评测保留原始预测。
+
+当前输入沿用原图和对应像素GT，方向处理保持既有数据约定。若改变orientation、整体resize或引入padding，记录原图→最终输入的几何变换，同步处理bbox，并以最终输入坐标定义左右；预测先还原到该输入pixel空间，再通过逆变换回到原图评分。processor内部整体缩放需要核对其geometry语义，防止输入坐标系偏移。评测记录原图/最终输入尺寸、变换、坐标尺度、round规则、原始预测及反变换后的框。
+
+接受裸JSON或完整单个JSON围栏，剥离围栏后严格解析；保持既有不补框、不换左右的规则。原标注两点转xyxy后按中心x排序，同步保持状态对应；镜像增强须变换框并重新排序。
 
 四类保持eye_open→open、eye_closed→closed、eye_occluded→occluded、eye_narrow→narrow。occluded表示因光线、头发等因素无法判定open/closed/narrow，可理解为这三类之外的other语义；字段仍保留occluded，不新增或重命名类别。它描述状态不可判定，不要求必须存在物体遮挡，也不自动表示眼睛不存在或无法定位。不能将其等同缺框、漏检或拒答。只有一眼、位置不可确定、中心x相同及完全遮挡时的输出/评分规则需结合现有标注约定明确；不能机械将单个框视为左眼，也不能把缺失强行改为closed或occluded。遮挡框表示推定眼睛区域还是可见部分，须在数据适配时明确。
 
@@ -83,7 +130,7 @@ bbox与state属于同一只眼。模型生成和训练监督统一采用0～1000
 
 用户说明原始整图/JSON已预处理，要求不重复全量审计；原ROI dataset不能直接复用。按批次划分训练/验证/测试，用户保证同一人员id不跨集合，本基准接受该范围，代理未独立审计。完整映射与样本清单在正式基准前固定；67/68/70/71/75训练、77验证、79测试目前为助手提案而非已执行清单。
 
-直接读取同名同目录JSON的dataList[].coordinates与properties.eye_status；图片使用实际像素尺寸，忽略标注info宽高，不新增GT尺寸/框/ID检查，不自动旋转图片或修正GT。读取异常作为运行错误报告，不另设重复审计门禁。开发/验证/测试用途分离；已展示或用于调参的样例不得声称是未见测试，旧5-case与本轮40图均是开发诊断证据。
+直接读取同名同目录JSON的dataList[].coordinates与properties.eye_status；图片使用实际像素尺寸，忽略标注info宽高，不新增GT尺寸/框/ID检查，不自动旋转图片或修正GT。读取异常作为运行错误报告，不另设重复审计门禁。开发/验证/测试用途分离；已展示或用于调参的样例仅作开发证据，旧5-case和已观察的40图同样按其既有用途保留。冻结测试集不得用于prompt搜索、困难样本挖掘、教师筛选、阈值调整、训练或量化校准。
 
 ### 1.3.3 评测
 
@@ -99,25 +146,50 @@ bbox与state属于同一只眼。模型生成和训练监督统一采用0～1000
 
 正式调参前冻结质量下限、允许退化和延迟目标。没有业务SLO时只报告能力边界，不声称生产达标。性能以整图端到端p50/p95、图像请求吞吐、失败率和显存为主，TTFT为辅助；输出很短时不能只用输出token/s代表业务价值。
 
-## 1.4 阶段E0：环境与兼容性
+## 1.4 工作包E0：环境与兼容性（两轨共用）
 
-- 单卡起步；现有容器与云端模型已完成加载验证，继续图文前向，不立即重建或升级依赖。链路验证后固化训练/服务环境，模型与镜像分离。
-- 模型Qwen/Qwen3.5-9B；服务选vLLM，训练选Transformers+PEFT。具体版本在兼容性检查后锁定，必要变更需记录原因。
-- 冻结镜像digest、模型/processor revision、依赖、代码hash、GPU UUID/驱动、随机种子和所有处理配置。
-- S01资源验证按processor输入规模→模型加载→单图生成推进；LoRA最小更新、保存和重载用于工程验证，不代替正式训练前的质量基线和错误归因。
-- 确认Turbo路径、缓存/checkpoint空间及GPU拓扑。单卡模型权重可装入不代表全参数AdamW训练可装入；本轮采用冻结底座LoRA。
+复用已完成的加载、图文推理与依赖导入结果。下面是连续实验记录1.3.2已有环境报告的摘要，表示记录时配置；本次文档修订没有连接机器或新增运行验证。
 
-当前模型加载与图文生成已有报告，backward及完整更新待验证。推理成功不代表训练兼容；进入微调准备不关闭未完成的资源/恢复门禁。
+| 项目 | 已记录配置/事实 |
+|---|---|
+| GPU | 4 × RTX PRO 5000 72GB Blackwell，每卡73415MiB；driver 580.126.20 |
+| 当前使用范围 | 本实验只使用GPU0；GPU1～3可用性由实际运行前确认 |
+| Python / PyTorch | Python 3.11；PyTorch 2.10.0＋cu128，CUDA runtime 12.8 |
+| 训练依赖 | Transformers 5.2.0、PEFT 0.18.1、Accelerate 1.13.0 |
+| 数据与Hub依赖 | Pillow 11.3.0、huggingface-hub 1.8.0 |
+| 扩展 | causal-conv1d 1.6.1、flash-linear-attention 0.4.2；kernel实际执行按运行证据确认 |
+| Serving | vLLM 0.17.1已可导入、CLI可用；模型服务、adapter及量化能力分别待验证 |
+| SGLang | 未安装；当前沿用vLLM |
+| 模型路径 | `/workspace/dms-eye-status-turbo/qwen_models/Qwen3.5-9B` |
 
-## 1.5 阶段E1：整图原始基线与单卡服务
+实现角色分别为：
 
-当前起点：BF16、单卡TP=1、非思考模式、并发1。5600总预算及128生成预留来自旧分类合同，仅作参考；检测prompt与坐标JSON的实际长度需重新计算后固定，不能沿用旧预算声称检测输出足够。扩展prompt/图文示例后重新计算输入规模。先完成Transformers链路，vLLM服务另测；引擎显存预算约80%为待测起点，不代表模型上下文上限或全数据容量保证。
+| 角色 | 选用方式 |
+|---|---|
+| 训练实现 | 原生PyTorch＋Transformers＋PEFT＋Accelerate |
+| 正确性参考推理 | Transformers，使用固定processor与任务合同 |
+| Reference implementation | ms-swift Qwen3.5 multimodal / grounding / LoRA，仅用于实现核对 |
+| Serving benchmark | vLLM，完成同请求质量回归后测量服务表现 |
+
+冻结镜像digest、模型/processor revision、依赖、代码hash、GPU UUID/驱动、随机种子和处理配置。确认Turbo空间与GPU拓扑；已有步骤直接复用，训练前补齐LoRA完整更新与资源测量。模型权重可加载仅覆盖加载容量，完整训练配置由实际更新峰值决定。
+
+### 1.4.1 Reference implementation的使用范围
+
+[ms-swift Qwen3.5文档](https://swift.readthedocs.io/en/v4.1/BestPractices/Qwen3_5-Best-Practice.html)及其官方仓库用于核对dataset representation、bbox normalization、chat template、multimodal processor、LoRA target scope和训练参数。文档示例属于参考配置，本项目按9B实际模块与既有合同检查差异。
+
+运行依赖保持上述原生栈；ms-swift安装状态未声明，LLaMA-Factory不加入主实验依赖。若原生实现与reference behavior有差异，记录输入、模板、处理器、mask或目标模块的差异并定位。现有环境按已固定版本核查兼容性；版本变更作为独立配置记录。
+
+参考入口及适用版本见[[04_Sources/模型工程/2026-09-15_Qwen3.5与DDP微调部署来源证据卡]]。当前backward、完整更新和服务能力仍为pending / not_verified。
+
+## 1.5 工作包E1：整图基线与错误归因（Track A）
+
+基线采用BF16、单卡TP=1、非思考模式、并发1，Transformers承担正确性参考推理。既有40图开发基线及坐标处理见1.2和实验记录1.4.5，后续补齐正式split与独立四类validation。当前已记录单样本检测输入4732、生成上限256；5600总预算及早期128预留保留为历史资源起点。扩展prompt、图文示例或像素预算时重新计算输入/输出规模。vLLM生产近似服务与并发对照归入E5；引擎约80%显存预算仍是待测候选。
 
 先建立zero-shot与固定few-shot基线，比较简单指令、类别规则及少量文字示例；图文few-shot按需要另测并记录额外视觉token成本。示例来自训练/开发侧，不包含待测样本答案。限定调试预算，不持续搜索prompt。普通解码与schema约束解码分别记账，不把约束解码收益当微调收益。
 
-固定整图处理合同后，运行原始质量基线。性能依次测并发1/4/8，保持图像集合、像素预算、输出规则和版本一致；分别报告冷启动与预热后的稳定服务。先短测筛选，候选配置延长窗口并重复3次，报告请求数、波动和实际输入输出token数。不得静默截断图像输入以适配上下文。
+固定整图处理合同后，补齐所需质量基线及参考推理的单请求成本，保持图像集合、像素预算、输出规则和版本一致。记录输入/输出token数、延迟测量范围及失败率；超预算样本显式记录和处理。多并发服务技术内容移入E5，质量归因优先保持单卡、单请求配置。
 
-退出：得到质量、错误归因、延迟和容量基线，明确是否训练及目标；输入或标签有问题先修合同。
+验收：取得质量、主要错误组及输入成本依据，明确最小干预。候选达标可直接进入E5；需要训练则进入targeted E2，独立执行所用训练配置的correctness gate。
 
 ### 1.5.1 错误归因与优先策略
 
@@ -128,27 +200,35 @@ bbox与state属于同一只眼。模型生成和训练监督统一采用0～1000
 | 基础感知/识别不足 | 输入细节、视觉编码、教师差异 | 视觉适配、targeted SFT/KD |
 | grounding / localization | 对象位置、左右语义、目标尺度 | 定位相关监督或架构适配 |
 | 候选排序/偏好错误 | 正确候选是否存在、评分与解码 | 难负例/ranking loss，必要时DPO |
-| reasoning / decision | 是否需要推理、规则和过程监督 | targeted SFT/KD；有可靠奖励再考虑RL |
+| reasoning / decision | 核对任务规则与视觉证据 | targeted SFT；教师优势经验证后考虑KD |
 | input information bottleneck | 分辨率、缩放、token预算、采集信息 | 优先修输入路径 |
 | model capacity bottleneck | 排除数据、优化失败、监督不足 | 扩大适配范围或架构/容量调整 |
 
 策略是优先候选而非自动映射。普通样本饱和、长尾差时考虑hard-example mining与targeted SFT，保留普通样本回归。loss高或验证差不能独立证明容量不足。四分类出现错类不自动支持DPO，应先与监督损失、重采样及KD比较。
 
-RL需要可靠reward、值得探索的行为空间及可承担成本。多步状态转移与长期回报是强适用场景，但不是唯一前提；当前单帧眼睛检测与状态判断无引入RL的充分证据。
+RL教学边界保留：采用奖励优化需具备可靠reward、值得探索的行为空间与可承担成本。当前单帧任务缺少引入证据，RL不安排进入主实验。
 
-### 1.5.2 条件性视觉瓶颈诊断
+### 1.5.2 视觉瓶颈归因与conditional oracle diagnostic
 
-视觉归因不清时，在少量训练/验证侧困难样本上比较原始整图、高分辨率整图、GT-crop或其他高质量输入。GT框仅提供位置，不泄漏类别；oracle结果单独报告，不混入整图基线或声称部署可取得同等输入。
+优先使用真实整图完成归因：固定其他条件，比较max_pixels / visual-token预算或整体resize策略；结合bbox IoU、框面积比、中心偏差、grounding error distribution及matched-eye state metrics分析。输入预算变化同时记录视觉token和延迟，判断质量收益是否可部署。
 
-原图失败而oracle成功，提示分辨率、token预算、目标尺度、背景干扰或定位问题。裁剪同时改变多个因素，不能唯一归因于某个模块；必要时拆开变量验证。高质量输入仍失败也不直接证明容量不足，应继续检查标注和任务定义。后训练无法恢复当前输入中已不可辨识的信息。
+GT-crop降级为conditional oracle diagnostic。只有以上可部署变量和指标仍无法区分目标尺度/resolution、localization与state recognition问题时，才在训练集或验证集侧选少量困难样本执行。GT只提供裁剪位置，类别答案保持隐藏。
 
-## 1.6 阶段E2：针对性训练与单卡工程验证
+Oracle诊断独立记录样本、裁剪方式、问题和结果，仅用于提出下一轮实验假设。它不进入测试集、正式benchmark或部署候选，也不与整图指标混合报告；正式服务输入始终是驾驶舱原始整图。裁剪会同时改变尺度、上下文和背景，结果应由后续整图单变量实验检验。
 
-### 1.6.1 训练门禁与更新方式
+原图失败而oracle成功，可以提出空间细节、背景或定位相关假设；高质量输入仍失败时继续检查任务定义、标注与识别能力。保留这一诊断解释，不建立“GT crop→classifier”的部署路线。
 
-正式质量训练必须有E1基线、主要错误组和可验证干预假设；先选监督与目标，再选更新方式。下面LoRA配置是工程起点，不将LoRA等同于SFT。
+## 1.6 工作包E2：targeted SFT与单卡正确性（Track A / B）
 
-提高rank、扩大target modules、解冻multimodal projector、部分解冻vision/language backbone、Full FT是候选干预集合，不是升级阶梯。依据validation curve、training loss、domain gap、瓶颈位置及compute budget选择。视觉瓶颈不能只增大语言LoRA rank；跨模态映射问题可直接评估projector。QLoRA用于容量/成本权衡，Full FT仍非强制。
+### 1.6.1 第一轮训练问题与更新范围
+
+第一轮回答：在已确定的baseline错误组上，最小语言侧LoRA能否改善整图定位与四类状态指标？质量主实验优先使用单卡，依据GT开展targeted SFT，保留普通样本回归；困难样本与类别平衡采样按训练/开发侧分布安排。
+
+首轮冻结vision encoder与连接模块，只更新经过检查的language-side LoRA。候选r=16、alpha=32、lr≈1e-4用于smoke与初始比较，最优配置由validation决定。
+
+语言侧候选不足时，先复查整图resolution、视觉token与localization证据，再决定是否扩大范围：跨模态映射问题评估projector / connector，视觉域问题评估vision-side adaptation，语言侧适配不足评估rank或target scope。每轮选择有证据的模块，无需逐项走完；Full FT保留为最后候选。QLoRA按容量和成本另行比较。
+
+正式训练须有E1错误组、干预假设、独立validation与可接受预算。label masking、更新正确性、可运行容量及保存重载属于所用训练配置的correctness gate；生命周期完整对照和DDP学习的验收单独归Track B。
 
 ### 1.6.2 初始配置与正确性
 
@@ -160,11 +240,35 @@ RL需要可靠reward、值得探索的行为空间及可承担成本。多步状
 | 目标模块 | 检查语言主干线性投影后冻结显式白名单；不复制其他架构列表 |
 | optimizer | AdamW，仅adapter，lr=1e-4、betas=(0.9,0.999)、weight_decay=0.01，固定实现路径 |
 | batch | 每卡micro batch=1、单卡累积8 |
-| 输入 | 固定整图视觉预算；总序列上限在审计后冻结，不能机械套用纯文本1024 |
-| 更新预算 | 先20次smoke test，首轮正式训练最多200次，按验证集选checkpoint |
+| 输入 | 固定整图视觉预算与norm1000答案；总序列上限依据既有processor测量和代表性输入检查冻结 |
+| 更新预算 | smoke 20 optimizer updates；首轮200 updates保留为默认工程上限，正式质量预算同时按样本/token暴露量记录，详见1.6.2.1 |
 | 其他 | 训练use_cache=False；先不量化底座，不开compile；checkpointing容量需要时启用并记录 |
 
-打印可训练参数名/数/dtype、optimizer参数、有效label解码和shift后有效token数。只监督约定检测JSON中的坐标、左右字段、状态及结束标记；屏蔽prompt、padding和不应监督的图像占位内容。检查loss/梯度有限、adapter变化、冻结参数不被更新。LoRA初始零梯度的个别矩阵不能仅凭单步判为故障，应结合初始化与后续更新检查。
+打印可训练参数名/数/dtype、optimizer实际持有参数；检查loss/梯度有限、adapter变化和冻结参数一致。LoRA初始化可能使个别矩阵首步梯度为零，应结合初始化与后续更新解释。
+
+#### 1.6.2.1 训练预算与checkpoint选择
+
+每次训练同时记录number of samples、optimizer updates、effective global batch size、计划/实际epochs、seen samples及effective supervised target tokens。samples指训练清单样本数；seen samples包含重采样和重复读取，另记其分布。有效target tokens按实际参与监督的token累计。
+
+smoke预算为20次optimizer更新。正式short run可先以0.25 / 0.5 epoch作候选，根据validation curve决定是否继续到1 / 2 epoch；这些是预算提案，实际次数按数据规模、有效batch与采样策略换算。首轮200 updates工程上限仍保留，先记录它实际覆盖的epoch和暴露量。达到上限时复评并决定是否给下一轮预算；validation饱和、退化或明显过拟合时可提前停止。
+
+class-balanced或重复采样时，另记sampler长度与epoch定义；以实际seen samples/token说明训练暴露量。所有续训预算与停止条件在validation侧决定，checkpoint只按validation选择。
+
+#### 1.6.2.2 Label masking：正式训练correctness gate
+
+用真实batch显式检查input_ids、labels、attention-related multimodal inputs、image tokens/placeholders、assistant target及shift后的effective supervised token count。
+
+| 位置 | labels合同 |
+|---|---|
+| System / user prompt及非目标模板 | -100 |
+| Image placeholder / 非目标图像位置 | -100，视觉输入仍通过对应attention/多模态字段参与前向 |
+| Padding | -100 |
+| Assistant bbox/state JSON | 保留目标token ID，参与监督 |
+| EOS / end marker | 依固定模板合同监督；记录实际ID与mask边界 |
+
+至少打印一个真实batch的decoded input、decoded supervised target和effective target token number，并核对image位置数量、pixel_values / grid及实际attention相关字段与模型输入一致。assistant监督只覆盖规定答案与结束标记；causal shift按当前模型/训练实现核对，防止重复shift、答案截断或空监督。该检查直接在原生collator/训练链路完成，具体字段和LoRA白名单以安装版本及实际模型核对结果为准。
+
+训练配置通过此gate后才开展质量short run。当前检查与完整更新继续保持pending / not_verified。
 
 ### 1.6.3 生命周期与性能
 
@@ -180,9 +284,14 @@ Profiler独立抓取少量更新，标注forward/backward/optimizer和数据路�
 
 完整更新边界保存adapter、optimizer/scheduler、RNG、步数、数据位置及版本。恢复后与不中断分支继续相同三次更新，比较loss、梯度或adapter更新误差。首轮质量无提升也可形成工程证据，但不能将该产物自动设为上线版本。
 
-退出：更新、labels、恢复正确；完成资源对照及一次独立故障定位。扩大视觉侧适配范围必须由错误证据支持，作为新配置记录。
+Track A验收：训练correctness gate通过，验证集目标指标改善且普通样本回归可接受，随后可进入E5。Track B另验收更新/恢复、生命周期与累积对照、一次独立故障定位；其学习任务继续按证据推进。扩大视觉侧适配范围作为新的单变量候选记录。
 
-## 1.7 阶段E3：双卡LoRA DDP
+## 1.7 工作包E3：双卡LoRA DDP（Track B：engineering learning / scaling experiment）
+
+本工作包回答：相同训练目标下，双卡是否保持更新语义一致，获得的加速是否值得GPU成本？它独立于model-quality gate。质量主实验先用单卡减少变量，72GB单卡LoRA可行性仍由首次完整更新测量确认。
+
+DDP进入正式训练的触发条件是单卡吞吐过低、总训练时间不可接受，或目标global batch确需扩大；真实多GPU scaling验证可单独作为工程学习理由。普通DDP每卡复制完整底座与本地训练状态，单卡OOM应先定位activation/状态并采用降显存或分片方案，容量满足后再评估DDP。四张可见GPU不构成使用四卡的理由。
+
 
 每GPU一个进程，torchrun+NCCL；先注入LoRA再包装DDP。每卡完整冻结底座与adapter，分配不同样本，两个rank更新轮数一致。明确sampler补齐/丢弃行为；正确性实验使用固定全局样本清单，避免重复样本混入。
 
@@ -199,9 +308,11 @@ Profiler独立抓取少量更新，标注forward/backward/optimizer和数据路�
 
 保存共同更新边界与各rank RNG/数据位置；演练一个rank中断，确认失败退出、超时与恢复，无样本跳过或重复更新。资源临时不可用时延期并记录，不能用单GPU多进程冒充跨GPU性能。
 
-## 1.8 阶段E4：条件性教师监督与进一步优化
+## 1.8 工作包E4：条件性教师监督与KD（Track A条件分支）
 
-本分支可在基线归因后或任一复评轮触发，不要求先完成人工GT LoRA。9B始终为学生和部署目标；在同输入合同/主要失败组证明更大教师优势，再明确型号、许可与预算。无优势或已有候选达标则跳过；教师不会自动降低学生推理成本。
+正式质量优化优先GT supervised SFT，再按错误组考虑hard-example / class-balanced targeted SFT。若9B仍存在稳定能力缺口，在相同整图输入合同、相同训练/开发/验证侧困难样本上评估larger teacher；教师在关键指标上明显优于当前9B，且监督可获取、许可与预算明确时，才打开KD分支。优势标准在验证前固定，并结合普通样本回归判断。
+
+优先评估response / pseudo-label KD；有可验证软信号与对齐方案时再考虑probability / ranking KD；feature / logit KD只在明确迁移假设下采用。下节保留各粒度教学内容，这一优先级服务于当前任务，不构成固定SFT→KD流水线。候选已达标或教师缺少优势时记录有依据的跳过决定，直接继续E5。9B保持学生和部署目标。
 
 ### 1.8.1 蒸馏信号粒度
 
@@ -231,19 +342,30 @@ KD逼近教师输出分布、行为或表征；DPO调整chosen与rejected的相�
 
 ### 1.8.4 复评与成本
 
-固定输入集合与更新预算比较无教师/有教师候选，额外数据与教师计算独立记账。教师生成可多卡独立分流，学生训练复用已验证DDP；离线logits也需评估存储和对齐成本。复评整体、困难组、普通样本回归及服务成本，接受/拒绝均记录；未达标回到错误归因，线上不依赖教师。
+固定输入集合与更新预算比较无教师/有教师候选，额外数据与教师计算独立记账。教师生成可按预算多卡独立分流，学生训练优先复用已验证单卡配置，需扩展时采用已验证DDP；离线logits也需评估存储和对齐成本。复评整体、困难组、普通样本回归及服务成本，接受/拒绝均记录；未达标回到错误归因，线上不依赖教师。
 
-## 1.9 阶段E5：9B产物部署与量化回归
+## 1.9 工作包E5：9B部署回归（Track A）与量化对照（Track B / 按需候选）
 
 验证集选checkpoint，最终候选才进入冻结测试集。兼容时加载adapter，否则验证合并产物；保存底座/adapter身份、合并精度与脚本，检查合并前后任务指标和输出差异。底座、adapter和合并产物均可追溯。
 
-训练与服务框架核对processor、图像方向/缩放、chat template、非思考模式、停止标记、输出上限和schema约束。跨引擎不要求逐token一致，但须解释明显任务回归。
+Transformers提供correctness reference inference，vLLM提供production-like serving benchmark。使用相同请求清单和模型产物，核对processor、resize、orientation、chat template、bbox合同、non-thinking mode、stop token、max output tokens、schema、LoRA loading及merged model behavior。直接adapter与合并产物分别确认支持与身份；本机vLLM导入成功仅是已有环境事实，其9B adapter/量化能力仍待验证。
 
-BF16基线通过后选择一条已验证支持该架构/GPU/引擎的量化路径，先核验FP8可用性，不预先保证支持或收益。若不支持，记录原因后选受支持路径。校准数据来自训练侧；QLoRA与部署量化是不同变量，本轮不同时改变。
+跨引擎比较bbox validity、IoU、matched-eye state metrics、end-to-end metric和JSON parse success，并记录允许差异。生成结果可以不同，明显任务回归须得到可复核解释或修复。先在开发/验证请求上完成部署配置选择，最终冻结配置再做测试与部署回归；阈值、prompt和产物选择持续隔离于冻结测试。
+
+服务性能依次评估并发1/4/8，保持图像集合、像素预算、输出规则、模型和processor版本一致。冷启动与预热后的稳定服务分别记录；先短测筛选，候选窗口延长并重复3次，报告请求数、波动及实际输入/输出token数。
+
+先验证BF16质量和服务链路，再选择当前架构/GPU/引擎明确支持的量化路径。FP8是优先核验的候选，支持性及收益按固定版本与运行证据确认；不适用时记录原因，再选择受支持路径。官方recipe的latest信息只作参考，不视为vLLM 0.17.1本机支持证明。
+
+```text
+BF16质量基线 → supported quantization
+    → same-request质量回归 → latency / throughput / VRAM比较
+```
+
+量化对照保持processor、输入几何、model adapter与decode合同固定，仅改变量化主变量。校准数据来自训练侧，量化方式与阈值选择使用validation。QLoRA和部署量化分别立项；同一对照不同时改变底座量化、processor与adapter。BF16候选可按自身结果部署，量化学习仍可继续。
 
 比较同请求负载的质量、图像端到端p50/p95、吞吐、失败率、显存；再比较相同显存预算的容量。量化不达质量门槛则拒绝，保留BF16。
 
-## 1.10 阶段E6：双卡推理多副本与部署演练
+## 1.10 工作包E6：多副本服务与故障演练（Track B / 按业务扩容需求）
 
 每卡一个完整服务副本TP=1，前置请求路由；与训练DDP区分，不同步梯度。单/双副本先保持相同总负载，再提高到达速率，检查排队和SLO内吞吐；混合图像处理成本不同的请求观察负载不均。
 
@@ -251,117 +373,32 @@ BF16基线通过后选择一条已验证支持该架构/GPU/引擎的量化路�
 
 候选配置做持续负载测试，冻结运行时长与请求分布并观察漂移。交付启动配置、模型版本、日志指标、长度/并发限制、回归集和回滚至原始9B BF16的方法。称为生产流程演练；正式生产SLO仍需真实业务验证。
 
-## 1.11 工件、停止条件与阶段验收
+## 1.11 工件、停止条件与双轨验收
 
-Turbo下拟设manifests/configs/data/scripts/runs/adapters/checkpoints/profiles/reports目录；实际根路径待确认。每次记录改变变量、预测、实际结果、固定条件和结论边界。
+Turbo下拟设manifests/configs/data/scripts/runs/adapters/checkpoints/profiles/reports目录；实际根路径待确认。每次记录实验问题、所属轨道、改变变量、预测、实际结果、固定条件和结论边界。每个benchmark注明输入合同、数据split/清单、模型版本、processor及decode参数。
 
 遇到NaN、空监督、冻结参数误更新、DDP不一致、数据泄漏、版本身份变化时停止后续比较，先修复。OOM保存原配置与日志；不得改参数后沿用旧实验名。预算先由smoke test测得的step成本估算再启动正式运行；不默认四张卡同时常驻任务。
 
-| 阶段 | 验收证据 | 当前状态 |
+Track A按候选实际使用的路径验收；Track B按独立实验记录学习完成度。待执行内容继续标记pending / not_verified；以下摘要复用已有记录，不新增运行结论。
+
+| 工作包 | 轨道与验收问题 | 已有事实 / 待验证范围 |
 |---|---|---|
-| 数据/E0 | 标签合同、划分、环境/模型身份、图文与LoRA兼容日志 | pending |
-| E1 | 整图定位/左右关联/状态及端到端质量、单卡服务基线 | not_verified |
-| E2 | 更新/恢复、生命周期、累积对照、独立故障定位 | not_verified |
-| E3 | 单双卡一致性、效率/GPU·秒、故障恢复 | not_verified |
-| E4 | 教师优势及蒸馏对照，或有依据的跳过决定 | conditional_pending |
-| E5 | 部署产物身份、量化接受/拒绝、质量性能回归 | not_verified |
-| E6 | 多副本扩容、负载/故障/回滚证据 | not_verified |
+| E0 | 共用：环境、模型、输入与训练实现是否兼容？ | 加载、processor、图文生成和依赖导入已有报告；正式split、完整更新兼容仍pending |
+| E1 | A：整图定位/左右/四类状态及端到端指标是否达标？ | 40图开发基线已有报告；独立四类质量与业务门槛not_verified |
+| E2 | A：targeted SFT是否改善错误组？B：更新/恢复/资源机制是否正确？ | GT监督语言LoRA准备；masking、完整更新、收益、恢复及对照not_verified |
+| E3 | B：单双卡一致性、效率/GPU·秒、故障恢复 | not_verified；不作为A的部署前置 |
+| E4 | A条件分支：教师有优势且KD有收益吗？ | conditional_pending；满足触发条件再评估 |
+| E5 | A：服务产物质量回归；B/按需候选：量化收益 | not_verified；BF16、adapter/合并、引擎、量化分别确认 |
+| E6 | B/业务扩容：多副本吞吐、故障与回滚 | not_verified；扩容需求决定候选是否采用 |
 
 ## 1.12 当前恢复入口与来源
 
-先由全局学习检查点确认当前任务指向本实验，再读[[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录]]S01：模型资源选型验证。已知条件和理论预算不重做；模型加载与单样本processor已完成，下一步完成检测坐标/缺失输出合同与双眼按x排序适配，重新核算文本和生成预算后验证单图检测推理及峰值；最小LoRA资源更新与正式质量训练决策分开。按用户要求不重新全量审计，不孤立地为实验而实验。
+全局学习检查点负责恢复任务指向；本实验的实际步骤与结果继续由[[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录]]承载。当前复用记录1.4.5的40图开发基线与S03准备决定：固定split清单与缺失/遮挡细则，按1.3保持pixel GT→norm1000监督，按1.6完成label masking、实际LoRA白名单、完整更新及保存重载检查，再开展单卡质量short run。
 
-机制阅读：[[02_Projects/AI-Career-Transition/10_学习文档/P02A-01_VLM模型工程认知_学习文档]] 第2、3、11章；首次进入蒸馏、量化或服务调度主题时先补对应教学骨架再诊断，不用连续考试替代教学。
+S01未完成的训练资源验证与S02独立四类validation继续补齐；已完成推理、坐标适配和数据处理结果直接复用。当前训练尚未执行，DDP、KD、量化及多副本服务仍按所属轨道或触发条件推进。技术方案变化与旧恢复文字的接替见1.16及附录O，不新增重复全量审计。
 
-个人诊断与决定：[[02_Projects/AI-Career-Transition/20_学习记录/P02A_VLM模型工程认知_学习记录]] 第1.13节。
-滚动位置：[[02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点]]。
-外部依据：[[04_Sources/模型工程/2026-09-15_Qwen3.5与DDP微调部署来源证据卡]]。所有配置是计划起点，未代表本机验证。
+机制阅读：[[02_Projects/AI-Career-Transition/10_学习文档/P02A-01_VLM模型工程认知_学习文档]]第2、3、11章；蒸馏、量化和服务主题按需要补教学骨架。个人诊断见[[02_Projects/AI-Career-Transition/20_学习记录/P02A_VLM模型工程认知_学习记录]]第1.13节。滚动位置见[[02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点]]；实现参考见[[04_Sources/模型工程/2026-09-15_Qwen3.5与DDP微调部署来源证据卡]]。方案配置与本机已验证事实按1.2、E0和连续记录分开查阅。
 
-## 1.13 2026-09-18 替代说明
+## 1.13 修订与历史追溯
 
-本次规则接替默认先LoRA后教师、禁止裁剪诊断和过期资源起点。依据为本轮优化评估与明确修改授权；原条款保存在[[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验附录]]G节，与本节双向关联。已有结果与历史不改。
-
-## 1.14 2026-09-18 检测任务合同替代
-
-本次主任务接替纯状态输出及固定id→画面左右映射，取消强制分类A/B。左右只按最终图片坐标定义。旧任务内容保存在实验附录H节，并与本节双向关联。已有processor、模型加载测量保留，但不是新检测prompt/输出的验证结果。
-
-## 1.15 2026-09-16 被接替条款快照
-
-以下旧片段由当前正文及连续主记录接替，依据为用户本轮数据约定、跳过重复审计与逐步实验记录要求。仅供历史追溯，不作为当前恢复入口；旧事件/验证历史未改写。
-
-### 1.15.1 历史片段1
-
-````text
-固定检查点保存当前一步，各次实践记录保存实际证据。
-````
-
-### 1.15.2 历史片段2
-
-````text
-## 1.2 当前证据与待确认项
-
-用户截图显示容器可见4张NVIDIA RTX PRO 5000 72GB，每卡总显存73415 MiB；驱动580.126.20。另一截图显示PyTorch 2.10.0+cu128、PyTorch CUDA 12.8、CUDA available=True、GPU count=4。用户说明在腾讯云选择GPU、挂载Turbo启动训练容器，原显存占用进程仅为可关闭的占位脚本。
-
-以上为用户截图/说明，代理未独立连接复跑。nvidia-smi所示CUDA 13.0是驱动侧兼容信息，不能代替PyTorch runtime。运行前刷新可用显存、设备UUID与拓扑，不默认存在NVLink。
-
-标注截图显示原图2592×1944、两条eye_status=eye_open与眼部矩形；id=1/2的左右含义未知。仅见示例，不推断完整数据分布、标注一致性或任务能力。保留技术摘要，不复制人物图像或包含采集信息的原始文件名。
-
-待确认：数据目录与访问范围、标签全集、id语义、人数/session数、每类数量、重复帧、Turbo路径及空间、执行预算、训练与服务精确版本。
-````
-
-### 1.15.3 历史片段3
-
-````text
-输入为原始整图与固定指令。建议输出按画面左右命名（是方案约定，须在数据审计时确认）：
-````
-
-### 1.15.4 历史片段4
-
-````text
-核心标签open/closed；遮挡、模糊或不可见时的unknown及评分方式需冻结。原始眯眼/半闭类别不得静默并入closed；先读取完整标签字典和人工规则，保留转换映射。若原数据不支持上述左右约定，先修订合同再生成样本。
-````
-
-### 1.15.5 历史片段5
-
-````text
-### 1.3.2 数据审计与划分
-
-1. 检查图像与JSON匹配、坏图、缺标签、重复记录和坐标合法性；框只服务核验。
-2. 统计标签、人员、session、采集序列以及可用的眼镜/姿态/光照/遮挡条件。
-3. 优先按人员划分；人数不足时按session并明确跨人员泛化未验证。相邻帧、近重复图和同源改写不得跨集合。
-4. 分为开发、训练、验证、冻结测试；具体比例与数量在审计后冻结，不承诺预设800/100/200足够。
-5. 开发集用于规则、prompt及实现调试；验证集选checkpoint；测试集不参与调参、教师筛选或量化校准。此前已参与诊断的5个case仅可属于开发侧。
-6. 保存样本ID、分组、split、标签映射、图像hash与处理版本；使用不暴露答案的样本标识。
-````
-
-### 1.15.6 历史片段6
-
-````text
-分别记录单眼macro-F1/balanced accuracy、closed precision/recall、双眼完全正确率、混淆矩阵、unknown比例/覆盖率、执行与JSON成功率及分组结果。
-````
-
-### 1.15.7 历史片段7
-
-````text
-- 单卡起步，训练和服务使用隔离环境；不为安装引擎覆盖现有训练依赖。
-````
-
-### 1.15.8 历史片段8
-
-````text
-退出：上述链路成功并保存日志；否则保留最小复现，先修环境。所有步骤当前均待执行。
-````
-
-### 1.15.9 历史片段9
-
-````text
-明确类别/unknown规则
-````
-
-### 1.15.10 历史片段10
-
-````text
-## 1.12 当前恢复入口与来源
-
-下一步只做数据与标签审计：确认数据路径/授权、完整标签及id语义、人员/session和类分布；冻结整图输入与数据划分后执行E0、E1。不要重新核问已有截图事实，但运行前刷新资源。
-````
+2026-10-01明确质量主线与工程学习双轨，补全坐标、训练预算、masking及部署对照；依据见实验附录O。此前旧方案与条款统一移至[[90_Archive/02_Projects/AI-Career-Transition/Qwen3.5-9B实验旧方案与条款归档]]，当前正文只承载有效设计。已有实验结果与未验证状态继续由连续实验记录及证据附录承载。
