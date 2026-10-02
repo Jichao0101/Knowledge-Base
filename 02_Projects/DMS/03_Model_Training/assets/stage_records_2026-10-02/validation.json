@@ -1,0 +1,98 @@
+{
+  "date": "2026-10-02",
+  "code_root": "/home/jichao/EyeStatusModel",
+  "base_git_commit": "b7d3e38d9c492d63e6684ecc39f362533f4916dd",
+  "implementation_uncommitted": true,
+  "python": "3.10.12",
+  "pillow": "12.3.0",
+  "snapshot": {
+    "sha256": "020becece99d7d8909fd316eac847f32ac8398c69edc9988f0fb6247ec646c5a",
+    "excluded_dirs": {
+      "FA-第五十一批交付-20250926": 150,
+      "FA-第五十三批交付-251017": 54,
+      "FA-第五十四批交付-20251025": 450,
+      "FA-第五十五批交付数据-20251101": 395,
+      "FA-第五十八批交付数据-20251114": 786,
+      "FA-第六十一批交付数据20251205/DMS/BlinkDetection/pc1_20250910_2id": 369,
+      "FA-第六十一批交付数据20251205/DMS/BlinkDetection/pc1_20250911_1id": 31
+    },
+    "quarantined_json_rels": [
+      "FA-第六十六批交付数据-20260110/NDLB_DMS/BlinkDetection/dms/pc1_20251218_2id/2025121805_CH04_2025-12-18_13-50-27_EyeOpn/APillar_DNLB_seat1_2025121805_m_172_47_Brown_EyesOpen_Glasses_c1lR1_StaticOutdoor_SunnyNormal_1640_Norma - 副本.json"
+    ],
+    "snapshot_filter_verification": {
+      "original_records": 66434,
+      "excluded_directory_records": 2235,
+      "quarantined_records": 1,
+      "retained_records": 64198,
+      "retained_sample_digest_count": 128314,
+      "retained_person_ids": 275,
+      "snapshot_unchanged": true,
+      "raw_annotation_rescan_performed": false
+    }
+  },
+  "tests": {
+    "command": "PYTHONPATH=/tmp/eyestatus-test-deps python3 -m unittest discover -s /home/jichao/EyeStatusModel/tests -p test_stage_records.py -v",
+    "count": 4,
+    "passed": 4,
+    "log_sha256": "570c0363df20b3080fa6ee3245e68ab2fc46a1e69579f2695ca6898aea438783"
+  },
+  "equivalence": {
+    "A": {
+      "items_unchanged": true,
+      "stats_unchanged": true,
+      "count": 20
+    },
+    "C": {
+      "items_unchanged": true,
+      "stats_unchanged": true,
+      "count": 40
+    },
+    "D": {
+      "items_unchanged": true,
+      "stats_unchanged": true,
+      "count": 40,
+      "roi_bytes_unchanged": true
+    },
+    "B": {
+      "stats_unchanged": true
+    },
+    "checklist_lines": {
+      "A": {
+        "before": 89,
+        "after": 21
+      },
+      "C": {
+        "before": 46,
+        "after": 16
+      },
+      "D": {
+        "before": 18,
+        "after": 6
+      }
+    }
+  },
+  "syntax": {
+    "python_ast_files": 5,
+    "bash_n_files": 4,
+    "git_diff_check": "passed"
+  },
+  "code_sha256": {
+    "README.md": "3155725d770d6e2359d2e9b906ee246186027ca6d3fb174f95f3bd04fb39bc60",
+    "src/README.md": "328aa510ba3c80ea7e774447146f2493dafaa0848f998a5aa27478b7ef7b9efb",
+    "scripts/README.md": "487b9ea5a3c6f6ebe16e339cb4a8b84cc86a48d3a9ad68d301880942a5eeec01",
+    "src/stage_a_scan_blink.py": "58e7d3d78249da515a3817154a95dad1bced20188ad4eaeedc12586f9f77884d",
+    "src/stage_b_copy_data.py": "160bd1098afdb5327f3fdbda2ed31807a05b0b501530bcb6084d0a583a72fcef",
+    "src/stage_c_build_final_manifest.py": "aef44743127eeea7ae6d88a144efb4618da26d272765d48fcd185dcd1ede3eff",
+    "src/stage_d_export_rois.py": "0f8a05a2d85c449f131ce4c5dc11fa72b6b8447bc2d52ed3e2495ad6926a9cbe",
+    "scripts/stage_a_scan_blink.sh": "79db757fe4e7f69b0e3904bc2431efb9f3179a06075600350212ad6afab0ede8",
+    "scripts/stage_b_copy_data.sh": "b55b9718d14fb82edf9d89e6cbfa56d40e8dd97131cc23e0be2935977d610290",
+    "scripts/stage_c_build_final_manifest.sh": "c11d4ce4ce1b183bc0c876218a01af7626f9ad1f34ec846adb1cc3d93d06e200",
+    "scripts/stage_d_export_rois.sh": "5b9660e75930c6a326065b023fb62d9840bee9f5faf659fc56a8454d5b2ea851",
+    "tests/test_stage_records.py": "6d3304e44e91b7a710cb27403bad9f9661f0608027546df58c7c6f093871649b"
+  },
+  "not_verified": [
+    "NAS directory existence and full rescan",
+    "real historical group registry incremental upgrade",
+    "GPU training and quantization"
+  ]
+}
