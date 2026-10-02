@@ -29,6 +29,8 @@ updated_at: 2026-06-05
 
 补充来源：
 
+- [[02_Projects/DMS/03_Model_Training/睁闭眼预采集排除与批次命名复核_2026-10-02]]：默认过滤来源、排除验证和历史命名明细。
+
 - [[02_Projects/DMS/03_Model_Training/睁闭眼模型训练方案]]
 - [[02_Projects/DMS/03_Model_Training/睁闭眼分类模型对照实验设计]]
 - [[02_Projects/DMS/03_Model_Training/睁闭眼增量更新策略实现同步记录]]
@@ -39,6 +41,9 @@ updated_at: 2026-06-05
 当前训练主线是睁闭眼分类模型，目标是统一数据构建、输入生成、训练配置、评测协议和误分类分析机制，保证增量数据加入后 benchmark 不漂移，训练输入与部署输入尽可能一致。
 
 ## 1.3 当前结论
+
+- 后续训练数据构建及分析默认使用过滤后的来源 manifest；原始快照只作追溯。
+- 场景元信息先解析字段结构，再按批次统计和语义对齐用于结果分析；明细见过滤执行记录。
 
 - split 主键仅使用 `group_id = f(person_id)`。
 - `val/test` 候选仅使用 `total_samples >= N_min` 作为门槛；`N_min` 仍未固定。

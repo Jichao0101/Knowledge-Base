@@ -19,7 +19,7 @@ updated_at: 2026-08-25
 | EyeStatus | [[02_Projects/DMS/08_EyeStatus/eyestatus_overview_current]] | 睁闭眼模型部署态、眼部 crop、VP resize、推理输出和验证证据 | 按 current 恢复顺序读取 |
 | FaceID | [[02_Projects/DMS/09_FaceID/overview_current]] | A 核 FaceID 录入、登录、解绑、删除、check、恢复出厂设置和本地特征库 | 按 current 恢复顺序读取 |
 | Issue Analysis Skill | [[02_Projects/DMS/10_Issue_Analysis_Skill/DMS问题分析Skill模块索引]] | 从飞书/Jira/现场数据构建证据包；R 核规则 reference 已就绪但 analyser 尚未实现且运行时仍跳过，已完成首个真实 case 的 A 核准备、Agent review、受约束结论和中文 Jira 评论闭环 | 先读模块索引 |
-| Model Training | [[02_Projects/DMS/03_Model_Training/model_training_overview_current]] | 睁闭眼数据构建、输入生成、训练配置、对照实验和增量更新链路 | 按 current 恢复顺序读取 |
+| Model Training | [[02_Projects/DMS/03_Model_Training/model_training_overview_current]] | 过滤后数据默认来源、场景语义分析、输入生成、训练配置、对照实验和增量更新链路 | 按 current 恢复顺序读取 |
 | Postprocess | [[02_Projects/DMS/05_Postprocess/后处理模块索引]] | 疲劳驾驶监测后处理、闭眼/哈欠规则、报警条件和头姿兜底修复 | 先读模块索引 |
 | State Machine | [[02_Projects/DMS/07_State_Machine/状态机模块索引]] | 事件状态机、报警条件、测试方案和测试 TP | 先读模块索引 |
 | Law Test | [[02_Projects/DMS/11_Law_Test/法规测试模块索引]] | DMS 法规测试问题、日志时序、报警等级、测试口径与证据边界 | 先读模块索引 |

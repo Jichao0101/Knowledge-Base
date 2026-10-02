@@ -14,6 +14,9 @@ updated_at: 2026-06-05
 
 ## 1.1 数据与 Split 契约
 
+- 后续数据构建默认使用预采集过滤后的来源 manifest；未过滤快照只用于追溯。排除清单和异常隔离策略沿用于后续扫描/增量复用。
+- 文件名解析先确定字段语义；按批次统计后由 Agent 对齐不同表达，映射版本化用于推理结果分析，不参与 split 或替换眼状态标注。
+
 - split 主键：`group_id = f(person_id)`。
 - `val/test` 候选门槛：`total_samples >= N_min`。
 - 冻结 benchmark 后，历史 `val/test` group 不得因增量数据回流训练集。
@@ -23,7 +26,7 @@ updated_at: 2026-06-05
 
 | Stage | 目标 | 关键要求 |
 |---|---|---|
-| A | 扫描源目录，生成 source manifest | 目录级增量扫描；复用目录必须从历史 manifest 回填旧 items；历史 items 缺失时触发补偿重扫 |
+| A | 扫描源目录，生成 source manifest | 排除预采集子树并隔离命名异常；目录级增量扫描；复用目录必须从历史 manifest 回填旧 items；历史 items 缺失时触发补偿重扫 |
 | B | 复制数据到私人目录 | 目录粒度增量复制；源目录未变化时跳过；内容变化时只复制新增或变化文件 |
 | C | 生成 final manifest 与 split | 继承冻结 benchmark；输出当前全量 source_manifest 对应视图 |
 | D | 导出 ROI 数据集 | 输出目录必须与 `stage_d_roi_manifest.json` 表示同一份当前视图；清理失效 ROI |
