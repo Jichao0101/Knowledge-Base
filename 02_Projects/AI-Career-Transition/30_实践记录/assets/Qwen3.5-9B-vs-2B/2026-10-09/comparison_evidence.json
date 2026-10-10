@@ -1,0 +1,3892 @@
+{
+  "method": "2B人工规则离线解析；仅去围栏、解包单元素数组、重命名二维框字段；Norm1000按原图尺寸还原；不重跑、不改坐标/标签、不交换左右；bbox_3d不可恢复",
+  "sources": [
+    {
+      "path": "/mnt/d/qwen_models/download/s01-2B/eval_001/config.json",
+      "sha256": "185faab3806e0369ef39574405bc053b779cf7cf81aeb0ac61908906dc1a451b"
+    },
+    {
+      "path": "/mnt/d/qwen_models/download/s01-2B/eval_001/manifest.json",
+      "sha256": "a6ba5926427bdb59c129e50d9b34c05bc1502c7386e92e120137dcb89b2df908"
+    },
+    {
+      "path": "/mnt/d/qwen_models/download/s01-2B/eval_001/results.jsonl",
+      "sha256": "484c80b874c5997a1ee3ab72898f01bd0e1b7afacebf8f54cfee643776dd97e1"
+    },
+    {
+      "path": "/mnt/d/qwen_models/download/s01-2B/eval_001/summary.json",
+      "sha256": "8dcd5fb4b5d73d189810c47fc12550ec8e6006db1bb98af889361f16744fbf2f"
+    },
+    {
+      "path": "/mnt/d/qwen_models/download/s01-9B/eval_001/config.json",
+      "sha256": "e6b58739983b31c7f0affc78fee41ed33d0d1666ccaec5c4fce3261860266277"
+    },
+    {
+      "path": "/mnt/d/qwen_models/download/s01-9B/eval_001/manifest.json",
+      "sha256": "a6ba5926427bdb59c129e50d9b34c05bc1502c7386e92e120137dcb89b2df908"
+    },
+    {
+      "path": "/mnt/d/qwen_models/download/s01-9B/eval_001/results.jsonl",
+      "sha256": "66db80f93adb76341fec5302ae9c916a1ac0cbd0d908255c67a8d85d613a4ba9"
+    },
+    {
+      "path": "/mnt/d/qwen_models/download/s01-9B/eval_001/summary.json",
+      "sha256": "620a7627e4e9b7a9bca2e2bc63a6235b3490a573a0a60266a9a396312279adaa"
+    }
+  ],
+  "configs": {
+    "2B": {
+      "group": [
+        "batch67=/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116",
+        "batch68=/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124"
+      ],
+      "model": "/workspace/dms-eye-status-turbo/qwen_models/Qwen3.5-2B",
+      "out": "/workspace/dms-eye-status-turbo/vlm_eye_experiment/runs/s01-2B/eval_001",
+      "gpu": "0",
+      "limit_per_group": 20,
+      "seed": 20260921,
+      "context_budget": 5600,
+      "max_new_tokens": 256,
+      "iou_thresholds": [
+        0.5,
+        0.75
+      ],
+      "torch": "2.10.0+cu128",
+      "transformers": "5.2.0",
+      "prompt_template_example": "Locate the driver's two eyes in this image.\n    image_left_eye is the eye with the smaller horizontal box-center coordinate;\n    image_right_eye has the larger coordinate. Use image positions, not anatomical left and right.\n    For each eye, output bbox and state. Return tight boxes around the eye regions,\n    not the eyebrows or the whole face.\n    bbox must be [xmin,ymin,xmax,ymax] with integer coordinates normalized to 0..1000.\n    state must be open, closed, narrow, or occluded. Use occluded when lighting, hair,\n    or other factors prevent reliable classification as open, closed, or narrow.\n    Return exactly one compact JSON object with exactly this structure:\n    {\"image_left_eye\":{\"bbox\":[100,200,130,220],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[150,200,180,220],\"state\":\"closed\"}}\n    Do not use a JSON array, bbox_2d, or label. Do not include explanations, markdown,\n    or any additional fields.",
+      "image_policy": "actual decoded pixel size; no EXIF transpose; ignore annotation info width/height",
+      "gt_policy": "trusted annotations; two eyes; coordinates converted to xyxy, states mapped, sort center x",
+      "coordinate_policy": "absolute pixel xyxy, continuous area (no +1); no automatic rescaling",
+      "failure_policy": "prediction failures with readable GT are FN and end-to-end failures; GT read errors reported separately",
+      "state_metric_policy": "matched eyes only; null F1 for absent classes; macro averages non-null classes"
+    },
+    "9B": {
+      "group": [
+        "batch67=/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116",
+        "batch68=/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124"
+      ],
+      "model": "/workspace/dms-eye-status-turbo/qwen_models/Qwen3.5-9B",
+      "out": "/workspace/dms-eye-status-turbo/vlm_eye_experiment/runs/s01/eval_001",
+      "gpu": "1",
+      "limit_per_group": 20,
+      "seed": 20260921,
+      "context_budget": 5600,
+      "max_new_tokens": 256,
+      "iou_thresholds": [
+        0.5,
+        0.75
+      ],
+      "torch": "2.10.0+cu128",
+      "transformers": "5.2.0",
+      "prompt_template_example": "Locate the driver's two eyes in this image.\n    image_left_eye is the eye with the smaller horizontal box-center coordinate;\n    image_right_eye has the larger coordinate. Use image positions, not anatomical left and right.\n    For each eye, output bbox and state. Return tight boxes around the eye regions,\n    not the eyebrows or the whole face.\n    bbox must be [xmin,ymin,xmax,ymax] with integer coordinates normalized to 0..1000.\n    state must be open, closed, narrow, or occluded. Use occluded when lighting, hair,\n    or other factors prevent reliable classification as open, closed, or narrow.\n    Return exactly one compact JSON object with exactly this structure:\n    {\"image_left_eye\":{\"bbox\":[100,200,130,220],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[150,200,180,220],\"state\":\"closed\"}}\n    Do not use a JSON array, bbox_2d, or label. Do not include explanations, markdown,\n    or any additional fields.",
+      "image_policy": "actual decoded pixel size; no EXIF transpose; ignore annotation info width/height",
+      "gt_policy": "trusted annotations; two eyes; coordinates converted to xyxy, states mapped, sort center x",
+      "coordinate_policy": "absolute pixel xyxy, continuous area (no +1); no automatic rescaling",
+      "failure_policy": "prediction failures with readable GT are FN and end-to-end failures; GT read errors reported separately",
+      "state_metric_policy": "matched eyes only; null F1 for absent classes; macro averages non-null classes"
+    }
+  },
+  "full_40": {
+    "2B_manual": {
+      "images": 40,
+      "eyes": 80,
+      "recoverable_images": 38,
+      "mean_same_side_iou_failures_zero": 0.03088261639416076,
+      "tp_iou05": 1,
+      "recall_iou05": 0.0125,
+      "end_to_end_correct_eyes": 1,
+      "end_to_end_eye_rate": 0.0125,
+      "both_eyes_correct_images": 0,
+      "both_eyes_rate": 0.0,
+      "state_correct_ignoring_iou": 50,
+      "state_accuracy_ignoring_iou": 0.625,
+      "confusion": {
+        "open": {
+          "open": 38,
+          "closed": 12,
+          "narrow": 0,
+          "occluded": 0,
+          "invalid": 4
+        },
+        "closed": {
+          "open": 1,
+          "closed": 12,
+          "narrow": 0,
+          "occluded": 0,
+          "invalid": 0
+        },
+        "narrow": {
+          "open": 1,
+          "closed": 9,
+          "narrow": 0,
+          "occluded": 0,
+          "invalid": 0
+        },
+        "occluded": {
+          "open": 3,
+          "closed": 0,
+          "narrow": 0,
+          "occluded": 0,
+          "invalid": 0
+        }
+      },
+      "macro_f1_ignoring_iou": 0.32631107126848946,
+      "median_box_area_ratio_to_gt": 2.8242688743991495
+    },
+    "9B": {
+      "images": 40,
+      "eyes": 80,
+      "recoverable_images": 40,
+      "mean_same_side_iou_failures_zero": 0.28797934389996777,
+      "tp_iou05": 10,
+      "recall_iou05": 0.125,
+      "end_to_end_correct_eyes": 10,
+      "end_to_end_eye_rate": 0.125,
+      "both_eyes_correct_images": 2,
+      "both_eyes_rate": 0.05,
+      "state_correct_ignoring_iou": 56,
+      "state_accuracy_ignoring_iou": 0.7,
+      "confusion": {
+        "open": {
+          "open": 43,
+          "closed": 5,
+          "narrow": 6,
+          "occluded": 0,
+          "invalid": 0
+        },
+        "closed": {
+          "open": 0,
+          "closed": 11,
+          "narrow": 2,
+          "occluded": 0,
+          "invalid": 0
+        },
+        "narrow": {
+          "open": 0,
+          "closed": 8,
+          "narrow": 2,
+          "occluded": 0,
+          "invalid": 0
+        },
+        "occluded": {
+          "open": 3,
+          "closed": 0,
+          "narrow": 0,
+          "occluded": 0,
+          "invalid": 0
+        }
+      },
+      "macro_f1_ignoring_iou": 0.41364864864864864,
+      "median_box_area_ratio_to_gt": 3.267530558924131
+    }
+  },
+  "common_38": {
+    "2B_manual": {
+      "images": 38,
+      "eyes": 76,
+      "recoverable_images": 38,
+      "mean_same_side_iou_failures_zero": 0.03250801725701133,
+      "tp_iou05": 1,
+      "recall_iou05": 0.013157894736842105,
+      "end_to_end_correct_eyes": 1,
+      "end_to_end_eye_rate": 0.013157894736842105,
+      "both_eyes_correct_images": 0,
+      "both_eyes_rate": 0.0,
+      "state_correct_ignoring_iou": 50,
+      "state_accuracy_ignoring_iou": 0.6578947368421053,
+      "confusion": {
+        "open": {
+          "open": 38,
+          "closed": 12,
+          "narrow": 0,
+          "occluded": 0,
+          "invalid": 0
+        },
+        "closed": {
+          "open": 1,
+          "closed": 12,
+          "narrow": 0,
+          "occluded": 0,
+          "invalid": 0
+        },
+        "narrow": {
+          "open": 1,
+          "closed": 9,
+          "narrow": 0,
+          "occluded": 0,
+          "invalid": 0
+        },
+        "occluded": {
+          "open": 3,
+          "closed": 0,
+          "narrow": 0,
+          "occluded": 0,
+          "invalid": 0
+        }
+      },
+      "macro_f1_ignoring_iou": 0.33473585787751287,
+      "median_box_area_ratio_to_gt": 2.8242688743991495
+    },
+    "9B": {
+      "images": 38,
+      "eyes": 76,
+      "recoverable_images": 38,
+      "mean_same_side_iou_failures_zero": 0.28853805902809726,
+      "tp_iou05": 10,
+      "recall_iou05": 0.13157894736842105,
+      "end_to_end_correct_eyes": 10,
+      "end_to_end_eye_rate": 0.13157894736842105,
+      "both_eyes_correct_images": 2,
+      "both_eyes_rate": 0.05263157894736842,
+      "state_correct_ignoring_iou": 52,
+      "state_accuracy_ignoring_iou": 0.6842105263157895,
+      "confusion": {
+        "open": {
+          "open": 39,
+          "closed": 5,
+          "narrow": 6,
+          "occluded": 0,
+          "invalid": 0
+        },
+        "closed": {
+          "open": 0,
+          "closed": 11,
+          "narrow": 2,
+          "occluded": 0,
+          "invalid": 0
+        },
+        "narrow": {
+          "open": 0,
+          "closed": 8,
+          "narrow": 2,
+          "occluded": 0,
+          "invalid": 0
+        },
+        "occluded": {
+          "open": 3,
+          "closed": 0,
+          "narrow": 0,
+          "occluded": 0,
+          "invalid": 0
+        }
+      },
+      "macro_f1_ignoring_iou": 0.4106051703877791,
+      "median_box_area_ratio_to_gt": 3.2511682019553714
+    }
+  },
+  "cases": [
+    {
+      "case_id": "000001_8ce31bec84",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/C1UL_DMS/BlinkDetection/dms/pc1_20251226_3id/2025122608_20251226-161008_NorDrv/APillar_C1UL_seat1_2025122608_m_175_27_Black_NormalDriving_Glasses_c1lR1_StaticOutdoor_DawnDusk_59_NormalScene_000003.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1920,
+        1200
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            802.4332180571467,
+            419.3071460951588,
+            850.4632822046193,
+            439.0842313323534
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            929.8523318001802,
+            423.63446821461235,
+            989.0535008925544,
+            442.4821873542254
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n{\"image_left_eye\":{\"bbox_3d\":[0.01, -0.23, 0.81, 0.13, 0.19, 0.14, 0.99, 0.03, 0.99],\"state\":\"open\"},\"image_right_eye\":{\"bbox_3d\":[0.18, -0.21, 0.81, 0.13, 0.19, 0.14, 0.99, 0.03, 0.99],\"state\":\"open\"}}\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[406,340,450,375],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[480,345,525,380],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "unrecoverable_bbox_3d"
+      ],
+      "prediction_2B_manual": null,
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            779.52,
+            408.0,
+            864.0,
+            450.0
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            921.6,
+            414.0,
+            1008.0,
+            456.0
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0,
+      "mean_iou_9B": 0.28760061117566293,
+      "iou_difference_9B_minus_2B": 0.28760061117566293
+    },
+    {
+      "case_id": "000002_e8f6c40d0e",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/C1UL_DMS/BlinkDetection/dms/pc1_20251226_3id/2025122608_20251226-174851_HandOcc/APillar_C1UL_seat1_2025122608_m_175_27_Black_HandOcclusion_NoOcclusion_c1lR1_StaticOutdoor_Night_13_NormalScene_000011.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1920,
+        1200
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            914.6186359814513,
+            447.17810674284624,
+            972.2418303342878,
+            465.78044036348314
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            1052.6618512318867,
+            471.27144472009047,
+            1107.9170063752092,
+            492.82352243532887
+          ],
+          "state": "narrow"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\":{\"bbox\":[474,363,505,391],\"state\":\"closed\"},\"image_right_eye\":{\"bbox\":[497,363,530,391],\"state\":\"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[470,365,510,395],\"state\":\"closed\"},\"image_right_eye\":{\"bbox\":[540,365,580,395],\"state\":\"closed\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            910.08,
+            435.6,
+            969.6,
+            469.2
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            474,
+            363,
+            505,
+            391
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            954.24,
+            435.6,
+            1017.6,
+            469.2
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            497,
+            363,
+            530,
+            391
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            902.4,
+            438.0,
+            979.2,
+            474.0
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            1036.8,
+            438.0,
+            1113.6,
+            474.0
+          ],
+          "state": "closed"
+        }
+      },
+      "mean_iou_2B_manual": 0.24957871777069093,
+      "mean_iou_9B": 0.21366453732440335,
+      "iou_difference_9B_minus_2B": -0.03591418044628758
+    },
+    {
+      "case_id": "000003_5657aaa7de",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/C1UL_DMS/BlinkDetection/dms/pc1_20251226_3id/2025122608_20251226-175637_EyeOpn/APillar_C1UL_seat1_2025122608_m_175_27_Black_EyesOpen_Glasses_c1lR1_StaticOutdoor_Night_13_NormalScene_000007.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1920,
+        1200
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            801.7437459365743,
+            415.419458677896,
+            849.4750986104488,
+            433.06374928024945
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            929.1710541830747,
+            422.00764917109944,
+            988.831605140673,
+            442.31762396517547
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [385, 320, 430, 398], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [475, 320, 520, 390], \"state\": \"open\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[400,340,440,370],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[470,340,510,370],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            739.2,
+            384.0,
+            825.6,
+            477.6
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            385,
+            320,
+            430,
+            398
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            912.0,
+            384.0,
+            998.4,
+            468.0
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            475,
+            320,
+            520,
+            390
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            768.0,
+            408.0,
+            844.8,
+            444.0
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            902.4,
+            408.0,
+            979.2,
+            444.0
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.1082145456309952,
+      "mean_iou_9B": 0.3050191360503608,
+      "iou_difference_9B_minus_2B": 0.1968045904193656
+    },
+    {
+      "case_id": "000004_9f1a22210e",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/C1UL_DMS/BlinkDetection/dms/pc1_20251226_3id/2025122609_20251226-140455_NorHT/APillar_C1UL_seat1_2025122609_f_167_25_Black_NormalHeadTurn_NoOcclusion_c1lR1_StaticOutdoor_SunnyNormal_918_NormalScene_000004.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1920,
+        1200
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            1155.8576669959928,
+            538.8015756576098,
+            1216.0882115183,
+            571.8406607596519
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            1266.4643638480802,
+            583.3787543392075,
+            1309.7602619853228,
+            610.2451301400328
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [656, 470, 684, 510], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [624, 450, 652, 490], \"state\": \"open\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[592,442,635,470],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[657,480,685,510],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            1259.52,
+            564.0,
+            1313.28,
+            612.0
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            656,
+            470,
+            684,
+            510
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            1198.08,
+            540.0,
+            1251.84,
+            588.0
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            624,
+            450,
+            652,
+            490
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            1136.64,
+            530.4,
+            1219.2,
+            564.0
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            1261.44,
+            576.0,
+            1315.2,
+            612.0
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.5342769262236039,
+      "iou_difference_9B_minus_2B": 0.5342769262236039
+    },
+    {
+      "case_id": "000005_4af1de3df1",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/C1UL_DMS/BlinkDetection/dms/pc1_20251226_3id/2025122609_20251226-171638_LrgPit/APillar_C1UL_seat1_2025122609_f_167_25_Black_LargePitchPose_EyeShadow_c1lR1_StaticOutdoor_Night_59_NormalScene_000001.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1920,
+        1200
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            821.0140078076594,
+            494.7337651431226,
+            879.7654937975474,
+            515.7470703511847
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            945.8073101657426,
+            489.1588066185347,
+            1017.4240850585256,
+            512.7451696071757
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n{\"image_left_eye\":{\"bbox_\":[420,400,450,425],\"state\":\"open\"},\"image_right_eye\":{\"bbox_\":[470,380,500,405],\"state\":\"open\"}}\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[418,400,458,435],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[492,400,532,435],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox__to_bbox"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            806.4,
+            480.0,
+            864.0,
+            510.0
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            420,
+            400,
+            450,
+            425
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            902.4,
+            456.0,
+            960.0,
+            486.0
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            470,
+            380,
+            500,
+            405
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            802.56,
+            480.0,
+            879.36,
+            522.0
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            944.64,
+            480.0,
+            1021.44,
+            522.0
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.1422681566172438,
+      "mean_iou_9B": 0.4513875252161582,
+      "iou_difference_9B_minus_2B": 0.3091193685989144
+    },
+    {
+      "case_id": "000006_4e7433daca",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/C1UL_DMS/BlinkDetection/dms/pc1_20251227_3id/2025122707_20251227-101945_CmpPit/APillar_C1UL_seat1_2025122707_m_168_24_Black_ComplexPitchPose_Glasses_c1lR1_StaticOutdoor_SunnyNormal_1157_NormalScene_000013.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1920,
+        1200
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            813.3607827117477,
+            521.1762296091007,
+            855.9605284408832,
+            534.758757232883
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            938.7442884464166,
+            519.342344547767,
+            988.7526856067061,
+            535.703116458232
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [396, 407, 430, 451], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [492, 407, 520, 447], \"state\": \"open\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[400,430,450,450],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[470,420,520,440],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            760.32,
+            488.4,
+            825.6,
+            541.2
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            396,
+            407,
+            430,
+            451
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            944.64,
+            488.4,
+            998.4,
+            536.4
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            492,
+            407,
+            520,
+            447
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            768.0,
+            516.0,
+            864.0,
+            540.0
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            902.4,
+            504.0,
+            998.4,
+            528.0
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.15634112146852158,
+      "mean_iou_9B": 0.20606520990004462,
+      "iou_difference_9B_minus_2B": 0.04972408843152304
+    },
+    {
+      "case_id": "000007_411c59202e",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/C1UL_DMS/BlinkDetection/dms/pc1_20251227_3id/2025122707_20251227-110250_GlsAdj/APillar_C1UL_seat1_2025122707_m_168_24_Black_GlassesAdjust_Glasses_c1lR1_StaticOutdoor_SunnyNormal_1157_NormalScene_000004.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1920,
+        1200
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            814.3293019119574,
+            554.4231880049759,
+            859.862531829926,
+            569.6009313109656
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            947.3152432596747,
+            555.8686873674512,
+            1002.244219033732,
+            574.6601790796286
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n{\"image_left_eye\":{\"bbox_3d\":[0.01, 0.01, 0.68, 0.11, 0.13, 0.16], \"state\": \"open\"}, \"image_right_eye\":{\"bbox_3d\":[0.16, 0.01, 0.68, 0.11, 0.13, 0.16], \"state\": \"open\"}}\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[410,452,450,487],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[485,452,525,487],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "unrecoverable_bbox_3d"
+      ],
+      "prediction_2B_manual": null,
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            787.2,
+            542.4,
+            864.0,
+            584.4
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            931.2,
+            542.4,
+            1008.0,
+            584.4
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0,
+      "mean_iou_9B": 0.267126901755352,
+      "iou_difference_9B_minus_2B": 0.267126901755352
+    },
+    {
+      "case_id": "000008_1a4814c000",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/C1UL_DMS/BlinkDetection/dms/pc1_20251227_3id/2025122708_20251227-180951_CmpYaw/APillar_C1UL_seat1_2025122708_m_165_20_Black_ComplexYawPose_NoOcclusion_c1lR1_StaticOutdoor_Night_55_NormalScene_000011.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1920,
+        1200
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            1065.8136835020405,
+            512.3288777830053,
+            1127.2867275950234,
+            540.9287779348792
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            1202.1256390775789,
+            546.239540658479,
+            1251.7921476636338,
+            575.7920015438041
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [626, 448, 650, 480], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [480, 408, 506, 440], \"state\": \"open\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[545,419,590,451],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[620,451,655,484],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            1201.92,
+            537.6,
+            1248.0,
+            576.0
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            626,
+            448,
+            650,
+            480
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            921.6,
+            489.6,
+            971.52,
+            528.0
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            480,
+            408,
+            506,
+            440
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            1046.4,
+            502.8,
+            1132.8,
+            541.2
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            1190.4,
+            541.2,
+            1257.6,
+            580.8
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.5407363529007863,
+      "iou_difference_9B_minus_2B": 0.5407363529007863
+    },
+    {
+      "case_id": "000009_2337cd7a4e",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/C1UL_DMS/BlinkDetection/dms/pc1_20251227_3id/2025122709_20251227-165123_CmpYaw/APillar_C1UL_seat1_2025122709_f_163_25_Black_ComplexYawPose_NoOcclusion_c1lR1_StaticOutdoor_DawnDusk_367_NormalScene_000007.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1920,
+        1200
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            1001.8265245543644,
+            579.4301568415428,
+            1068.0005014975238,
+            600.142715661448
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            1137.2017958029924,
+            598.8066079637666,
+            1193.9080287219776,
+            625.4227682847313
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [514, 470, 547, 510], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [591, 492, 622, 522], \"state\": \"open\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[512,475,562,505],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[590,490,625,520],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            986.88,
+            564.0,
+            1050.24,
+            612.0
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            514,
+            470,
+            547,
+            510
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            1134.72,
+            590.4,
+            1194.24,
+            626.4
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            591,
+            492,
+            622,
+            522
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            983.04,
+            570.0,
+            1079.04,
+            606.0
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            1132.8,
+            588.0,
+            1200.0,
+            624.0
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.4992631855583639,
+      "mean_iou_9B": 0.484035716354392,
+      "iou_difference_9B_minus_2B": -0.015227469203971888
+    },
+    {
+      "case_id": "000010_c6d5582870",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/E22_DMS/BlinkDetection/dms/pc1_20251216_2id/2025121601_20251216-152249_EyeOpn/APillar_E22_seat1_2025121601_f_156_47_Beige_EyesOpen_Glasses_c1lR1_StaticOutdoor_SunnyNormal_1540_NormalScene_000014.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            637.8911408398992,
+            1220.0140267521576,
+            668.2186217793308,
+            1239.8051605733128
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            719.5194990166148,
+            1206.3828797220451,
+            760.4244000055567,
+            1227.7343390294598
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [300, 400, 330, 420], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [350, 400, 380, 420], \"state\": \"open\"}}]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[336,464,370,484],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[400,458,430,478],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            542.4,
+            1036.8,
+            596.64,
+            1088.64
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            300,
+            400,
+            330,
+            420
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            632.8,
+            1036.8,
+            687.04,
+            1088.64
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            350,
+            400,
+            380,
+            420
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            607.488,
+            1202.688,
+            668.96,
+            1254.528
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            723.2,
+            1187.136,
+            777.44,
+            1238.976
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.23166427768296444,
+      "iou_difference_9B_minus_2B": 0.23166427768296444
+    },
+    {
+      "case_id": "000011_bd6eb2ffac",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/E22_DMS/BlinkDetection/dms/pc1_20251216_2id/2025121601_20251216-171407_LrgYaw/APillar_E22_seat1_2025121601_f_156_47_Beige_LargeYawPose_NoOcclusion_c1lR1_StaticOutdoor_DawnDusk_34_NormalScene_000013.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            381.7469961996037,
+            1262.4940407127626,
+            409.71457530135075,
+            1286.1517440019284
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            446.4359305242528,
+            1234.4990876099014,
+            483.9408778421926,
+            1259.6784653867344
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [230, 400, 250, 420], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [280, 390, 300, 410], \"state\": \"open\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[208,476,228,492],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[248,472,268,488],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            415.84,
+            1036.8,
+            452.0,
+            1088.64
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            230,
+            400,
+            250,
+            420
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            506.24,
+            1010.88,
+            542.4,
+            1062.72
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            280,
+            390,
+            300,
+            410
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            376.064,
+            1233.792,
+            412.224,
+            1275.264
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            448.384,
+            1223.424,
+            484.544,
+            1264.896
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.38803259844093185,
+      "iou_difference_9B_minus_2B": 0.38803259844093185
+    },
+    {
+      "case_id": "000012_4e99fbf87d",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/E22_DMS/BlinkDetection/dms/pc1_20251216_2id/2025121601_20251216-171435_LrgPit/APillar_E22_seat1_2025121601_f_156_47_Beige_LargePitchPose_NoOcclusion_c1lR1_StaticOutdoor_DawnDusk_34_NormalScene_000012.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            806.8194700231459,
+            1146.0121142663481,
+            846.996338780812,
+            1169.627525673526
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            896.9874044869159,
+            1165.947201817862,
+            926.4299953322288,
+            1190.7893878435946
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [380, 260, 400, 280], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [430, 260, 450, 280], \"state\": \"open\"}}]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[437,438,462,455],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[492,445,512,460],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            687.04,
+            673.92,
+            723.2,
+            725.76
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            380,
+            260,
+            400,
+            280
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            777.44,
+            673.92,
+            813.6,
+            725.76
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            430,
+            260,
+            450,
+            280
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            790.096,
+            1135.296,
+            835.296,
+            1179.36
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            889.536,
+            1153.44,
+            925.696,
+            1192.32
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.3986471051508982,
+      "iou_difference_9B_minus_2B": 0.3986471051508982
+    },
+    {
+      "case_id": "000013_6b4b52e9fc",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/E22_DMS/BlinkDetection/dms/pc1_20251220_4id/2025122002_20251220-151419_LrgPit/APillar_E22_seat1_2025122002_f_166_29_Beige_LargePitchPose_Glasses_c1lR1_StaticOutdoor_CloudyDay_1320_NormalScene_000005.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            724.6844189606234,
+            1128.9475765831278,
+            772.8855191408667,
+            1143.437477864305
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            840.012204667954,
+            1140.776067424905,
+            875.201964922242,
+            1156.4488177902604
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [390, 400, 410, 420], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [430, 400, 450, 420], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[380,430,420,445],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[455,435,490,450],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            705.12,
+            1036.8,
+            741.28,
+            1088.64
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            390,
+            400,
+            410,
+            420
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            777.44,
+            1036.8,
+            813.6,
+            1088.64
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            430,
+            400,
+            450,
+            420
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            687.04,
+            1114.56,
+            759.36,
+            1153.44
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            822.64,
+            1127.52,
+            885.92,
+            1166.4
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.19560696747611456,
+      "iou_difference_9B_minus_2B": 0.19560696747611456
+    },
+    {
+      "case_id": "000014_8b60c716ab",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/E22_DMS/BlinkDetection/dms/pc1_20251220_4id/2025122002_20251220-152447_CmpPit/APillar_E22_seat1_2025122002_f_166_29_Beige_ComplexPitchPose_FalseEyelashes_c1lR1_StaticOutdoor_CloudyDay_1320_NormalScene_000021.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            743.4418093204478,
+            1226.101550377691,
+            791.4817368536933,
+            1240.971051757029
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            850.9835228571807,
+            1234.870743498839,
+            888.3479109385938,
+            1248.9777063459028
+          ],
+          "state": "closed"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [380, 400, 410, 420], \"state\": \"closed\"}, \"image_right_eye\": {\"bbox_2d\": [430, 390, 460, 410], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[400,468,440,485],\"state\":\"closed\"},\"image_right_eye\":{\"bbox\":[460,470,495,488],\"state\":\"closed\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            687.04,
+            1036.8,
+            741.28,
+            1088.64
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            380,
+            400,
+            410,
+            420
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            777.44,
+            1010.88,
+            831.68,
+            1062.72
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            430,
+            390,
+            460,
+            410
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            723.2,
+            1213.056,
+            795.52,
+            1257.12
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            831.68,
+            1218.24,
+            894.96,
+            1264.896
+          ],
+          "state": "closed"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.2013458382809749,
+      "iou_difference_9B_minus_2B": 0.2013458382809749
+    },
+    {
+      "case_id": "000015_4ea0176a60",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/E22_DMS/BlinkDetection/dms/pc1_20251220_4id/2025122002_20251220-154653_LrgPit/APillar_E22_seat1_2025122002_f_166_29_Beige_LargePitchPose_EyeShadow_c1lR1_StaticOutdoor_CloudyDay_1320_NormalScene_000026.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            752.5368012563714,
+            1209.9396651804275,
+            806.9242021468644,
+            1230.692752362326
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            866.4225020672199,
+            1223.6193168184348,
+            905.7818053432345,
+            1241.1520973686593
+          ],
+          "state": "closed"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [390, 300, 420, 320], \"state\": \"closed\"}, \"image_right_eye\": {\"bbox_2d\": [430, 300, 460, 320], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[400,460,440,480],\"state\":\"closed\"},\"image_right_eye\":{\"bbox\":[470,460,500,480],\"state\":\"closed\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            705.12,
+            777.6,
+            759.36,
+            829.44
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            390,
+            300,
+            420,
+            320
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            777.44,
+            777.6,
+            831.68,
+            829.44
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            430,
+            300,
+            460,
+            320
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            723.2,
+            1192.32,
+            795.52,
+            1244.16
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            849.76,
+            1192.32,
+            904.0,
+            1244.16
+          ],
+          "state": "closed"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.22777167639697632,
+      "iou_difference_9B_minus_2B": 0.22777167639697632
+    },
+    {
+      "case_id": "000016_5493662804",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/E22_DMS/BlinkDetection/dms/pc1_20251220_4id/2025122002_20251220-180415_HandOcc/APillar_E22_seat1_2025122002_f_166_29_Beige_HandOcclusion_FalseEyelashes_c1lR1_StaticOutdoor_DawnDusk_16_NormalScene_000000.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            758.5196315102487,
+            1254.2410392444988,
+            803.4541219826285,
+            1272.4513327517263
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            853.7868380276761,
+            1260.37587010212,
+            892.2257960945226,
+            1275.1433794159368
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [380, 370, 410, 400], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [430, 360, 460, 390], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[410,478,440,495],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[465,480,495,498],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            687.04,
+            959.04,
+            741.28,
+            1036.8
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            380,
+            370,
+            410,
+            400
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            777.44,
+            933.12,
+            831.68,
+            1010.88
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            430,
+            360,
+            460,
+            390
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            741.28,
+            1238.976,
+            795.52,
+            1283.04
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            840.72,
+            1244.16,
+            894.96,
+            1290.816
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.24507822294331788,
+      "iou_difference_9B_minus_2B": 0.24507822294331788
+    },
+    {
+      "case_id": "000017_99a361cedd",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/E22_DMS/BlinkDetection/dms/pc1_20251220_4id/2025122002_20251220-181838_EyeCls/APillar_E22_seat1_2025122002_f_166_29_Beige_EyesClosed_EyeShadow_c1lR1_StaticOutdoor_Night_16_NormalScene_000024.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            684.298862075514,
+            1202.4665956264485,
+            732.9036319228707,
+            1212.4675770765218
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            785.9024541827824,
+            1209.8663404494293,
+            824.3062229510642,
+            1226.0679303985482
+          ],
+          "state": "closed"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [370, 410, 400, 430], \"state\": \"closed\"}, \"image_right_eye\": {\"bbox_2d\": [410, 400, 440, 420], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[372,458,407,472],\"state\":\"closed\"},\"image_right_eye\":{\"bbox\":[432,460,462,474],\"state\":\"closed\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            668.96,
+            1062.72,
+            723.2,
+            1114.56
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            370,
+            410,
+            400,
+            430
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            741.28,
+            1036.8,
+            795.52,
+            1088.64
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            410,
+            400,
+            440,
+            420
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            672.576,
+            1187.136,
+            735.856,
+            1223.424
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            781.056,
+            1192.32,
+            835.296,
+            1228.608
+          ],
+          "state": "closed"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.2639018026938258,
+      "iou_difference_9B_minus_2B": 0.2639018026938258
+    },
+    {
+      "case_id": "000018_86b9fc7d23",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/E22_DMS/BlinkDetection/dms/pc1_20251220_4id/2025122011_20251220-123342_EyeSqt/APillar_E22_seat1_2025122011_f_160_30_Beige_EyesSquint_EyeShadow_c1lR1_StaticOutdoor_SunnyNormal_1400_NormalScene_000035.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            661.1453584156061,
+            1365.8747498825232,
+            718.9586100676296,
+            1387.4423878045216
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            774.6750080327922,
+            1366.473850935912,
+            819.6075870369557,
+            1381.7509277973274
+          ],
+          "state": "closed"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [330, 400, 360, 420], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [380, 390, 410, 410], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[357,520,397,537],\"state\":\"narrow\"},\"image_right_eye\":{\"bbox\":[423,517,457,534],\"state\":\"narrow\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            596.64,
+            1036.8,
+            650.88,
+            1088.64
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            330,
+            400,
+            360,
+            420
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            687.04,
+            1010.88,
+            741.28,
+            1062.72
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            380,
+            390,
+            410,
+            410
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            645.456,
+            1347.84,
+            717.776,
+            1391.904
+          ],
+          "state": "narrow"
+        },
+        "image_right_eye": {
+          "bbox": [
+            764.784,
+            1340.064,
+            826.256,
+            1384.128
+          ],
+          "state": "narrow"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.31682621604918904,
+      "iou_difference_9B_minus_2B": 0.31682621604918904
+    },
+    {
+      "case_id": "000019_9178ce9f1d",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/NDLB_DMS/BlinkDetection/dms/pc1_20251221_2id/2025122105_CH04_2025-12-21_18-38-57_CmpYaw/APillar_DNLB_seat1_2025122105_m_170_34_Brown_ComplexYawPose_Glasses_c1lR1_StaticOutdoor_Night_14_NormalScene_000030.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            917.2284645005085,
+            1109.609824880335,
+            964.1785507826228,
+            1121.5889269603517
+          ],
+          "state": "narrow"
+        },
+        "image_right_eye": {
+          "bbox": [
+            1027.128637064737,
+            1127.6883063797698,
+            1061.0561455979828,
+            1144.446316796377
+          ],
+          "state": "narrow"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [450, 410, 480, 430], \"state\": \"closed\"}, \"image_right_eye\": {\"bbox_2d\": [500, 400, 530, 420], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[468,417,517,437],\"state\":\"closed\"},\"image_right_eye\":{\"bbox\":[547,423,597,445],\"state\":\"closed\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            813.6,
+            1062.72,
+            867.84,
+            1114.56
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            450,
+            410,
+            480,
+            430
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            904.0,
+            1036.8,
+            958.24,
+            1088.64
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            500,
+            400,
+            530,
+            420
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            846.144,
+            1080.864,
+            934.736,
+            1132.704
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            988.976,
+            1096.416,
+            1079.376,
+            1153.44
+          ],
+          "state": "closed"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.07635095873888062,
+      "iou_difference_9B_minus_2B": 0.07635095873888062
+    },
+    {
+      "case_id": "000020_26d0f47a83",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-67th-batch-delivery-20260116/NDLB_DMS/BlinkDetection/dms/pc1_20251221_2id/2025122106_CH04_2025-12-21_16-57-55_CmpRol/APillar_DNLB_seat1_2025122106_f_165_27_Brown_ComplexRollPose_NoOcclusion_c1lR1_StaticOutdoor_DawnDusk_140_NormalScene_000002.jpg",
+      "group": "batch67",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            704.16149986691,
+            1187.102532893275,
+            752.1967981474891,
+            1210.3251844773577
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            813.8706913060292,
+            1139.321470560968,
+            854.064669875486,
+            1167.351966551031
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [392, 423, 417, 450], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [423, 417, 448, 443], \"state\": \"open\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[382,452,418,470],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[445,436,475,452],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            708.736,
+            1096.416,
+            753.936,
+            1166.4
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            392,
+            423,
+            417,
+            450
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            764.784,
+            1080.864,
+            809.984,
+            1148.256
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            423,
+            417,
+            448,
+            443
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            690.656,
+            1171.584,
+            755.744,
+            1218.24
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            804.56,
+            1130.112,
+            858.8,
+            1171.584
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.43409860279117507,
+      "iou_difference_9B_minus_2B": 0.43409860279117507
+    },
+    {
+      "case_id": "000021_b38eb581ac",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/C1UL_DMS/BlinkDetection/dms/pc1_20251220_3id/2025122008_20251220-134457_NorDrv/APillar_C1UL_seat1_2025122008_m_175_40_Black_NormalDriving_Glasses_c1lR1_StaticOutdoor_CloudyDay_1548_NormalScene_000009.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1920,
+        1200
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            1000.1406505943396,
+            486.2124482354047,
+            1059.6820158139737,
+            509.9074813330142
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            1141.0957192775547,
+            486.2124482354047,
+            1205.497604106955,
+            510.8188287598452
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n{\"image_left_eye\":{\"bbox_\":[494,396,533,433],\"state\":\"open\"},\"image_right_eye\":{\"bbox_\":[533,396,572,433],\"state\":\"closed\"}}\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[506,398,560,428],\"state\":\"narrow\"},\"image_right_eye\":{\"bbox\":[584,398,640,428],\"state\":\"narrow\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox__to_bbox"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            948.48,
+            475.2,
+            1023.36,
+            519.6
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            494,
+            396,
+            533,
+            433
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            1023.36,
+            475.2,
+            1098.24,
+            519.6
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            533,
+            396,
+            572,
+            433
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            971.52,
+            477.6,
+            1075.2,
+            513.6
+          ],
+          "state": "narrow"
+        },
+        "image_right_eye": {
+          "bbox": [
+            1121.28,
+            477.6,
+            1228.8,
+            513.6
+          ],
+          "state": "narrow"
+        }
+      },
+      "mean_iou_2B_manual": 0.06572768749785957,
+      "mean_iou_9B": 0.3936974307386133,
+      "iou_difference_9B_minus_2B": 0.32796974324075373
+    },
+    {
+      "case_id": "000022_8b663a8908",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251218_3id/2025121801_20251218-143827_NorHT/APillar_E22_seat1_2025121801_f_160_48_Beige_NormalHeadTurn_FalseEyelashes_c1lR1_StaticOutdoor_SunnyNormal_1380_NormalScene_000008.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            380.5763666415653,
+            1195.7856579524391,
+            419.7875305858653,
+            1227.747699150734
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            470.2018842285366,
+            1156.244988428775,
+            523.9112936648467,
+            1185.9004905715228
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [242, 380, 266, 406], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [282, 370, 306, 396], \"state\": \"open\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[205,458,232,475],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[258,442,285,458],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            437.536,
+            984.96,
+            480.928,
+            1052.352
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            242,
+            380,
+            266,
+            406
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            509.856,
+            959.04,
+            553.248,
+            1026.432
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            282,
+            370,
+            306,
+            396
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            370.64,
+            1187.136,
+            419.456,
+            1231.2
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            466.464,
+            1145.664,
+            515.28,
+            1187.136
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.5805410078495584,
+      "iou_difference_9B_minus_2B": 0.5805410078495584
+    },
+    {
+      "case_id": "000023_f12fc607a4",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251218_3id/2025121801_20251218-145037_EyeSqt/APillar_E22_seat1_2025121801_f_160_48_Beige_EyesSquint_EyeShadow_c1lR1_StaticOutdoor_SunnyNormal_1380_NormalScene_000000.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            660.5921449407961,
+            1173.6443422002724,
+            720.1648935446543,
+            1190.627801232074
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            771.6378386102688,
+            1189.321381306551,
+            817.8851039737904,
+            1208.3951122191897
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [333, 320, 357, 345], \"state\": \"closed\"}, \"image_right_eye\": {\"bbox_2d\": [367, 320, 391, 345], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[358,448,400,460],\"state\":\"closed\"},\"image_right_eye\":{\"bbox\":[418,448,458,460],\"state\":\"closed\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            602.064,
+            829.44,
+            645.456,
+            894.24
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            333,
+            320,
+            357,
+            345
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            663.536,
+            829.44,
+            706.928,
+            894.24
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            367,
+            320,
+            391,
+            345
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            647.264,
+            1161.216,
+            723.2,
+            1192.32
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            755.744,
+            1161.216,
+            828.064,
+            1192.32
+          ],
+          "state": "closed"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.23734849073589898,
+      "iou_difference_9B_minus_2B": 0.23734849073589898
+    },
+    {
+      "case_id": "000024_218480b15a",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251218_3id/2025121801_20251218-145059_LookDn/APillar_E22_seat1_2025121801_f_160_48_Beige_LookDown_EyeShadow_c1lR1_StaticOutdoor_SunnyNormal_1380_NormalScene_000008.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            665.3570959754408,
+            1204.6913883044215,
+            718.8890793305548,
+            1217.7026342587894
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            771.6775629168478,
+            1219.1896337964313,
+            826.696545809604,
+            1236.6618783637257
+          ],
+          "state": "closed"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [360, 290, 380, 310], \"state\": \"closed\"}, \"image_right_eye\": {\"bbox_2d\": [400, 290, 420, 310], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[360,460,400,475],\"state\":\"closed\"},\"image_right_eye\":{\"bbox\":[425,460,465,475],\"state\":\"closed\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            650.88,
+            751.68,
+            687.04,
+            803.52
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            360,
+            290,
+            380,
+            310
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            723.2,
+            751.68,
+            759.36,
+            803.52
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            400,
+            290,
+            420,
+            310
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            650.88,
+            1192.32,
+            723.2,
+            1231.2
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            768.4,
+            1192.32,
+            840.72,
+            1231.2
+          ],
+          "state": "closed"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.23001498181995989,
+      "iou_difference_9B_minus_2B": 0.23001498181995989
+    },
+    {
+      "case_id": "000025_af1689d741",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251218_3id/2025121801_20251218-163906_CmpPit/APillar_E22_seat1_2025121801_f_160_48_Beige_ComplexPitchPose_Glasses_c1lR1_StaticOutdoor_DawnDusk_57_NormalScene_000000.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            705.8570133209305,
+            1194.8362774345635,
+            756.6722293853836,
+            1220.9383892509697
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            813.3373905181961,
+            1216.8574566337822,
+            850.5616031646805,
+            1241.9468426201104
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [350, 300, 375, 320], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [420, 300, 445, 320], \"state\": \"open\"}}]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[370,456,415,476],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[440,464,475,484],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            632.8,
+            777.6,
+            678.0,
+            829.44
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            350,
+            300,
+            375,
+            320
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            759.36,
+            777.6,
+            804.56,
+            829.44
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            420,
+            300,
+            445,
+            320
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            668.96,
+            1181.952,
+            750.32,
+            1233.792
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            795.52,
+            1202.688,
+            858.8,
+            1254.528
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.27472889385064436,
+      "iou_difference_9B_minus_2B": 0.27472889385064436
+    },
+    {
+      "case_id": "000026_ab6da274a1",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251218_3id/2025121802_20251218-173617_CmpYaw/APillar_E22_seat1_2025121802_m_168_32_Beige_ComplexYawPose_Glasses_c1lR1_StaticOutdoor_DawnDusk_57_NormalScene_000000.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            719.8724216070217,
+            1147.113934047966,
+            771.2752919877845,
+            1163.2896624894647
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            828.7889931131136,
+            1158.976134905065,
+            874.4404933813436,
+            1176.589705874697
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [380, 280, 410, 300], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [440, 280, 470, 300], \"state\": \"open\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[368,440,418,460],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[448,440,490,460],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            687.04,
+            725.76,
+            741.28,
+            777.6
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            380,
+            280,
+            410,
+            300
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            795.52,
+            725.76,
+            849.76,
+            777.6
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            440,
+            280,
+            470,
+            300
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            665.344,
+            1140.48,
+            755.744,
+            1192.32
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            809.984,
+            1140.48,
+            885.92,
+            1192.32
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.16089011079233445,
+      "iou_difference_9B_minus_2B": 0.16089011079233445
+    },
+    {
+      "case_id": "000027_24113218b9",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251218_3id/2025121802_20251218-174103_EyeSqt/APillar_E22_seat1_2025121802_m_168_32_Beige_EyesSquint_Glasses_c1lR1_StaticOutdoor_DawnDusk_57_NormalScene_000008.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            718.5640003650878,
+            1139.0979782716724,
+            770.8189255773372,
+            1151.4128332579987
+          ],
+          "state": "narrow"
+        },
+        "image_right_eye": {
+          "bbox": [
+            830.063363079123,
+            1148.4173279910544,
+            872.0004368163421,
+            1161.7306847330287
+          ],
+          "state": "narrow"
+        }
+      },
+      "raw_2B": "```json\n{\"image_left_eye\":{\"bbox\":[330,260,350,280],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[380,260,400,280],\"state\":\"closed\"}}\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[368,434,410,456],\"state\":\"narrow\"},\"image_right_eye\":{\"bbox\":[440,434,482,456],\"state\":\"narrow\"}}\n```\n",
+      "original_2B_status": "evaluated",
+      "manual_changes_2B": [
+        "remove_code_fence"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            596.64,
+            673.92,
+            632.8,
+            725.76
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            330,
+            260,
+            350,
+            280
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            687.04,
+            673.92,
+            723.2,
+            725.76
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            380,
+            260,
+            400,
+            280
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            665.344,
+            1124.928,
+            741.28,
+            1181.952
+          ],
+          "state": "narrow"
+        },
+        "image_right_eye": {
+          "bbox": [
+            795.52,
+            1124.928,
+            871.456,
+            1181.952
+          ],
+          "state": "narrow"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.09332405406066857,
+      "iou_difference_9B_minus_2B": 0.09332405406066857
+    },
+    {
+      "case_id": "000028_9cf7d00ea8",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251218_3id/2025121802_20251218-185651_NorHT/APillar_E22_seat1_2025121802_m_168_32_Beige_NormalHeadTurn_NoOcclusion_c1lR1_StaticOutdoor_Night_13_NormalScene_000016.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            726.3525446755403,
+            1063.7471984260794,
+            784.2167270530234,
+            1088.2002629454341
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            844.9862240268653,
+            1078.0316618581776,
+            881.5447660310491,
+            1103.9373836757118
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n{\"image_left_eye\":{\"bbox\":[300,190,320,210],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[350,190,370,210],\"state\":\"closed\"}}\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[392,408,428,424],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[462,414,492,428],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "evaluated",
+      "manual_changes_2B": [
+        "remove_code_fence"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            542.4,
+            492.48,
+            578.56,
+            544.32
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            300,
+            190,
+            320,
+            210
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            632.8,
+            492.48,
+            668.96,
+            544.32
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            350,
+            190,
+            370,
+            210
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            708.736,
+            1057.536,
+            773.824,
+            1099.008
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            835.296,
+            1073.088,
+            889.536,
+            1109.376
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.43710568900210167,
+      "iou_difference_9B_minus_2B": 0.43710568900210167
+    },
+    {
+      "case_id": "000029_5d2ba16d2b",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251218_3id/2025121806_20251218-092450_LrgPit/APillar_E22_seat1_2025121806_f_158_48_Beige_LargePitchPose_Glasses_c1lR1_StaticOutdoor_DawnDusk_1000_NormalScene_000032.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            680.3701648010979,
+            1327.465290687422,
+            741.210464966227,
+            1341.34114861982
+          ],
+          "state": "occluded"
+        },
+        "image_right_eye": {
+          "bbox": [
+            792.6048649688599,
+            1324.901060594501,
+            840.1316289911085,
+            1336.941174146804
+          ],
+          "state": "occluded"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [360, 460, 390, 480], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [420, 450, 450, 470], \"state\": \"open\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[350,507,390,530],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[410,507,450,530],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            650.88,
+            1192.32,
+            705.12,
+            1244.16
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            360,
+            460,
+            390,
+            480
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            759.36,
+            1166.4,
+            813.6,
+            1218.24
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            420,
+            450,
+            450,
+            470
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            632.8,
+            1314.144,
+            705.12,
+            1373.76
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            741.28,
+            1314.144,
+            813.6,
+            1373.76
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.0629759726671465,
+      "iou_difference_9B_minus_2B": 0.0629759726671465
+    },
+    {
+      "case_id": "000030_9ee2064f82",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251218_3id/2025121806_20251218-103528_CmpRol/APillar_E22_seat1_2025121806_f_158_48_Beige_ComplexRollPose_Glasses_c1lR1_StaticOutdoor_SunnyNormal_1400_NormalScene_000008.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            440.1410814818275,
+            1383.5255320490078,
+            465.3009545282483,
+            1420.366774724124
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            494.9536620472443,
+            1290.9731419139598,
+            531.345621275103,
+            1331.8579356143935
+          ],
+          "state": "closed"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [200, 460, 230, 480], \"state\": \"closed\"}, \"image_right_eye\": {\"bbox_2d\": [250, 450, 280, 470], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[224,526,260,560],\"state\":\"closed\"},\"image_right_eye\":{\"bbox\":[260,490,300,520],\"state\":\"closed\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            361.6,
+            1192.32,
+            415.84,
+            1244.16
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            200,
+            460,
+            230,
+            480
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            452.0,
+            1166.4,
+            506.24,
+            1218.24
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            250,
+            450,
+            280,
+            470
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            404.992,
+            1363.392,
+            470.08,
+            1451.52
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            470.08,
+            1270.08,
+            542.4,
+            1347.84
+          ],
+          "state": "closed"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.2130861413389935,
+      "iou_difference_9B_minus_2B": 0.2130861413389935
+    },
+    {
+      "case_id": "000031_d9fcc81413",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251222_4id/2025122201_20251222-183619_LookDn/APillar_E22_seat1_2025122201_m_170_42_Beige_LookDown_NoOcclusion_c1lR1_StaticOutdoor_Night_17_NormalScene_000000.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            688.3117523191249,
+            1174.143174360971,
+            745.7361952380932,
+            1188.7864073053079
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            803.4477603716563,
+            1179.8856186528678,
+            855.4168812133225,
+            1195.677340455584
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [330, 290, 360, 310], \"state\": \"closed\"}, \"image_right_eye\": {\"bbox_2d\": [380, 290, 410, 310], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[350,450,400,465],\"state\":\"closed\"},\"image_right_eye\":{\"bbox\":[435,450,485,465],\"state\":\"closed\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            596.64,
+            751.68,
+            650.88,
+            803.52
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            330,
+            290,
+            360,
+            310
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            687.04,
+            751.68,
+            741.28,
+            803.52
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            380,
+            290,
+            410,
+            310
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            632.8,
+            1166.4,
+            723.2,
+            1205.28
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            786.48,
+            1166.4,
+            876.88,
+            1205.28
+          ],
+          "state": "closed"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.18318633795063766,
+      "iou_difference_9B_minus_2B": 0.18318633795063766
+    },
+    {
+      "case_id": "000032_d624b685ed",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251222_4id/2025122202_20251222-171518_NorDrv/APillar_E22_seat1_2025122202_f_150_29_Beige_NormalDriving_NoOcclusion_c1lR1_StaticOutdoor_DawnDusk_57_NormalScene_000012.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            776.6781440437333,
+            1221.5946211799546,
+            827.9742690258553,
+            1248.7677036029165
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            887.5886845456188,
+            1235.4584387426903,
+            920.5845703449297,
+            1257.6405468430673
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [380, 300, 410, 320], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [430, 300, 460, 320], \"state\": \"open\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[425,469,460,486],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[488,473,512,488],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            687.04,
+            777.6,
+            741.28,
+            829.44
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            380,
+            300,
+            410,
+            320
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            777.44,
+            777.6,
+            831.68,
+            829.44
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            430,
+            300,
+            460,
+            320
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            768.4,
+            1215.648,
+            831.68,
+            1259.712
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            882.304,
+            1226.016,
+            925.696,
+            1264.896
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.4668627580939132,
+      "iou_difference_9B_minus_2B": 0.4668627580939132
+    },
+    {
+      "case_id": "000033_48c21842d8",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251222_4id/2025122202_20251222-192321_CmpYaw/APillar_E22_seat1_2025122202_f_150_29_Beige_ComplexYawPose_Glasses_c1lR1_StaticOutdoor_Night_17_NormalScene_000000.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            724.4408891161717,
+            1194.9924487099468,
+            775.5991120068594,
+            1217.1708690382793
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            840.2245563268139,
+            1207.2995009069464,
+            881.9199865440796,
+            1231.2521948615458
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [380, 340, 410, 360], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [440, 330, 470, 350], \"state\": \"open\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[380,460,420,480],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[450,460,490,480],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            687.04,
+            881.28,
+            741.28,
+            933.12
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            380,
+            340,
+            410,
+            360
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            795.52,
+            855.36,
+            849.76,
+            907.2
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            440,
+            330,
+            470,
+            350
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            687.04,
+            1192.32,
+            759.36,
+            1244.16
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            813.6,
+            1192.32,
+            885.92,
+            1244.16
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.22742860605087037,
+      "iou_difference_9B_minus_2B": 0.22742860605087037
+    },
+    {
+      "case_id": "000034_6ef9ffc52e",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251222_4id/2025122211_20251222-111107_HandOcc/APillar_E22_seat1_2025122211_m_172_45_Beige_HandOcclusion_NoOcclusion_c1lR1_StaticOutdoor_SunnyNormal_1400_NormalScene_000010.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            675.3139733558296,
+            1148.1580473567017,
+            708.4378391329114,
+            1164.070492680986
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            751.5356425234968,
+            1179.4079739234814,
+            790.9920120520798,
+            1197.4312538315996
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [360, 290, 380, 310], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [390, 290, 410, 310], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[370,440,400,460],\"state\":\"narrow\"},\"image_right_eye\":{\"bbox\":[410,445,440,465],\"state\":\"narrow\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            650.88,
+            751.68,
+            687.04,
+            803.52
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            360,
+            290,
+            380,
+            310
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            705.12,
+            751.68,
+            741.28,
+            803.52
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            390,
+            290,
+            410,
+            310
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            668.96,
+            1140.48,
+            723.2,
+            1192.32
+          ],
+          "state": "narrow"
+        },
+        "image_right_eye": {
+          "bbox": [
+            741.28,
+            1153.44,
+            795.52,
+            1205.28
+          ],
+          "state": "narrow"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.2201817680306012,
+      "iou_difference_9B_minus_2B": 0.2201817680306012
+    },
+    {
+      "case_id": "000035_bf328acf4c",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251224_3id/2025122403_20251224-172618_CmpRol/APillar_E22_seat1_2025122403_f_168_41_Beige_ComplexRollPose_FalseEyelashes_c1lR1_StaticOutdoor_DawnDusk_48_NormalScene_000017.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            514.5268120636894,
+            1199.5376861887935,
+            554.6852686252797,
+            1229.4076125569186
+          ],
+          "state": "narrow"
+        },
+        "image_right_eye": {
+          "bbox": [
+            613.0975690785018,
+            1150.4182517167658,
+            653.919801781606,
+            1169.6677598206686
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [290, 380, 320, 400], \"state\": \"closed\"}, \"image_right_eye\": {\"bbox_2d\": [330, 380, 360, 400], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[278,455,310,475],\"state\":\"closed\"},\"image_right_eye\":{\"bbox\":[335,445,365,465],\"state\":\"closed\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            524.32,
+            984.96,
+            578.56,
+            1036.8
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            290,
+            380,
+            320,
+            400
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            596.64,
+            984.96,
+            650.88,
+            1036.8
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            330,
+            380,
+            360,
+            400
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            502.624,
+            1179.36,
+            560.48,
+            1231.2
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            605.68,
+            1153.44,
+            659.92,
+            1205.28
+          ],
+          "state": "closed"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.31281941407528996,
+      "iou_difference_9B_minus_2B": 0.31281941407528996
+    },
+    {
+      "case_id": "000036_082bae5d14",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251225_3id/2025122503_20251225-142425_LrgPit/APillar_E22_seat1_2025122503_f_160_31_Beige_LargePitchPose_NoOcclusion_c1lR1_StaticOutdoor_CloudyDay_1320_NormalScene_000022.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            814.571552141299,
+            1169.7290817017258,
+            868.2809615776089,
+            1184.2273271937358
+          ],
+          "state": "narrow"
+        },
+        "image_right_eye": {
+          "bbox": [
+            922.9788877520105,
+            1185.2158439318275,
+            969.4391744423154,
+            1207.2927177492065
+          ],
+          "state": "narrow"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\":{\"bbox\":[330,240,350,260],\"state\":\"closed\"},\"image_right_eye\":{\"bbox\":[380,240,400,260],\"state\":\"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[440,445,480,458],\"state\":\"closed\"},\"image_right_eye\":{\"bbox\":[505,450,540,465],\"state\":\"closed\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            596.64,
+            622.08,
+            632.8,
+            673.92
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            330,
+            240,
+            350,
+            260
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            687.04,
+            622.08,
+            723.2,
+            673.92
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            380,
+            240,
+            400,
+            260
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            795.52,
+            1153.44,
+            867.84,
+            1187.136
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            913.04,
+            1166.4,
+            976.32,
+            1205.28
+          ],
+          "state": "closed"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.3405520096069792,
+      "iou_difference_9B_minus_2B": 0.3405520096069792
+    },
+    {
+      "case_id": "000037_49616cc2e3",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251225_3id/2025122503_20251225-172014_LrgYaw/APillar_E22_seat1_2025122503_f_160_31_Beige_LargeYawPose_FalseEyelashes_c1lR1_StaticOutdoor_DawnDusk_68_NormalScene_000024.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            959.4717539727154,
+            1232.8110776279148,
+            979.5729672538253,
+            1248.343833345136
+          ],
+          "state": "occluded"
+        },
+        "image_right_eye": {
+          "bbox": [
+            967.3904137501222,
+            1237.074971354211,
+            987.1870631936395,
+            1253.2168547466172
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [420, 390, 450, 410], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [500, 380, 530, 400], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[520,470,540,485],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[540,475,555,490],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            759.36,
+            1010.88,
+            813.6,
+            1062.72
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            420,
+            390,
+            450,
+            410
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            904.0,
+            984.96,
+            958.24,
+            1036.8
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            500,
+            380,
+            530,
+            400
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            940.16,
+            1218.24,
+            976.32,
+            1257.12
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            976.32,
+            1231.2,
+            1003.44,
+            1270.08
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.16301994577513523,
+      "iou_difference_9B_minus_2B": 0.16301994577513523
+    },
+    {
+      "case_id": "000038_e767ce7584",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251229_2id/2025122901_20251229-143754_NorDrv/APillar_E22_seat1_2025122901_m_170_34_Beige_NormalDriving_Glasses_c1lR1_StaticOutdoor_SunnyNormal_1450_NormalScene_000001.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            583.081479828373,
+            1210.5754209436238,
+            634.8478485182176,
+            1230.4191956080645
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            693.9477861057901,
+            1216.6148306241057,
+            736.2236538691631,
+            1234.9487528684258
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [300, 450, 330, 470], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [360, 440, 390, 460], \"state\": \"open\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[290,465,330,490],\"state\":\"open\"},\"image_right_eye\":{\"bbox\":[370,465,410,490],\"state\":\"open\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            542.4,
+            1166.4,
+            596.64,
+            1218.24
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            300,
+            450,
+            330,
+            470
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            650.88,
+            1140.48,
+            705.12,
+            1192.32
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            360,
+            440,
+            390,
+            460
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            524.32,
+            1205.28,
+            596.64,
+            1270.08
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            668.96,
+            1205.28,
+            741.28,
+            1270.08
+          ],
+          "state": "open"
+        }
+      },
+      "mean_iou_2B_manual": 0.01391124122275547,
+      "mean_iou_9B": 0.10740451529461449,
+      "iou_difference_9B_minus_2B": 0.09349327407185902
+    },
+    {
+      "case_id": "000039_b77c7a8aac",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251229_2id/2025122901_20251229-161941_EyeOpn/APillar_E22_seat1_2025122901_m_170_34_Beige_EyesOpen_NoOcclusion_c1lR1_StaticOutdoor_DawnDusk_57_NormalScene_000009.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            689.6590773471685,
+            1157.4497068368375,
+            753.2044926228557,
+            1174.5041749071509
+          ],
+          "state": "open"
+        },
+        "image_right_eye": {
+          "bbox": [
+            821.4223649041082,
+            1158.6178210882288,
+            864.876215055865,
+            1174.9714206077072
+          ],
+          "state": "open"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [300, 390, 330, 410], \"state\": \"open\"}, \"image_right_eye\": {\"bbox_2d\": [360, 380, 390, 400], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[378,442,418,457],\"state\":\"narrow\"},\"image_right_eye\":{\"bbox\":[448,442,483,457],\"state\":\"narrow\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            542.4,
+            1010.88,
+            596.64,
+            1062.72
+          ],
+          "state": "open",
+          "raw_bbox_norm1000": [
+            300,
+            390,
+            330,
+            410
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            650.88,
+            984.96,
+            705.12,
+            1036.8
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            360,
+            380,
+            390,
+            400
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            683.424,
+            1145.664,
+            755.744,
+            1184.544
+          ],
+          "state": "narrow"
+        },
+        "image_right_eye": {
+          "bbox": [
+            809.984,
+            1145.664,
+            873.264,
+            1184.544
+          ],
+          "state": "narrow"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.3371287366212888,
+      "iou_difference_9B_minus_2B": 0.3371287366212888
+    },
+    {
+      "case_id": "000040_e93a1a3150",
+      "image": "/workspace/dms-eye-status-turbo/extract_data/FA-The-68th-batch-delivery-20260124/E22_DMS/BlinkDetection/dms/pc1_20251229_2id/2025122902_20251229-175657_EyeSqt/APillar_E22_seat1_2025122902_f_163_26_Beige_EyesSquint_EyeShadow_c1lR1_StaticOutdoor_DawnDusk_57_NormalScene_000025.jpg",
+      "group": "batch68",
+      "actual_size_wh": [
+        1808,
+        2592
+      ],
+      "gt": {
+        "image_left_eye": {
+          "bbox": [
+            722.8853117186444,
+            1125.0835030771395,
+            773.2342360423431,
+            1139.4689100267678
+          ],
+          "state": "narrow"
+        },
+        "image_right_eye": {
+          "bbox": [
+            840.9655270968427,
+            1124.28431380216,
+            883.3225586707481,
+            1135.8725582893608
+          ],
+          "state": "narrow"
+        }
+      },
+      "raw_2B": "```json\n[\n    {\"image_left_eye\": {\"bbox_2d\": [436, 390, 460, 410], \"state\": \"closed\"}, \"image_right_eye\": {\"bbox_2d\": [460, 380, 480, 400], \"state\": \"closed\"}}\n]\n```\n",
+      "raw_9B": "```json\n{\"image_left_eye\":{\"bbox\":[390,428,428,445],\"state\":\"closed\"},\"image_right_eye\":{\"bbox\":[460,428,495,445],\"state\":\"closed\"}}\n```\n",
+      "original_2B_status": "failed",
+      "manual_changes_2B": [
+        "remove_code_fence",
+        "rename_bbox_2d_to_bbox",
+        "unwrap_single_object_array"
+      ],
+      "prediction_2B_manual": {
+        "image_left_eye": {
+          "bbox": [
+            788.288,
+            1010.88,
+            831.68,
+            1062.72
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            436,
+            390,
+            460,
+            410
+          ]
+        },
+        "image_right_eye": {
+          "bbox": [
+            831.68,
+            984.96,
+            867.84,
+            1036.8
+          ],
+          "state": "closed",
+          "raw_bbox_norm1000": [
+            460,
+            380,
+            480,
+            400
+          ]
+        }
+      },
+      "prediction_9B": {
+        "image_left_eye": {
+          "bbox": [
+            705.12,
+            1109.376,
+            773.824,
+            1153.44
+          ],
+          "state": "closed"
+        },
+        "image_right_eye": {
+          "bbox": [
+            831.68,
+            1109.376,
+            894.96,
+            1153.44
+          ],
+          "state": "closed"
+        }
+      },
+      "mean_iou_2B_manual": 0.0,
+      "mean_iou_9B": 0.2076397080974475,
+      "iou_difference_9B_minus_2B": 0.2076397080974475
+    }
+  ],
+  "figure_cases": [
+    "000022_8b663a8908",
+    "000008_1a4814c000"
+  ],
+  "figure_selection": "在2B可恢复的38图中，按两眼平均同侧IoU的9B减2B差值降序，选择前2张；用于解释差异，不估计整体表现。"
+}
