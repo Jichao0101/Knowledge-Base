@@ -3,9 +3,9 @@ type: project_continuous_experiment_record
 status: active
 project: AI-Career-Transition
 record_role: primary_experiment_history
-current_step: S02-B - batch size与DP推理实验准备（S02-C正式baseline待执行）
-step_status: preparing
-summary: 汇总资源验证与开发集抽样诊断的分析结果和决定；数据集构建已人工确认，batch/DP云端实验及正式baseline尚未完成。
+current_step: S02-B - 单卡扫描完成，瓶颈细分与DP验证待执行（S02-C正式baseline待执行）
+step_status: in_progress
+summary: 汇总资源验证与开发集抽样诊断的分析结果和决定；数据集构建已人工确认，单卡batch扫描及五阶段profile已完成，瓶颈细分、DP验证与正式baseline待执行。
 sources:
   - 02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验附录.md
   - 02_Projects/AI-Career-Transition/00_规划/Qwen3.5-9B睁闭眼分类微调与部署实验方案.md
@@ -15,7 +15,7 @@ risks:
   - 依赖导入和权重文件检查不能替代GPU推理、训练或服务验证。
   - 权重头部检查不校验全部payload，也不能代替模型revision和完整文件hash。
 single_pass_recoverable: false
-updated_at: 2026-10-10
+updated_at: 2026-10-13
 ---
 
 # 1 Qwen3.5-9B驾驶员眼睛检测与状态分类实验记录
@@ -32,7 +32,7 @@ updated_at: 2026-10-10
 | --- | ------------------------------ | ------------------------------------- |
 | S01 | 9B BF16整图推理/LoRA是否适合现有GPU及输入预算 | partial；推理链路和解析可用，LoRA完整更新/资源待测       |
 | S02-A | 开发集抽样诊断：链路可用性和错误线索 | user_reported；原始数据抽样40图，非正式baseline |
-| S02-B | batch size与DP推理实验：确定全量推理执行方式 | preparing；单卡扫描、profiler与DP选择待执行 |
+| S02-B | batch size与DP推理实验：确定全量推理执行方式 | in_progress；单卡扫描与五阶段profile完成，瓶颈细分与DP验证待执行 |
 | S02-C | 正式baseline：完整验证集推理与错误归因 | pending_S02-B；数据集已构建，全量结果待执行 |
 | S03 | 针对性训练是否有效；单卡更新与恢复是否正确 | pending_baseline；GT SFT＋语言LoRA保留为候选，质量训练尚未执行 |
 | S04 | 双卡DDP是否保持目标一致，加速是否值得成本         | not_started                           |
@@ -68,7 +68,7 @@ updated_at: 2026-10-10
 | BF16加载 | 常驻allocated约17.53GiB，加载峰值与结束值接近 | 保留BF16；未证明推理或训练容量 |
 | 单图推理 | 生成链路可用，输出结构违约；首次约43.30s，热运行均值约2.77s | 先归因开销及处理输出协议；不以单图推断最大batch |
 | 开发集诊断 | 定位不足，四类能力证据不完整 | SFT/LoRA为候选；先建立正式baseline |
-| batch/DP | 实现已保存，尚无云端吞吐或扩展结果 | 待实测选执行配置，不承诺四倍加速 |
+| batch/DP | 单卡B16为0.9333图/s，B32为0.9569图/s；峰值allocated分别34.04/50.54GiB | B16为DP验证优先候选；DP尚未实测，不承诺四倍加速 |
 | LoRA更新 | 尚无实际完整更新与训练峰值 | 推理余量不能证明训练可行 |
 
 ### 1.4.2 步骤1：确定输入规模
@@ -162,9 +162,23 @@ M_KV = L_full × 2 × B × S × n_kv × d_head × b_kv
 
 #### 1.4.5.2 S02-B：batch size与DP推理实验
 
-数据集构建前置条件已人工确认通过。`/home/jichao/test/vlm_experiment/src/s02_sample_eval.py`已保存配置化benchmark与profile实现；2026-10-10完成profile与benchmark共用batch档位及分阶段显存测量的本地模拟验证。**实现可供云端运行，尚无实测最优batch、吞吐、显存峰值或DP收益。** 本地检查的具体范围见[[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验附录#1.6 数据与性能代码验证材料]]。
+数据集构建前置条件已人工确认通过。已获得云端单卡benchmark与五阶段profile实测。关键原始数据和统计口径完整保存在[[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验附录#1.7 单卡batch与profile测量]]，无需打开本地结果目录或截图。
 
-沿用本会话后续约定：效率实验随机采样，不要求场景覆盖、不计算GT精度；benchmark测稳定吞吐，profile解释阶段耗时和显存增长。推理profile只筛选微调候选batch，训练仍需独立测forward/backward/optimizer step。测试集不用于选参，正式精度评估保持独立。实际执行参数来自JSON，方法及验收仍由方案指导；这里不把尚未运行的扫描计划写成结果。
+**实验统计。** 从5210张验证图中固定随机抽取128张，两种模式使用同一清单。Qwen3.5-9B BF16、单卡GPU 0，扫描B=1/2/4/8/16/32；benchmark每档预热2批、重复3轮，全部生成完成且无生成上限触顶。B1吞吐0.4647图/s，B16为0.9333图/s，B32为0.9569图/s。后两档峰值allocated为34.04/50.54GiB，峰值reserved为42.73/67.85GiB。这里统计生成效率，尚未评估输出协议通过率和GT精度。
+
+**差异分析。** B16→B32吞吐仅提高2.53%，峰值allocated增加16.50GiB，平均单批流水线耗时约17.14→33.44s。处理相同128图时，generate约120.78→116.45s，节省4.33s；processor约12.37→13.27s，抵消部分收益，整轮最终只节省约3.39s。generate仍占总时长约87%～88%，是进一步诊断的重点。
+
+本轮每图输入均为4781 tokens，输入长度padding不是已观察到的主要差异；B16/B32每轮输出总量7822/7820 tokens接近。主要矩阵乘和attention算子在双倍batch下耗时接近翻倍，支持“继续增大batch的摊销收益已明显减弱”。现有统计未拆开视觉编码、语言prefill与逐步decode，也没有SM/显存带宽计数，**不能据此确认已经compute-bound或认定TP一定更快**。profile用于定位，吞吐选型采用独立benchmark。
+
+**配置决定。** B32是本轮已测档位中吞吐最高者；B16以较小显存代价接近其吞吐，作为下一轮DP验证的优先候选，暂不宣布最终最优配置。reserved包含allocator缓存，不能等同活跃tensor需求；推理峰值增量也不能全部称为activation。本轮单卡结果不证明LoRA训练容量或多卡扩展收益。
+
+**下一步按以下顺序推进S02-B：**
+
+1. 仅针对B16/B32做短窗口细分，保持相同样本、prompt和生成设置，分开测视觉编码、语言prefill与自回归decode的耗时、入口/结束allocated和阶段峰值；记录生成步数，避免将嵌套的视觉编码与首轮前向重复累加。必要时另做固定生成步数的诊断对照，与真实任务吞吐分开报告。
+2. 以每卡B16比较单卡、双卡和四卡独立副本分片推理，固定全局样本和去重覆盖，测全局吞吐、各卡峰值及CPU/读图开销。根据实际扩展收益确定单卡或DP执行方式；只有阶段分析显示计算瓶颈值得进一步验证时，再安排硬件计数或TP对照。
+3. 选定配置后进入S02-C全量验证。训练资源另在S01完整更新中测forward/backward/optimizer step及首次、稳定更新；若需解释训练峰值，再增加参数、梯度、优化器状态与activation的显存时间线，无法可靠分类的分配保留为未知。
+
+沿用效率实验随机采样、不要求场景覆盖、不计算GT精度、测试集不用于选参的边界。本次是既定S02-B内的结果回写与诊断细化，未改变任务、评测合同或验收条件，不修改实验方案。
 
 #### 1.4.5.3 S02-C：正式baseline阶段
 
@@ -209,7 +223,7 @@ B=1、S=4096、V=248320时，BF16为`1×4096×248320×2=2,034,237,440 bytes≈1.
 
 ### 1.4.7 步骤6：评估并固定资源方案
 
-资源结论目前只支持BF16单图链路可运行；batch效率、训练容量和多卡收益尚未确定。**下一项待解决问题是S02-B执行配置选择，随后完成S02-C；S01剩余训练资源验证可独立推进。** 不将早期设备空闲快照当作当前资源保证，也不依据最大batch自动选择配置。
+资源结论已支持本轮BF16单卡B1～B32生成及吞吐比较；B16为后续DP验证优先候选，训练容量和多卡收益尚未确定。**下一项待解决问题是S02-B执行配置选择，随后完成S02-C；S01剩余训练资源验证可独立推进。** 不将早期设备空闲快照当作当前资源保证，也不依据最大batch自动选择配置。
 
 ## 1.5 参考与附录
 
