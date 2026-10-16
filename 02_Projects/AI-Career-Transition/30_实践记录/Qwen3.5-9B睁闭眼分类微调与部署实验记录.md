@@ -3,9 +3,9 @@ type: project_continuous_experiment_record
 status: active
 project: AI-Career-Transition
 record_role: primary_experiment_history
-current_step: S02-B - 单卡扫描完成，瓶颈细分与DP验证待执行（S02-C正式baseline待执行）
+current_step: S02-B - operator标记细分已复核，后端核验与DP验证待执行（S02-C正式baseline待执行）
 step_status: in_progress
-summary: 汇总资源验证与开发集抽样诊断的分析结果和决定；数据集构建已人工确认，单卡batch扫描及五阶段profile已完成，瓶颈细分、DP验证与正式baseline待执行。
+summary: 汇总资源验证与开发诊断；新增云端operator标记细分的本地复算，batch收益主要来自decode摊销；后端与标记边界核验、DP及正式baseline待执行。
 sources:
   - 02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验附录.md
   - 02_Projects/AI-Career-Transition/00_规划/Qwen3.5-9B睁闭眼分类微调与部署实验方案.md
@@ -15,7 +15,7 @@ risks:
   - 依赖导入和权重文件检查不能替代GPU推理、训练或服务验证。
   - 权重头部检查不校验全部payload，也不能代替模型revision和完整文件hash。
 single_pass_recoverable: false
-updated_at: 2026-10-13
+updated_at: 2026-10-16
 ---
 
 # 1 Qwen3.5-9B驾驶员眼睛检测与状态分类实验记录
@@ -32,7 +32,7 @@ updated_at: 2026-10-13
 | --- | ------------------------------ | ------------------------------------- |
 | S01 | 9B BF16整图推理/LoRA是否适合现有GPU及输入预算 | partial；推理链路和解析可用，LoRA完整更新/资源待测       |
 | S02-A | 开发集抽样诊断：链路可用性和错误线索 | user_reported；原始数据抽样40图，非正式baseline |
-| S02-B | batch size与DP推理实验：确定全量推理执行方式 | in_progress；单卡扫描与五阶段profile完成，瓶颈细分与DP验证待执行 |
+| S02-B | batch size与DP推理实验：确定全量推理执行方式 | in_progress；operator标记细分已复核，后端/边界核验及DP验证待执行 |
 | S02-C | 正式baseline：完整验证集推理与错误归因 | pending_S02-B；数据集已构建，全量结果待执行 |
 | S03 | 针对性训练是否有效；单卡更新与恢复是否正确 | pending_baseline；GT SFT＋语言LoRA保留为候选，质量训练尚未执行 |
 | S04 | 双卡DDP是否保持目标一致，加速是否值得成本         | not_started                           |
@@ -162,6 +162,8 @@ M_KV = L_full × 2 × B × S × n_kv × d_head × b_kv
 
 #### 1.4.5.2 S02-B：batch size与DP推理实验
 
+以下为截至2026-10-13的单卡扫描记录；新增operator分析与当前下一步见1.4.5.2.1，原测量和当时判断保留。
+
 数据集构建前置条件已人工确认通过。已获得云端单卡benchmark与五阶段profile实测。关键原始数据和统计口径完整保存在[[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验附录#1.7 单卡batch与profile测量]]，无需打开本地结果目录或截图。
 
 **实验统计。** 从5210张验证图中固定随机抽取128张，两种模式使用同一清单。Qwen3.5-9B BF16、单卡GPU 0，扫描B=1/2/4/8/16/32；benchmark每档预热2批、重复3轮，全部生成完成且无生成上限触顶。B1吞吐0.4647图/s，B16为0.9333图/s，B32为0.9569图/s。后两档峰值allocated为34.04/50.54GiB，峰值reserved为42.73/67.85GiB。这里统计生成效率，尚未评估输出协议通过率和GT精度。
@@ -179,6 +181,43 @@ M_KV = L_full × 2 × B × S × n_kv × d_head × b_kv
 3. 选定配置后进入S02-C全量验证。训练资源另在S01完整更新中测forward/backward/optimizer step及首次、稳定更新；若需解释训练峰值，再增加参数、梯度、优化器状态与activation的显存时间线，无法可靠分类的分配保留为未知。
 
 沿用效率实验随机采样、不要求场景覆盖、不计算GT精度、测试集不用于选参的边界。本次是既定S02-B内的结果回写与诊断细化，未改变任务、评测合同或验收条件，不修改实验方案。
+
+
+##### 1.4.5.2.1 operator细分补充
+
+**结论：当前证据支持batch主要摊薄语言decode的每图成本；视觉编码和语言prefill耗时较长，每图标记耗时未随batch增大明显下降；B16之后的独立benchmark吞吐收益也很小。** 当前定位到阶段成本及其变化趋势，尚未确定这些阶段无法摊薄成本的算子或硬件根因。
+
+精确字段、口径与覆盖见[[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验附录#1.9 2026-10-16整理：独立operator阶段归因]]。吞吐沿用附录1.7.2的独立benchmark，operator与旧五阶段profile分开解释。
+
+| Batch | benchmark图/s | vision ms/图 | language prefill ms/图 | language decode ms/图 |
+|---:|---:|---:|---:|---:|
+| 1 | 0.464702 | 402.6 | 382.2 | 1855.1 |
+| 2 | 0.615780 | 409.7 | 385.9 | 892.8 |
+| 4 | 0.757113 | 414.4 | 389.8 | 465.8 |
+| 8 | 0.859117 | 419.8 | 392.1 | 223.0 |
+| 16 | 0.933282 | 427.5 | 396.7 | 123.2 |
+| 32 | 0.956870 | 433.2 | 401.0 | 71.7 |
+
+**为何B1→B16约两倍。** 无profiler吞吐提高2.0083倍；operator的decode每图标记耗时1855.1→123.2ms，下降约93.4%，而vision 402.6→427.5ms、prefill 382.2→396.7ms，未观察到每图加速。每图输入均4781 tokens，较长首轮输入与每步少量新token的工作量不同，与prefill摊销收益小的解释一致；输入长度本身不证明计算资源饱和。
+
+可用“每图成本≈视觉/首轮输入处理成本＋被batch摊薄的decode成本＋其他开销”理解趋势。这是定性模型，decode每批成本也随batch和生成步数变化，不应视为常数；不能据此拟合benchmark或推算绝对吞吐上限。
+
+**为何B32收益小。** vision与prefill标记之和占generate标记区间由B16的86.0%升至B32的91.4%。B16→B32，vision每批约6.84→13.86秒、prefill 6.35→12.83秒，均近似翻倍；decode只由1.97→2.29秒。每图decode节省约51.4ms，但其占比已小，独立benchmark仅提高2.53%。processor每图墙钟增加约9.4ms只作旁证，不能与设备标记拼成严格端到端归因。B32生成步数较长，尾部等待有线索，贡献尚未隔离。
+
+**视觉attention实现线索。** 指定PyTorch flash_fwd kernel在3批内调用81/162/324/648/1296/2592次，每图均27次，未观察到调用次数的跨图摊薄。官方Transformers5.2.0视觉attention的非专用FlashAttention分支按累计序列边界切分后逐片段调用，专用分支传入变长信息，依据见[[04_Sources/模型工程/2026-09-15_Qwen3.5与DDP微调部署来源证据卡#2026-10-16 视觉attention后端分支核对]]。计数与逐图序列调用解释相符；但工件未记录实际vision/text后端，缺采集脚本和时间线，因此仍是待核验路径，不断言整个视觉编码器逐图执行。底层FlashAttention kernel与框架的变长FlashAttention后端必须区分。
+
+逐片段调用不等于不能并行：单次kernel内部仍可并行，调用次数也不能说明GPU资源利用程度。当前无法判断主要限制来自attention调用组织、GEMM或attention的计算吞吐、显存带宽，还是CPU提交与GPU执行间隙；这些因素也可能同时存在。因此不能将阶段耗时归因为“FlashAttention设计导致不能并行”，也不能断言SM已限制GEMM等算子的运算。
+
+**证据边界。** 各档3批覆盖不同数量的样本清单前缀，不是同样本配对对照；形状、回答长度和profiler扰动仍可能影响差异。CPU/GPU存在同名标记，本表只取设备行，标记边界与嵌套尚未独立确认。没有算力/带宽计数，不确认compute-bound、memory-bound或TP收益；不评价GT精度、训练容量或后端替换质量。
+
+**下一步与采用条件：**
+
+1. 轻量核验云端模型/安装源码身份、vision/text实际后端及阶段标记位置，确认prefill是否含视觉或logits。若比较后端，固定同一完整样本集合、图像网格、解码和生成上限，分开采普通benchmark和短operator窗口，并检查输出、解析与任务质量容差；调用减少不等于已加速，后端替换后的加速也不能单独证明原瓶颈来自逐图调用。
+2. 每卡B16继续作为DP优先候选，比较1/2/4卡同一全局清单的完成时间、去重覆盖、各卡资源及CPU/I/O。DP与后端研究可独立推进，不要求先完成后端替换；按实测收益与正确性确定配置，不同后端保留各自单卡基线。
+3. 根因诊断先采vision/prefill的GPU时间线，观察主要GEMM、attention kernel及其间隙，结合CPU提交、同步与数据传输定位等待；再对热点kernel采计算吞吐、显存带宽和相关硬件指标，结合算子形状及设备能力判断资源限制。SM利用率或occupancy不能单独证明compute-bound。需要决定TP时，以这些证据和实际对照结果判断，不能只按闲置显存或kernel累计时间选择并行方式。配置确定后进入S02-C，训练容量仍单独验证。
+
+**进度衔接。** 本节更新原1.4.5.2截至2026-10-13的“瓶颈细分待执行”：已取得云端operator标记细分并完成本地复算，边界、后端和硬件根因仍待核验。原轮指标和当时安排保留，当前下一步以本节为准；DP和S02-C未完成，B16仍是候选。
+
 
 #### 1.4.5.3 S02-C：正式baseline阶段
 
