@@ -5,7 +5,7 @@ project: AI-Career-Transition
 summary: 按实验主题保存运行条件、关键原始测量、输出示例与验证范围；分析结论见实验记录。
 scope: Qwen3.5-9B实验的关键数据、测量口径和验证边界；正文独立承载比较所需信息。
 single_pass_recoverable: false
-updated_at: 2026-10-13
+updated_at: 2026-10-18
 ---
 
 # 1 Qwen3.5-9B睁闭眼分类微调与部署实验附录
@@ -340,6 +340,115 @@ decode标记次数182→186与生成步数增加方向一致，尾部等待的�
 
 ### 1.9.3 验证范围与限制
 
+以下为2026-10-16核验范围；2026-10-18的trace及当前代码复核见1.10，接续本节时间线/标记缺口，原运行数据与当时状态保留。
+
 关键运行条件、原始标记累计值、归一化公式、样本覆盖与生成步数已内嵌正文；本文不保存原文件hash或本地绝对路径。代理完成了所提供结果的读取与复算，未独立复现云端GPU运行。
 
 未解决项：标记实现/时间线、云端vision/text实际后端及源码身份、后端切换质量回归、硬件计数、DP与正式baseline。1.7.5的“尚未拆分”限于旧轮，本节提供新增标记细分，不回写旧运行状态。
+
+
+## 1.10 2026-10-18整理：trace调用关联与执行区间
+
+本节复核1.9同一批云端operator工件中的B1、B16、B32 trace，日期为分析整理日期，不推定运行日期；没有新增GPU运行。数据与方法保存在本节，分析及下一步见[[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录#1.4.5.2.2 trace深入分析与后续判断]]。本节接续1.9.3的时间线/标记核验缺口；云端源码身份、实际后端及硬件根因仍待验证。
+
+### 1.10.1 测量对象、条件与统计方法
+
+来源为用户提供的云端operator运行副本：`config.json`、各档`rank0/result.json`、`operators.json`及`trace.json`；标记实现另核对当前`s02_sample_eval.py`和`experiment_profiler.py`。关键字段与复算结果内嵌本文，不依赖本地绝对路径或临时分析报告，不保存原文件hash。
+
+| 字段 | 本次覆盖 |
+|---|---|
+| 运行环境 | RTX PRO 5000 72GB，110 SM；PyTorch 2.10.0+cu128，CUDA 12.8，Transformers 5.2.0 |
+| 输入与采集 | 候选清单128图，sample_seed=20261008；各档预热2批，采集3批；B1/B16/B32分别覆盖3/48/96图，是清单不同长度前缀，不是同样本配对实验 |
+| 生成 | 每图输入4781 tokens；greedy，max_new_tokens=256；沿用1.9已核对的输出61/63 tokens及生成步数 |
+| profiler | CPU/CUDA活动，record_shapes=true，profile_memory=true，with_stack=false；归因窗口与无profiler benchmark分离 |
+| 证据角色 | trace用于阶段区间、算子形状、调用次数、kernel启动配置与提交关联；operators用于累计量交叉核对；无profiler吞吐沿用1.7.2，不用trace重算稳定吞吐 |
+
+复算步骤：
+
+1. 按`cat=gpu_user_annotation`及`experiment/vision`、`experiment/language_prefill`、`experiment/language_decode`取得GPU阶段区间；CPU同名`user_annotation`不混入设备耗时。
+2. 将时间上完整落在阶段内的`kernel`、`gpu_memcpy`、`gpu_memset`归入该阶段；端点容差1µs。计算这些活动区间的并集，避免重叠重复累加。所统计活动均位于stream 7；多stream或异步跨阶段的其他运行必须重新检查归属。
+3. 以`External id`关联GPU kernel和CPU算子的`Input Dims`；以`correlation`关联CUDA runtime/driver提交。kernel名称、grid、block、输入形状共同定义代表性分组，同形状但不同kernel/grid不强行合并。
+4. 以阶段总区间减去活动并集取得未覆盖间隙；“下一次launch晚于前一GPU活动结束”的间隙仅作为主机提交线索，不直接归因为Python、驱动或同步中的某一项。
+5. 每图ms=3批累计µs÷实际图片数÷1000；每次ms=分组累计µs÷分组次数÷1000；覆盖率=活动并集时长÷阶段区间时长。矩阵乘逻辑吞吐=`2MNK÷单次秒数÷10^12`，不等于硬件峰值利用率。
+
+### 1.10.2 阶段标记实现核对
+
+当前代码在`run_operator`的`operators.capture()`内进入`generation_operator_regions(model, operators)`，注册forward前后的hook，覆盖采集窗口内的`model.generate()`；退出后移除hook。`before`读取模块身份、输入形状和缓存长度，不分析中间特征数值；`after`关闭区间。`OperatorProfiler.region`通过`torch.profiler.record_function`记录名称。
+
+| 模块/条件 | 标记 |
+|---|---|
+| `model.visual` | `experiment/vision` |
+| `model.language_model`，缓存长度为0 | `experiment/language_prefill` |
+| `model.language_model`，已有缓存且输入长度为1 | `experiment/language_decode` |
+| `lm_head`，沿用最近的语言阶段 | `experiment/prefill_logits`或`experiment/decode_logits` |
+
+当前实现将视觉、语言主干与输出投影分开；已有缓存的多token语言调用不在该分类合同内，会报错。CPU阶段条是主机调用区间，GPU阶段条对应设备活动区间；CPU上的同步等待不能与GPU耗时重复累加。代码语义与trace名称、次数相符，但当前本地代码不等于已证明与云端运行版本逐字一致，也不单独证明云端vision/text实际attention后端。
+
+### 1.10.3 GPU阶段区间、活动覆盖与间隙
+
+下表均为每图摊销ms，不是单请求延迟；覆盖率为时间覆盖率，不是SM/Tensor Core利用率。
+
+| Batch | 阶段 | 区间ms/图 | GPU活动ms/图 | 间隙ms/图 | 活动覆盖率 |
+|---:|---|---:|---:|---:|---:|
+| 1 | vision | 402.638 | 391.250 | 11.388 | 97.172% |
+| 1 | language_prefill | 382.238 | 378.930 | 3.308 | 99.135% |
+| 1 | language_decode | 1855.121 | 863.530 | 991.591 | 46.548% |
+| 16 | vision | 427.532 | 419.122 | 8.409 | 98.033% |
+| 16 | language_prefill | 396.667 | 396.444 | 0.223 | 99.944% |
+| 16 | language_decode | 123.165 | 88.329 | 34.836 | 71.716% |
+| 32 | vision | 433.162 | 424.790 | 8.373 | 98.067% |
+| 32 | language_prefill | 400.957 | 400.822 | 0.135 | 99.966% |
+| 32 | language_decode | 71.717 | 61.739 | 9.978 | 86.087% |
+
+复算阶段区间与1.9设备标记累计量的每图结果一致至0.001ms内。decode未覆盖间隙中，下一活动的launch在前一GPU活动结束后才开始的间隙时长占比，B1/B16/B32分别为92.28%/80.41%/53.44%；这是时间关联，不是独立测量的CPU瓶颈贡献，亦不排除profiler扰动。
+
+### 1.10.4 视觉attention的输入形状与调用
+
+代表性kernel为`pytorch_flash::flash_fwd_kernel<Flash_fwd_kernel_traits<96,128,64,4,...>>`，关联CPU算子为`aten::_flash_attention_forward`。三档Q/K/V各自形状均为`[1,18144,16,72]`，grid均为`[142,1,16]`，block均为`[128,1,1]`。18144是该attention输入序列维度，不混同语言输入的4781 tokens。
+
+| Batch | 3批调用次数 | 每图次数 | 平均ms/次 | 累计ms/图 | 占vision区间 |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 81 | 27 | 8.956379 | 241.822 | 60.06% |
+| 16 | 1296 | 27 | 9.209086 | 248.645 | 58.16% |
+| 32 | 2592 | 27 | 9.330335 | 251.919 | 58.16% |
+
+每次grid包含2272个block；对应活动在同一stream上执行，未观察到这些调用跨stream重叠。视觉编码器其他算子并非同样组织：例如同一`aten::addmm`分组的输入矩阵由B1的`[18144,4304]`变为B16的`[290304,4304]`，权重为`[4304,1152]`，两档均调用81次。不能把视觉attention的调用方式推广到整个视觉编码器。
+
+### 1.10.5 Prefill与decode的同类投影对照
+
+以下均选择权重`[4096,12288]`的代表性分组；次数是同kernel、同grid和同形状分组的次数，不声称覆盖所有同形状投影。
+
+Prefill关联`aten::mm`，kernel为`cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_256x128_32x3_tn_align8`，block为`[256,1,1]`。
+
+| Batch | 输入矩阵 | grid | 3批次数 | 平均ms/次 | 逻辑TFLOP/s |
+|---:|---|---|---:|---:|---:|
+| 1 | `[4781,4096]` | `[304,6,1]` | 192 | 1.967952 | 244.55 |
+| 16 | `[76496,4096]` | `[4784,6,1]` | 192 | 31.613088 | 243.58 |
+| 32 | `[152992,4096]` | `[9568,6,1]` | 192 | 64.444370 | 238.98 |
+
+整个prefill中上述kernel名称对应的全部形状分组合计均600次，每图累计278.222/272.990/276.831ms，分别占prefill区间72.79%/68.82%/69.04%；不能与表中单一形状分组的192次混用。
+
+Decode关联的同类`aten::mm`分组：
+
+| Batch | 输入矩阵 | kernel类型/特征 | grid | block | 3批次数 | 平均µs/次 |
+|---:|---|---|---|---|---:|---:|
+| 1 | `[1,4096]` | `internal::gemvx::kernel`，GEMV | `[3072,1,1]` | `[32,4,1]` | 11520 | 84.532 |
+| 16 | `[16,4096]` | `cutlass_80_wmma_tensorop_bf16_s161616gemm_bf16_16x16_128x2_tn_align8` | `[8,96,1]` | `[32,1,1]` | 11648 | 100.718 |
+| 32 | `[32,4096]` | `cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x128_32x4_tn_align8` | `[8,12,1]` | `[128,1,1]` | 11903 | 104.166 |
+
+### 1.10.6 资源配置与推导边界
+
+trace设备字段：110 SM，每SM最大1536线程、65536个32位寄存器、102400 bytes共享内存。以下是启动元数据及由此计算的资源上限，不是硬件计数器实测。
+
+| 热点kernel | 线程/block | 寄存器/线程 | 共享内存/block | 按资源计算的block/SM上限 | 对应驻留线程比例上限 |
+|---|---:|---:|---:|---:|---:|
+| 视觉attention | 128 | 255 | 49152 bytes | 2 | 256/1536≈16.7% |
+| 上述prefill GEMM | 256 | 232 | 73728 bytes | 1 | 256/1536≈16.7% |
+
+计算取`floor(65536/(寄存器/线程×线程/block))`、`floor(102400/共享内存/block)`和线程上限中的较小值；寄存器分配粒度、实际共享内存配置、调度及其他限制可能进一步降低实际驻留。该上限不能当作实测occupancy，更不能据此判定GPU仅使用16.7%算力、存在spill或提高occupancy一定加速。
+
+### 1.10.7 有效性与失效条件
+
+本轮完成三档trace解析、调用关联、形状/启动配置核对和时间复算，未重跑云端GPU、未切换后端、未采硬件计数。无profiler吞吐仍取1.7.2，B1→B16为2.0083倍，B16→B32为2.5274%；后者描述收益较小，未做显著性检验。
+
+不同档位样本前缀、生成步数及profiler扰动限制因果解释。CPU同步等待、GPU标记和kernel时间可能覆盖同一工作，不相加；当前代码与云端源码身份仍未闭合。若标记跨stream、异步跨阶段、关联ID缺失、形状变化或采集丢失，应重新检查归属，不能沿用本次统计。模型、输入预算、后端、生成合同或硬件改变后，重新验证受影响结论。硬件瓶颈、后端收益、质量回归、DP、正式baseline和训练容量均未因此通过验证。
