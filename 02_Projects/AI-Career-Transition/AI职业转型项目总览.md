@@ -108,6 +108,7 @@ DMS/OMS 视觉感知与端侧部署项目基础
 - 当前跨阶段实验方案：[[02_Projects/AI-Career-Transition/00_规划/Qwen3.5-9B睁闭眼分类微调与部署实验方案]]（planned；整图眼睛检测＋状态，画面左右按框中心x排序，9B为部署目标/学生）。
 
 - 主学习方案：[[02_Projects/AI-Career-Transition/00_规划/AI职业转型整体学习方案]]
+- VLM实验共同写作约定：[[02_Projects/AI-Career-Transition/00_规划/学习文档维护规范#1.8 VLM实验文档的解释与写作约定（2026-10-18）|VLM实验文档写作约定]]（覆盖基线、诊断、微调、性能和部署；按问题连接数据、解释与决定）。
 - 学习文档维护规范：[[02_Projects/AI-Career-Transition/00_规划/学习文档维护规范]]
 - 学习文档索引：[[02_Projects/AI-Career-Transition/10_学习文档/学习文档索引]]
 - 当前阶段固定检查点：[[02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点]]
