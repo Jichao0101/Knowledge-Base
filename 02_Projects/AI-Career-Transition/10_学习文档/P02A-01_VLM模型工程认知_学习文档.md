@@ -23,7 +23,7 @@ risks:
   - 本阶段建立认知，不代表已经运行 SFT、掌握集群调优或具备 kernel 开发能力。
   - 外部材料面向特定 LLM/硬件；迁移到 VLM、T4 或 OMS 前必须重新核对架构、shape、版本和 profile。
   - 是否执行 SFT 仍取决于任务合同、合法数据、基线、错误分类和资源预算。
-updated_at: 2026-10-18
+updated_at: 2026-10-19
 ---
 
 # 1 Phase 2-A VLM 模型工程认知学习文档
@@ -510,18 +510,66 @@ pixel_values虽为浮点数，但尚未经过可学习视觉变换，因此不�
 
 ### 1.6.1 一次模型调用如何落到kernel
 
+**算子定义做什么，CUDA kernel提供在设备上执行计算的具体程序实现。** Kernel与模型模块或框架算子不存在永久的一一绑定关系：一次算子调用可能启动多个kernel，多个算子也可能融合执行；某些布局操作只修改元数据，不必启动GPU计算。
+
+还需区分三个对象：
+
+| 对象 | 表示什么 | 比较时要看什么 |
+|---|---|---|
+| 框架算子 | 矩阵乘、归一化、复制等操作及其语义 | 输入输出、shape、dtype、布局 |
+| Kernel实现 | 具体设备程序，例如某种GEMM实现 | 算法、tile、指令路径和资源需求 |
+| 一次kernel launch | 用具体参数和启动配置执行该程序的一次调用 | 参数、grid、block、动态共享内存、stream及执行时间 |
+
+同一个kernel实现可以反复启动，各次输入、启动配置和执行时间可以不同。反过来，相同算子在不同shape、dtype、布局、硬件或后端下，也可能选择不同kernel。因此，trace中的kernel活动条表示一次具体执行，不是与某个模型层永久绑定的对象。
+
+下面是常规eager CUDA路径中一次Linear调用的示意；编译、融合和其他后端可能改变具体路径：
+
 ```text
-模型的一次调用
-→ 模块：Linear、attention等
-→ 框架算子：矩阵乘、转置、归一化、复制等
-→ 选择实现：库函数、融合路径或生成代码
-→ 启动一个或多个CUDA kernel
-→ 每个kernel的blocks在SM上驻留、执行和完成
+模型调用：linear(x)
+  │ nn.Module调用机制进入forward
+  ▼
+框架算子：aten::linear
+  │ Dispatcher按dispatch keys及调用上下文分派
+  ▼
+注册的算子实现
+  ├─ 检查形状，处理元数据与布局
+  └─ 可能进一步调用addmm / matmul / mm等算子
+       │ 后端与计算库依据输入和设备条件选择实现
+       ▼
+一个或多个CUDA kernel实现
+  │ 使用具体参数和启动配置，向指定stream提交工作
+  ▼
+每次kernel launch的grid
+  └─ 多个blocks，每个block包含多个warps
+       │ 按资源约束安排驻留
+       ▼
+SM上的resident warps
+  → 依赖满足的eligible / ready warps
+  → Warp Scheduler选择并发射指令
+  → CUDA Core / Tensor Core / Load-Store等执行资源
 ```
 
-这些层级不是一一对应。带bias的Linear可能进入一个融合矩阵算子，也可能产生额外操作；一个attention模块还可能包含投影、布局变换、attention计算和输出投影。同一个框架算子可以启动多个kernel，融合也可以把多个操作放进一次kernel。某些布局操作只是修改元数据，不必启动GPU计算。
+Dispatcher选择注册的算子实现，与计算库选择具体GEMM算法/kernel是不同层次。带bias的Linear可能使用融合矩阵操作，也可能产生额外操作；attention模块还包含投影、布局变换和输出投影等步骤。
 
-因此，看到十个trace事件不代表模型执行了十层。比较时先确认事件层级：模块用于理解任务阶段，框架算子用于理解数学与张量操作，kernel用于理解设备上的实际执行。框架或计算库会依据shape、dtype、布局、设备及可用实现选择路径；相同算子名称并不保证相同kernel。
+CUDA C++的启动语法可用来理解一次launch携带的信息：
+
+```cpp
+kernel<<<gridDim, blockDim, dynamicSharedMemBytes, stream>>>(arguments);
+```
+
+`gridDim`是block的数量与布局，`blockDim`是每个block的线程布局，第三个参数是本次启动的动态共享内存字节数。调用计算库时，启动通常由库内部组织，不要求模型代码显式写出这段语法。
+
+Stream表达工作顺序与依赖，是软件抽象，不是独占一组SM的硬件容器。同一stream上的kernel顺序执行，不妨碍单个kernel内部的blocks并行；grid中的blocks映射到SM
+
+| 执行层次 | trace或其他证据通常能看到什么 |
+|---|---|
+| 模型模块与阶段 | 注册的hook或用户区间标记；未标记时不保证出现模块名称 |
+| 框架算子 | CPU算子事件，按采集设置记录输入shape等信息 |
+| CUDA提交 | Runtime/Driver API事件及其关联信息 |
+| 具体设备执行 | kernel活动名称、时间及可用的grid/block等启动元数据 |
+| SM内部推进 | 驻留、就绪、指令发射与计算/存储吞吐通常还需硬件指标分析 |
+
+因此，十个trace事件不代表十个模型层，相同kernel名称也不保证相同工作量。先识别事件层级，再通过关联信息、shape和启动配置比较执行；时间口径与归属方法见11.4。
 
 ### 1.6.2 同一个线性层：prefill与decode改变的是哪一维
 
