@@ -1552,9 +1552,34 @@ CPU耗时最长的API可能只是在等待此前提交的工作；累计kernel�
 
 `record_function("phase")`一类标记给代码区间命名。模块hook可在forward前后打开和关闭标记，但hook需要由代码注册；profiler不会自动理解“这就是prefill”。prefill/decode的区分应由明确运行条件决定，例如缓存状态与本次输入长度；自定义标记还要说明是否包括视觉、输出投影或同步。
 
-CPU算子事件描述框架主机侧调用；CUDA API事件描述主机与CUDA接口交互；GPU活动描述实际kernel、copy或memset。分析时先找到目标CPU算子，结合profiler提供的关联信息追踪它提交的GPU工作，再检查输入shape及kernel配置。PyTorch/Kineto常见`External id`和`correlation`等字段，Nsight Systems也提供API与GPU活动的关联视图；字段名称、作用域和一对多关系应按工具版本核对，不把它们当成全局唯一的统一格式。
+CPU算子事件描述框架主机侧调用；CUDA API事件描述主机与CUDA接口交互；GPU活动描述实际kernel、copy或memset。分析时先找到目标CPU算子，结合profiler提供的关联信息追踪它提交的GPU工作，再检查输入shape及kernel配置。PyTorch/Kineto常见`External id`和`correlation`等字段，Nsight Systems也提供API与GPU活动的关联视图。
 
-只有CPU标记并不意味着其起止时间就是GPU执行边界。若工具导出同名设备标记，也应核对生成方式和包含范围。单stream受控运行中，时间包含关系可以辅助归属；多stream、异步跨阶段或关联缺失时，只靠“位于这个时间段”可能把无关工作算进去，无法确认的部分应保留未归属。
+判断模型阶段与归属GPU工作是两个步骤：
+
+```text
+第一步：确定模型语义
+模块位置、输入shape、KV cache状态等运行条件
+→ 判断当前属于vision、prefill还是decode
+→ 在对应CPU代码区间建立阶段标记
+
+第二步：追踪异步执行
+阶段内的CPU算子
+→ 对应的CUDA launch/API
+→ 通过trace关联信息找到GPU kernel
+→ 将该kernel归属到启动它的模型阶段
+```
+
+shape和cache状态用于解释模型当前在做什么；不能仅凭这些特征替代CPU提交与GPU活动之间的关联链。
+
+**异步执行反例。** 以下时间为教学假设：
+
+| 事件 | 时间区间 | 已知关联 |
+|---|---|---|
+| CPU的vision阶段标记 | 0～3 ms | 内部算子提交了kernel K |
+| CPU的prefill阶段标记 | 3～6 ms | 主机已开始处理下一阶段 |
+| GPU上的kernel K | 4～5 ms | 关联信息指向vision内的提交 |
+
+K应归属vision，尽管它执行时CPU已进入prefill。CPU标记描述主机执行区间，GPU工作可能延后执行；按时间重叠划分会把K误归入prefill。若关联信息缺失，仅凭时间或shape只能提出归属假设，不能当作已确认的阶段统计。
 
 ### 11.4.5 同一段执行的不同时间口径
 
