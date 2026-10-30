@@ -2,7 +2,7 @@
 type: vault_entry
 status: active
 scope: 知识库顶层导航；只负责入口分流，不作为具体主题真相源。
-updated_at: 2026-08-24
+updated_at: 2026-10-30
 ---
 
 # 1 知识库总入口
@@ -45,6 +45,7 @@ updated_at: 2026-08-24
 | CVAT | [[02_Projects/cvat/CVAT云端部署项目总览_current]] | CVAT 云端标注平台部署、Docker Compose 架构、NAS 数据层、训练平台模型任务输出和人工复核流程 |
 | AI Career Transition | [[02_Projects/AI-Career-Transition/AI职业转型项目总览]] | 结合知识库已有 DMS、端侧部署和 Agent 工程项目，向多模态 AI、VLM、Agent Systems、ML Systems 和端云协同迁移的长期学习项目 |
 | OMS Demo | [[02_Projects/oms_demo/OMS Demo项目总览]] | 高通 8775 端侧 OMS 的持续 CNN 感知、时序语义状态与事件驱动小型 LLM 推理方案 |
+| VLM部署 | [[02_Projects/VLM部署/VLM部署项目总览]] | VLM量化、图适配、编译与设备验证的学习项目；首个案例为Qwen3.5/Qualcomm HTP，当前仅完成静态分析与学习框架 |
 
 ## 1.4 入口说明
 

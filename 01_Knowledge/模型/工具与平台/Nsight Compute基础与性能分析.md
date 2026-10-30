@@ -10,7 +10,7 @@ sources:
 updated_at: 2026-10-27
 ---
 
-# Nsight Compute基础与性能分析
+# 1 Nsight Compute基础与性能分析
 
 正文已独立到[[01_Knowledge/性能分析/性能分析总览]]，不在模型工具目录重复维护。
 
