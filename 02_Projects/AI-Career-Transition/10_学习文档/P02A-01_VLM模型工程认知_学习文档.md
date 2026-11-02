@@ -174,23 +174,29 @@ Occupancy需要区分两种口径：**theoretical occupancy**是给定kernel启�
 
 定义澄清：此前“Occupancy描述理论上可驻留比例”的表述仅覆盖theoretical occupancy，本段以理论/实际两种口径替代该泛称；修订依据及原表述的适用范围见[[04_Sources/模型工程/2026-09-15_Qwen3.5与DDP微调部署来源证据卡#2026-10-18 GPU执行与性能证据的教学桥接]]。
 
-### 1.3.8 Memory hierarchy：数据离执行单元有多远
+### 1.3.8 Memory hierarchy：芯片、SM与数据移动
 
-GPU 的存储层级可先按“越靠近计算单元，通常容量越小、访问越快”理解：
+理解存储层级，需要同时看清硬件位置和数据由谁搬运。下面以常见独立式NVIDIA GPU为例，沿“CPU提交任务→GPU安排执行→SM访问数据→结果交给后续使用者”展开。图中紫色虚线表示提交与调度，蓝绿色实线表示数据访问连接；实线不是每次访存必须经过的固定路线。
 
-```text
-每线程 registers
-→ 每个 SM 的 shared memory / L1
-→ GPU 共享 L2
-→ global-memory address space，通常由 device HBM 承载
-→ host memory 或远端设备
-```
+![GPU逻辑芯片边界、多个SM及片上存储与设备显存的关系](assets/P02A-01/gpu-memory-sm.png)
 
-![Ultra-Scale Playbook 中 SM、register/shared/L1、L2 与 global memory 的层级关系](assets/P02A-01/ultrascale-gpu-memory-hierarchy.png)
+**片上存储分布在哪里。** 图中的“片上”以GPU逻辑芯片为边界。芯片内部有多个同类SM，每个SM拥有寄存器文件、L1 cache和shared memory资源；多个SM通过片上互连访问L2 cache。GDDR或HBM是设备侧DRAM，位于GPU逻辑芯片之外；HBM可以与GPU处于同一封装中。CPU侧的系统DRAM则是主机内存。因此，片上存储是分布在不同位置、承担不同职责的存储资源，而非一个统一的大SRAM池。
 
-Registers 是 thread 私有、低延迟但数量有限的存储资源；单个 thread 使用过多 registers 会降低一个 SM 能同时驻留的 warps，极端情况下还可能发生 register spilling。Shared memory 和 L1 都位于 SM 附近，但职责不同：shared memory 由程序按 block 分配和显式协作访问，L1 cache 主要由硬件管理。L2 服务整个 GPU；global memory 是 CUDA 地址空间，离芯片执行单元较远的主要数据通常物理存放在 HBM。HBM 具有很高的总体 bandwidth，但单次访问 latency 仍显著高于片上存储。
+Registers保存线程的操作数、累加值和执行状态，访问快但容量有限。Shared memory是程序显式使用的协作工作区，通常按block分配；L1和L2主要由硬件管理，用于缓存访问的数据。现代架构的L1与shared memory可以共享部分物理存储资源，但两者的管理方式不同。沿“寄存器→SM本地存储→L2→设备显存”观察，通常越靠近执行单元，容量越小、访问越快。寄存器用量还会影响SM的驻留容量；寄存器不足时可能出现spill。
 
-实际 cache 结构、shared/L1 配置、容量和带宽依赖 GPU 架构。图中的 H100 容量和带宽只是具体示例，不能直接作为其他 GPU 的参数。
+**任务怎样进入SM。** CPU运行应用、框架和CUDA Runtime/Driver，提交包含grid、block、stream等配置的kernel启动请求。GPU硬件根据资源条件将blocks安排到SM，SM内部的warp scheduler再选择就绪warp，将指令发射到CUDA Cores、Tensor Cores或load/store units等执行资源。多个SM承担不同blocks的工作，而算术、矩阵运算和访存在每个SM内部由不同功能的执行单元完成。Block驻留和warp发射的详细关系见1.3.5。
+
+**数据移动发生在哪两个范围。** 主机内存与设备显存之间的传输，由应用通过CUDA接口提出请求，通常通过互连与DMA/拷贝机制完成。GPU开始执行kernel后，设备显存与片上存储之间的访问则由GPU加载、存储或异步拷贝指令触发。前者把输入送到设备或将结果交给主机，后者为正在执行的GPU计算提供数据。
+
+这里的global memory是CUDA地址空间概念；在本图的常见设备内存场景中，其主要数据由GDDR或HBM承载。设备显存有很高的总体带宽，但访问延迟通常明显高于片上存储，因此程序会利用缓存和显式分块来复用数据。
+
+**缓存与shared memory怎样参与计算。** 普通global-memory读取通过GPU存储系统把操作数送入寄存器；缓存命中时，数据可由片上缓存提供，实际经过哪些层级取决于指令、缓存策略和架构。程序若需要block内协作复用数据，还可以把一块数据暂存到shared memory，再由线程反复读取。例如分块矩阵乘法会让同一tile参与多次计算，具体过程见1.3.10。
+
+因此，L1与shared memory是不同用途的存储资源：缓存自动保留访问的数据，shared memory让程序主动组织数据复用。把数据送入shared memory可使用普通加载与存储，也可使用架构支持的异步拷贝路径；“L2→L1→shared memory”并非统一的必经顺序。
+
+**结果由谁继续使用。** 计算期间，累加结果可以留在寄存器，block协作的中间值可以放在shared memory。需要跨kernel保留的结果通常写入global memory，供后续kernel继续读取。只有主机需要使用结果时，才安排设备到主机的传输。因此，一次模型推理中的许多kernel可以连续消费设备侧数据，回传发生在需要交付主机结果的位置。
+
+本图用于解释常见独立式GPU的结构关系，省略了GPC、内存控制器和具体缓存策略；容量、带宽以及L1/shared划分按实际架构核对。原有[Ultra-Scale Playbook H100层级图](assets/P02A-01/ultrascale-gpu-memory-hierarchy.png)可作为具体容量示例。新图的[可编辑SVG](assets/P02A-01/gpu-memory-sm.svg)与PNG一并保存。官方依据见[[04_Sources/模型工程/2026-09-15_Qwen3.5与DDP微调部署来源证据卡#1.8 2026-11-02 GPU芯片边界与数据移动示意]]。
 
 ### 1.3.9 Locality、coalescing 与 control divergence
 
