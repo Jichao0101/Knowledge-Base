@@ -3,7 +3,7 @@ type: project_entry
 status: active
 project: DMS
 scope: DMS 项目区模块入口索引；只负责导航和内容简介，不替代各模块 current 文档。
-updated_at: 2026-08-25
+updated_at: 2026-11-03
 ---
 
 # 1 DMS 项目总览
@@ -48,3 +48,9 @@ DMS current 覆盖情况、模块索引状态和待修复项记录在 [[02_Proje
 - 历史方案、superseded lambda 路线、整体架构评审和每步验证命令详见 `02_Projects/DMS/04_Tracking/Current Maintenance Records/` 与 `02_Projects/DMS/04_Tracking/subpower_runs/`。
 - SDK Integration 当前补充记录：[[02_Projects/DMS/06_SDK_Integration/DMS回灌方案]] 记录 `start_stage=model` 已实现的模型阶段回灌路径，以及 README 中 `start_stage=postprocess` 预留但暂不支持的边界；该记录仅为源码静态整理，未完成 x86 或板端运行验证。
 - Issue Analysis Skill 当前处于阶段三验证：`ADASL2-1565` 已完成在线飞书、真实 Jira/Data、Evidence Package、308/308 行 A 核准备、Agent review、证据不足结论和真实 Jira 评论闭环；R 核规则已拆分为解释性 reference 与机器可消费 strategy，但 analyser、输入适配和结果合同仍未实现，运行时继续 `skipped/r_core_analyser_not_available`。Skill 瘦身与 R 核 reference 分层后全量 55 项测试通过；多 case、完整 DMS 状态链、并发去重和 recoverability verification 仍未闭环。
+
+## 1.5 工作分支验证记录
+
+2026-11-03，`br_develop_forJ6b@501a78aa` 的未提交修复已完成 E2YB 分心、脱手、Face ID 三组板端回灌，修正主驾先验、历史后排分类阻断恢复和重叠 ROI 的副驾优先级。结果与验证边界见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/E2YB主驾后排身份交换三工况回灌排查与修复记录-2026-11-03]]。该记录补充工作分支证据，current 文档组继续按各自标注的基线维护。
+
+同日后续按用户明确的恢复目标收敛修复，撤销上述样本几何参数调整，仅解除历史后排类型硬门禁并提高E2YB相对尺寸奖励。恢复时间、共同时间戳对照、两次分心检测推理失败及部署状态见 [[02_Projects/DMS/04_Tracking/Current Maintenance Records/E2YB误跟踪恢复机制最小修复与三工况回灌记录-2026-11-03]]。上一记录保留历史实验事实；本轮记录仍为工作分支证据，未升级Tracking current主线或正式知识。
