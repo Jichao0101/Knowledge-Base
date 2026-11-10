@@ -1,6 +1,6 @@
 {
   "alwaysUpdateLinks": true,
-  "showLineNumber": false,
+  "showLineNumber": true,
   "readableLineLength": false,
   "pdfExportSettings": {
     "includeName": true,
