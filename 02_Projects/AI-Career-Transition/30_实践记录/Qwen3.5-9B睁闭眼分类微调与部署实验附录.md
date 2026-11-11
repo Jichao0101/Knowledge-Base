@@ -465,3 +465,35 @@ trace设备字段：110 SM，每SM最大1536线程、65536个32位寄存器、10
 B8 前两次同名调用的权重分别为 [2560,8192]、[2560,4096]。目标组首次出现的 grid 在 B1/B8 分别为 [72,75,1]、[72,598,1]，block 均为 [64,1,1]。这些数据支持将该组列为热点候选；具体投影身份和跨运行匹配仍以模块关联与定向 basic 报告核对。当前未取得该实例的 full 硬件计数器结果。
 
 本轮“trace 排序→反查分组→定向 basic→full”替代之前要求每档先采整个 measure 清单的安排。原因及执行位置见 [[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录#1.4.5.2.3 下一步测什么，什么结果会改变决策？]]。
+
+### 1.11.1 定向 basic 的实例核对与硬件读数（2026-11-11）
+
+实验对象为单卡 RTX 4090、Qwen3.5-4B BF16 的语言 prefill。采集目录分别为 `ncu_basic_b1/ncu-b1-basic.AemJdp/` 和 `ncu_basic_b8/ncu-b8-basic.0szgZ4/`。每份目录中的 `command.sh` 给出筛选条件，`workload/workload.json` 记录工作负载，`report.ncu-rep` 保存指标。两档均成功完成，与各自 execution_inspect trace 的样本 ID、输入 token 数、77 个生成步及输出 token ID 相符。两次 basic 均在 `measure/language_prefill` 内精确匹配上一节所列 GEMM 名称，跳过 0 次，采前 4 次。
+
+先在 trace 内由 kernel 的 External id 回查 CPU 侧的 `aten::mm`，读取 Input Dims。下表按匹配顺序排列，每个序号从 1 起算；shape 和 External id 来自 trace，grid、block 和 Duration 来自独立的 NCU basic。所有 block 均为 [64,1,1]。
+
+| Batch | 匹配序号 | trace External id | 输入 × 权重 | basic grid | Duration（ms） |
+|---|---:|---:|---|---|---:|
+| B1 | **1** | 15068 | [4781,2560] × [2560,9216] | [72,75,1] | 1.648256 |
+| B1 | 2 | 15078 | 同上 | [72,75,1] | 1.643584 |
+| B1 | 3 | 25334 | 同上 | [72,75,1] | 1.642848 |
+| B1 | 4 | 25344 | 同上 | [72,75,1] | 1.642208 |
+| B8 | 1 | 12003 | [38248,2560] × [2560,8192] | [64,598,1] | 11.176608 |
+| B8 | 2 | 12014 | [38248,2560] × [2560,4096] | [32,598,1] | 5.588096 |
+| B8 | **3** | 22217 | [38248,2560] × [2560,9216] | [72,598,1] | 12.525472 |
+| B8 | 4 | 22227 | 同上 | [72,598,1] | 12.577600 |
+
+B8 第 3 次 GPU 事件的 correlation 为 49561，可在该 trace 内关联 CUDA launch。跨到 NCU 时用阶段、完整名称、周围调用的顺序和启动配置核对；B8 第 3、4 次具有相同 shape 和 grid，因此此处识别到“目标形状组的首个匹配”。具体区分 gate/up 投影仍需模块证据。B1 Summary 页的 6.58 ms 是报告中四个匹配的合计，原 trace 中该组的贡献用全部 64 次的 86.48 ms 计算。以同一 trace 中约 620.5 ms 的近似 prefill 区间 kernel 累计时间为分母，该组占 13.9%。
+
+| basic 指标（选中实例） | B1 第 1 个 | B8 第 3 个 |
+|---|---:|---:|
+| SM Throughput | 47.34% | 49.33% |
+| Memory Throughput / L2 Throughput（两项本次读数相同） | 72.75% | 76.24% |
+| DRAM Throughput | 11.70% | 11.23% |
+| 寄存器/线程；寄存器、共享内存分别允许的 block/SM | 210；4、4 | 210；4、4 |
+| 理论 / 实测 occupancy | 16.67% / 16.23% | 16.67% / 16.60% |
+| Waves Per SM | 10.55 | 84.09 |
+
+B1 的 Launch Statistics 给出 5,400 个 block（72×75）、每 block 64 个线程和 128 个 SM。Occupancy 页给出的驻留上限为 4 block/SM，即 8 warp/SM。设备上限来自 trace 文件开头的 deviceProperties：maxThreadsPerMultiprocessor=1536，warpSize=32，得到 48 warp/SM。理论 occupancy 为 8/48；5,400/(128×4)≈10.55 对应表中的 waves。实测平均 7.79 个 active warp/SM，接近本 kernel 的理论驻留水平。就绪 warp 与发射等待需进一步采集。
+
+本次 basic 核对完成，替代 §1.11 中“匹配待核对”的进度。下一次 full 沿用相同过滤器，B1 取 skip=0、B8 取 skip=2，均取 count=1。检查 L2 流量、Tensor 管线吞吐及 eligible warps；目前 DRAM 吞吐约一成，L2 吞吐较高，硬件限制仍待验证。决策见 [[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录#1.4.5.2.3 下一步测什么，什么结果会改变决策？]]。
