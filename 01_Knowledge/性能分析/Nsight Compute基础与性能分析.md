@@ -48,27 +48,23 @@ ncu把单个指标称为Metric，将相关指标组织为Section，再用Set组�
 
 遇到`ERR_NVGPUCTRPERM`应按驱动和管理员策略处理。CUDA程序能够运行、容器内是root，都不自动表示有性能计数器权限。[权限说明](https://developer.nvidia.com/ERR_NVGPUCTRPERM)
 
-### 1.3.2 先核对实例，再缩小采集范围
+### 1.3.2 从阶段耗时选择热点，再核对 NCU 实例
 
-下列命令为Bash示例，workload.py是待替换的应用。应用必须实际发出NVTX push/pop范围`measure`；torch的`record_function`不会仅凭同名区间就成为NVTX。hook决定在哪里发出标记，本身不是计时器。
+研究 batch 扩展时，先确定收益收窄的阶段。在该阶段按 GPU kernel 名称汇总调用次数、累计耗时和每图累计耗时，找出时间贡献大或单位成本随 batch 改善有限的候选。单次长尾问题则另外查看单次耗时分布。多 stream 并行时，还需用时间线核对重叠和关键路径。
 
-```bash
-ncu --nvtx --nvtx-include 'measure/' --set basic \
-  --kernel-name-base demangled -o measure_basic python workload.py
-```
+从候选 GPU 事件沿 trace 的关联信息回查发起工作的框架算子，取得输入 shape，按模块、投影和形状拆分同名调用，再计算每组贡献。选出要解释的组后，记录其名称、grid/block 和在相应阶段及名称下的匹配位置。不同采集中的事件 ID 属于各自的运行；跨运行靠相同输入、后端、阶段、工作形状和调用顺序核对。
 
-这轮不限制调用数量，代价随窗口内kernel数增长；basic也可能发生重放。核对实例之后，再限制范围和数量，采full或指定sections。已能可靠筛选时不必重新采整个窗口。
+例如 trace 提示目标是阶段内第 3 个同名调用，可以先采前 4 个候选。在下面的 Bash 示例中，应用需实际发出嵌套的 NVTX push/pop 范围，变量填入 trace 中的名称表达式：
 
 ```bash
-ncu --nvtx --nvtx-include 'measure/' --set full \
-  --kernel-name-base demangled \
-  --kernel-name "${TARGET_KERNEL:?填写已确认的名称或regex表达式}" \
-  --launch-skip "${TARGET_SKIP:?填写已确认的匹配skip}" \
-  --launch-count "${TARGET_COUNT:?填写采集数量}" \
-  -o kernel_full python workload.py
+filter=(--nvtx --nvtx-include 'measure/language_prefill'
+        --kernel-name-base demangled --kernel-name "${TARGET_KERNEL:?填写名称或regex表达式}")
+ncu "${filter[@]}" --set basic --launch-skip 0 --launch-count 4 -o candidates python workload.py
+# basic 核对第 3 个候选及其相邻调用后，按同一筛选条件采目标实例。
+ncu "${filter[@]}" --set full --launch-skip 2 --launch-count 1 -o target python workload.py
 ```
 
-`workload.py`是占位程序，环境变量必须先填写。skip/count针对符合过滤条件的调用，不是batch或训练step，报告全局ID不能直接当作skip。改变阶段或名称过滤后要重新核对匹配序列；不确定时先用相同过滤条件的basic验证。count=1只表示采一个已确认实例，不表示默认第一个就是目标。[CLI过滤说明](https://docs.nvidia.com/nsight-compute/NsightComputeCli/index.html)
+skip 统计通过过滤条件的调用。不同 batch 需分别核对序号；若同层不同投影的名称和 grid 也相同，可给具体模块增加 NVTX 标记，再核对候选。整个窗口的 basic 适用于确需盘点全部调用的任务。[CLI 过滤说明](https://docs.nvidia.com/nsight-compute/NsightComputeCli/index.html)
 
 ### 1.3.3 按问题选择section和重放方式
 
