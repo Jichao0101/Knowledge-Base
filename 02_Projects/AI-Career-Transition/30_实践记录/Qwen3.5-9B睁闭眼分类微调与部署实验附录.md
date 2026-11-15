@@ -497,3 +497,96 @@ B8 第 3 次 GPU 事件的 correlation 为 49561，可在该 trace 内关联 CUD
 B1 的 Launch Statistics 给出 5,400 个 block（72×75）、每 block 64 个线程和 128 个 SM。Occupancy 页给出的驻留上限为 4 block/SM，即 8 warp/SM。设备上限来自 trace 文件开头的 deviceProperties：maxThreadsPerMultiprocessor=1536，warpSize=32，得到 48 warp/SM。理论 occupancy 为 8/48；5,400/(128×4)≈10.55 对应表中的 waves。实测平均 7.79 个 active warp/SM，接近本 kernel 的理论驻留水平。就绪 warp 与发射等待需进一步采集。
 
 本次 basic 核对完成，替代 §1.11 中“匹配待核对”的进度。下一次 full 沿用相同过滤器，B1 取 skip=0、B8 取 skip=2，均取 count=1。检查 L2 流量、Tensor 管线吞吐及 eligible warps；目前 DRAM 吞吐约一成，L2 吞吐较高，硬件限制仍待验证。决策见 [[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录#1.4.5.2.3 下一步测什么，什么结果会改变决策？]]。
+
+
+### 1.11.2 full与SASS的测量及指令定位（2026-11-15）
+
+本节为已有报告的分析日期，未重新运行 GPU 工作负载。full 结果完成了 §1.11.1 所安排的定点采集，接替其中“下一次 full”的进度。§1.11 与 §1.11.1 保留当时的采集依据及 basic 读数；当前方案见 [[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录#1.4.5.2.3 下一步测什么，什么结果会改变决策？]]。
+
+#### 采集范围与实例匹配
+
+实验为单卡 RTX 4090、Qwen3.5-4B BF16，PyTorch 2.10.0+cu128、Transformers 5.2.0，attention 配置为 SDPA。两档均预热 2 批、捕获 1 批，填充后输入长度为 4,781，context budget 为 5,600，max new tokens 为 256。数据来自以下相对运行目录，各目录的 `command.sh`、`workload/workload.json` 与 `report.ncu-rep` 分别保存命令、负载和报告。
+
+| 档位 | 运行目录 | 阶段及过滤 | 目标矩阵与启动配置 |
+|---|---|---|---|
+| B1 | `ncu_full_b1/ncu-b1-full.4ePXq3/` | `measure/language_prefill`，skip=0，count=1 | [4781,2560] × [2560,9216]，grid=[72,75,1]，block=[64,1,1] |
+| B8 | `ncu_full_b8/ncu-b8-full.pCBLwg/` | 同阶段，skip=2，count=1 | [38248,2560] × [2560,9216]，grid=[72,598,1]，block=[64,1,1] |
+
+两次均精确过滤 `ampere_bf16_s16816gemm_bf16_128x64_ldg8_f2f_tn`。shape 来自此前 trace 与 basic 的顺序关联，full 的阶段、名称和启动配置与目标一致，匹配粒度仍为目标形状组的首个实例。具体 gate/up 身份尚无额外模块证据。采集命令未显式覆盖 replay、cache-control 和 clock-control，采用采集工具默认值；full 的计时不用于端到端吞吐推算。本地使用 NCU 2024.1.1 离线读取报告的 Details、Raw 和 Source/SASS，读取器版本与采集器版本分别记录理解。
+
+#### full 的阶段内单实例指标
+
+| 指标 | B1 | B8 |
+|---|---:|---:|
+| Duration（ms） | 1.642400 | 12.510496 |
+| 按 batch 归一化（ms/图） | 1.642400 | 1.563812 |
+| Waves Per SM | 10.55 | 84.09 |
+| Registers Per Thread | 210 | 210 |
+| Static Shared Memory Per Block（bytes） | 24,576 | 24,576 |
+| 寄存器 / shared memory 各自限制的 block/SM | 4 / 4 | 4 / 4 |
+| 理论 / 实测 occupancy | 16.67% / 16.23% | 16.67% / 16.60% |
+| Active Warps Per Scheduler | 1.95 | 1.99 |
+| Eligible Warps Per Scheduler | 0.09 | 0.10 |
+| No Eligible | 93.11% | 93.05% |
+| Tensor 管线 active cycles，以 SM active cycles 归一化 | 48.90% | 49.49% |
+| Tensor 管线 active cycles，以 elapsed cycles 归一化 | 47.22% | 49.30% |
+| L2 Throughput（持续峰值百分比） | 72.89% | 76.35% |
+| DRAM Throughput（持续峰值百分比） | 11.68% | 11.31% |
+| L2 Hit Rate | 98.88% | 99.15% |
+
+Duration 对应 `gpu__time_duration.sum`。Tensor active 口径对应 `sm__pipe_tensor_cycles_active.sum.pct_of_peak_sustained_active`，elapsed 口径对应 `sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_elapsed`。两者描述管线活跃周期，解释时保留各自分母。低发射率与已发射指令持续执行可以同时存在。
+
+B8/B1 耗时比为 7.617，每图成本降低约 4.8%。两档相同的资源需求限制了驻留容量，增加 batch 主要增加执行轮次。约 11% 的 DRAM 吞吐削弱显存带宽饱和的解释；L2 和 Tensor 读数仍须与指令等待及后续干预合并解释。
+
+| 每次发射之间的平均 warp 周期 | B1 | B8 |
+|---|---:|---:|
+| 总周期 | 28.32 | 28.66 |
+| math_pipe_throttle | 21.019 | 21.518 |
+| long_scoreboard | 2.522 | 2.352 |
+| wait | 3.105 | 3.107 |
+| short_scoreboard | 0.014 | 0.012 |
+
+各原因取自 `smsp__average_warps_issue_stalled_<reason>_per_issue_active.ratio`。math pipe 等待占这项周期统计约 74%～75%；该比例描述 warp 状态，不能直接作为可消除的 kernel 时间份额。报告 Overview 的 FP32/FP64 Roofline 提示没有覆盖本次 BF16 HMMA 主体计算，不据此作 BF16 算力屋顶判断。
+
+#### SASS 中的数学管线等待
+
+Source 页按指令类别汇总 `smsp__pcsamp_warps_issue_stalled_math_pipe_throttle` 及其 `_not_issued` 变体。Not-issued 样本观察 scheduler 未发射指令时的 warp 状态，两类采样各自计算占比。
+
+| math throttle 采样 | B1 | B8 |
+|---|---:|---:|
+| All samples 总数 | 162,938 | 1,305,036 |
+| 其中 HMMA.16816.F32.BF16 | 162,872 | 1,304,512 |
+| Not-issued 总数 | 159,477 | 1,276,024 |
+| 其中 HMMA.16816.F32.BF16 | 159,420 | 1,275,552 |
+
+两档约 99.96% 的 math throttle 样本落在 BF16 HMMA。热点分布在多条 HMMA 上，最高单点约占 2.6%。以下用相对 kernel 起点的偏移对齐两次进程中的指令，绝对地址会随进程变化。
+
+| 偏移 | SASS 指令 | B1 / B8 的 Not-issued math throttle 样本 |
+|---|---|---:|
+| +0x18a0 | `HMMA.16816.F32.BF16 R56, R164, R204, R56` | 4,248 / 32,913 |
+
+该指令用 BF16 矩阵片段执行乘加，并进行 FP32 累加。采样直接支持 HMMA 执行路径经常发生管线等待。全程平均管线活跃度仍约 49%，具体局部发射节奏及空隙如何形成尚未量化，不能据此宣称整体 Tensor 算力已满。
+
+#### 额外 shared wavefronts 的指令归属
+
+Source 页的 `memory_l1_wavefronts_shared` 减去 `memory_l1_wavefronts_shared_ideal` 得到 `derived__memory_l1_wavefronts_shared_excessive`。按指令类别求和如下。
+
+| 指令类别 | B1 实际 / 理想 | B8 实际 / 理想 |
+|---|---:|---:|
+| LDGSTS | 83,433,600 / 42,007,680 | 665,404,416 / 334,803,456 |
+| LDSM | 55,641,600 / 55,641,600 | 443,649,024 / 443,649,024 |
+| STS | 1,382,400 / 1,382,400 | 11,022,336 / 11,022,336 |
+| LDS.128 | 1,382,400 / 1,382,400 | 11,022,336 / 11,022,336 |
+| 全部 shared wavefronts | 141,840,000 / 100,414,080 | 1,131,098,112 / 800,497,152 |
+
+全部差额 41,425,920 / 330,600,960 都归于 `LDGSTS.E.BYPASS.LTC128B.128.CONSTANT`，约占总实际计数的 29%。B8 的 +0x1290 指令为 `LDGSTS.E.BYPASS.LTC128B.128.CONSTANT [R129], [R130.64], P3`，实际 54,767,232、理想 27,555,840，差额 27,211,392，实际约为理想的 1.99 倍。
+
+这一位置属于 global 到 shared 的搬运路径。另一个 SASS 指标 `smsp__sass_l1tex_data_bank_conflicts_pipe_lsu_mem_shared_op_ldgsts.sum` 在 B8 为零，因此当前只确认该路径超过理想 wavefront 计数。其具体成因及可优化幅度保留为未决项。Details 中 shared store 的硬件 bank-conflict 计数 B1/B8 为 195,484 / 1,781,005，属于另一项观测，不能用它解释上述 LDGSTS 的全部差额。报告给出的预估加速百分比尚未通过干预验证。
+
+#### 循环位置及证据边界
+
+主循环可以看到 LDSM 将 shared 中的矩阵片段载入寄存器，HMMA 做乘加，LDGSTS 提交后续 global→shared 搬运，期间穿插地址更新、同步及回跳。B8 在 +0x1270 开始的一段依次出现 HMMA、R2P、LDGSTS、HMMA、地址更新、HMMA、LDSM，说明实现已经交错组织计算与搬运。
+
+B8 的 `long_scoreboard_not_issued` 还集中于 +0x1890 的 `BAR.SYNC.DEFER_BLOCKING 0x0`，该位置有 106,688 个样本，紧邻 +0x18a0 的 HMMA。它给出了循环中数据完成或同步等待的追查位置，尚未确定上游哪一次搬运贡献了多少延迟。共享内存 load 相关的 short scoreboard 总体较小，现有结果支持优先关注 HMMA 发射及搬运交错。
+
+本轮完成 prefill 代表性 GEMM 实例的硬件诊断，保留三项未决问题：平均 Tensor 活跃度约一半时各类空隙的具体成因；LDGSTS 超理想 wavefronts 的访问机制与可消除成本；改变算法后这些指标对端到端收益的贡献。根据当前模型工程目标，对该 prefill 实例暂不继续 SASS、寄存器或逐周期调度研究，转入实验记录所列的执行路径、输入规模及收益验证。当前结论限定于选中实例，vision 的并行效率问题仍在分析中，逐图调用的影响与替代路径收益继续核验；其他 prefill 热点仍依照各自 trace 证据判断。
