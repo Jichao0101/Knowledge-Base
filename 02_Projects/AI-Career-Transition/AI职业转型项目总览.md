@@ -123,6 +123,7 @@ DMS/OMS 视觉感知与端侧部署项目基础
 - Phase 1-B 学习记录：[[02_Projects/AI-Career-Transition/20_学习记录/P01B_AI评测基本功_学习记录]]
 - Phase 1-C VLM 系统学习文档：[[02_Projects/AI-Career-Transition/10_学习文档/P01C-01_VLM基线与Benchmark_学习文档]]
 - Phase 1-C 学习记录：[[02_Projects/AI-Career-Transition/20_学习记录/P01C_VLM基线与Benchmark_学习记录]]
+- Phase 2-A 软件栈前置学习：[[02_Projects/AI-Career-Transition/10_学习文档/P02A-00_模型软件栈与框架分工_学习文档]]，先理解框架职责与配置作用范围。
 - Phase 2-A 模型工程认知学习文档：[[02_Projects/AI-Career-Transition/10_学习文档/P02A-01_VLM模型工程认知_学习文档]]
 - Phase 2-A 学习记录：[[02_Projects/AI-Career-Transition/20_学习记录/P02A_VLM模型工程认知_学习记录]]
 - Agent Systems 系统学习骨架：[[02_Projects/AI-Career-Transition/10_学习文档/P03-01_Agent系统_学习文档]]
