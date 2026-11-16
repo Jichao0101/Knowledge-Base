@@ -248,6 +248,8 @@ full 与 SASS 将主要数学管线等待定位到 BF16 HMMA 指令，额外 sha
 
 **Vision 并行效率仍在分析中。** 当前确认了 SDPA 路径逐图调用 attention 及每图耗时基本稳定，尚未确定调用拆分对视觉阶段总时间的影响，也未验证合并或变长执行的收益。下一步结合既有调用记录和 trace，核对视觉 attention 的执行顺序、间隔及替代路径适用条件，再开展兼容后端对照，比较同一组图像的阶段耗时、调用数量和输出质量。若替代路径加速，需同时考虑调用组织、计算与访存实现的变化。prefill 的 full/SASS 结果和停止决定均仅适用于该 GEMM，vision 的待验证问题继续保留。
 
+**视觉后端切换的依据。** Transformers 5.2.0 的 `Qwen3_5VisionAttention.forward` 已接好两条调用路径：`sdpa` 路径由模型适配代码按 `cu_seqlens` 切分 Q/K/V，再逐段调用 PyTorch SDPA；`flash_attention_2` 路径将打包的 Q/K/V 与序列边界一起传给 FlashAttention 适配层，进入变长 attention 实现。因此选择 SDPA 作为已测基线、FA2 作为现成的替代路径，验证改变视觉 attention 执行方式是否有收益。这里的拆分来自当前模型适配代码，不能概括为 SDPA 本身不支持 batch；一次变长接口调用也可能启动多个 kernel。切换可能同时改变调用组织、计算和访存效率，收益按视觉阶段与整体 benchmark 验证，prefill 的 `aten::mm` 投影另行评估。[对应模型源码](https://github.com/huggingface/transformers/blob/v5.2.0/src/transformers/models/qwen3_5/modeling_qwen3_5.py#L905-L958)
+
 **下一步按工程成本和可验证收益推进。** 先固定当前 4B 模型、BF16、样本清单、prompt、生成参数和设备条件，补齐无 profiler 的 B1/B2/B4/B8 吞吐、延迟、实际输出长度及显存峰值，选择容量允许且吞吐收益趋缓的 batch。4090 的 B16 已 OOM，后续 batch 选择以当前模型和平台的实测为准。
 
 | 优先顺序 | 具体对照 | 验收与后续选择 |
