@@ -2,8 +2,9 @@
 type: project_overview
 status: active
 project: AI-Career-Transition
-summary: 以知识库已有 DMS 感知、模型训练、端侧部署和 Agent 工程项目为实践背景，向多模态 AI、VLM、Agent Systems 和 ML Systems 迁移的长期学习与作品建设项目。
+summary: 主攻多模态模型推理与部署和ML Systems，以质量、性能与服务可靠性形成作品；Agent作为第二方向，硬件基础按小实验补齐。
 sources:
+  - 02_Projects/AI-Career-Transition/Current Maintenance Records/职业定位与实践优先级调整-2026-11-18.md
   - 2026-10-25 用户授权按全流程模型工程与根因分析定位梳理实验方案、记录及必要入口
   - 2026-10-16 用户授权补充通用契约指导、Qwen实例化测量卡与规划入口
   - 2026-09-16 用户授权连续实验记录及逐步更新规则
@@ -44,43 +45,30 @@ scope: 职业方向、能力补齐、学习路线、作品建设、阶段验证�
 risks:
   - 学习范围横跨模型、系统和 Agent，若缺少阶段性交付，容易再次退化为零散学习或 vibe coding。
   - 本项目记录的是规划和阶段证据，不代表目标能力已经掌握或项目已经完成生产验证。
-updated_at: 2026-10-25
+updated_at: 2026-11-18
 ---
 
 # 1 AI 职业转型项目总览
 
 ## 1.1 项目目标
 
-本项目用于管理从知识库已有的 DMS/OMS 感知、模型训练、数据处理、量化与端侧部署、后处理，以及 Agent workflow 和 trajectory 工程项目，向多模态 AI、VLM 应用、Agent Systems 和 ML Systems 迁移的长期路线。
+本项目以DMS/OMS感知、模型训练、量化与端侧部署等工程背景为基础，管理向多模态模型推理与部署、ML Systems迁移的学习与作品路线；Agent workflow和trajectory作为第二方向的可复用材料。
 
 这些项目是学习路线的真实工程背景和可复用资产，但不在本项目中映射为个人学历、雇主、任职时长或具体任职履历。DMS/OMS 用于提供图像、状态、端侧约束、业务动作和验证场景，不作为长期职业边界。
 
 ## 1.2 目标岗位
 
-按优先级维护以下目标：
+主攻多模态模型推理与部署，定位于ML Systems / AI Infra中的模型执行、性能诊断和服务可靠性方向。优先匹配多模态推理部署、模型服务与推理性能工程岗位，以视觉任务和端侧约束形成实践特色。
 
-1. 多模态 AI / VLM 应用工程师。
-2. AI Agent Systems / LLM 应用系统工程师。
-3. ML Systems / 模型推理与部署工程师。
-4. 智能座舱端云协同 AI 工程师。
+Agent Systems / runtime / 可观测性保留为第二方向，主项目稳定交付后再按岗位需求启动。CUDA/Triton算子、编译器和GPU微架构优化作为条件性进阶；硬件范围与验收见[[02_Projects/AI-Career-Transition/00_规划/AI职业转型整体学习方案#1.6.1 硬件基础补齐到什么程度]]。
 
-暂不将以下方向作为主攻目标：
-
-- LLM 基础模型预训练研究。
-- 只围绕 DMS/OMS 单任务模型继续纵向收窄。
-- 只依赖 Prompt、API 调用或框架拼装的通用应用开发。
+本定位接替原四类目标岗位排序，依据为用户2026-11-18确认；旧文与双向替代关系见 [[02_Projects/AI-Career-Transition/Current Maintenance Records/职业定位与实践优先级调整-2026-11-18]]。
 
 ## 1.3 核心路线
 
-核心能力组合为：
+核心能力组合为“视觉任务与端侧约束背景 + VLM数据流与质量评测 + 推理性能与资源权衡 + 服务观测、恢复与回归”。
 
-```text
-DMS/OMS 视觉感知与端侧部署项目基础
-    + Transformer / VLM / 多模态理解
-    + Agent runtime / evaluation / observability
-    + ML Systems / 端云路由 / 可靠性
-    = 可落地的多模态 AI 系统能力
-```
+当前优先完成输出合同与正式质量baseline，再形成服务基线与受控优化闭环。硬件基础以小实验持续补齐；主交付后再选择Agent或算子专业化。具体优先级见主方案1.6，替代记录见 [[02_Projects/AI-Career-Transition/Current Maintenance Records/职业定位与实践优先级调整-2026-11-18]]。
 
 方法层先按[[02_Projects/AI-Career-Transition/00_规划/模型训练微调与部署的契约与测量方法]]建立目标与测量依据，再进入具体实例；学习恢复仍从1.4指定的检查点开始。
 
@@ -102,7 +90,7 @@ DMS/OMS 视觉感知与端侧部署项目基础
 
 学习恢复统一先读[[02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点]]，确认当前阶段/任务，再按其指向进入学习或实验文档。当前VLM实验记录是学习体系中的实践记录，不替代全局检查点。
 
-- 当前连续实验记录：[[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录]]（当前S02-B trace调用与执行区间已复核，后端/硬件根因与DP验证待执行，S02-C正式baseline待执行；40图为开发集抽样诊断，正文持续整理步骤、结果与决定，详见实验记录1.4.5.2）。
+- 当前连续实验记录：[[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验记录]]（本轮prefill/vision性能诊断已收束，当前S02-C输出合同、开发质量回归与正式baseline准备；训练、服务与DP按前提继续验证）。
 - 实验证据附录：[[02_Projects/AI-Career-Transition/30_实践记录/Qwen3.5-9B睁闭眼分类微调与部署实验附录]]（按主题保存运行条件与关键原始测量，分析结论见实验记录）。
 - 旧方案归档：[[90_Archive/02_Projects/AI-Career-Transition/Qwen3.5-9B实验旧方案与条款归档]]（仅供历史追溯，当前设计以实验方案正文为准）。
 
@@ -133,6 +121,8 @@ DMS/OMS 视觉感知与端侧部署项目基础
 后续阶段实验、作品和求职记录优先留在本项目目录。只有形成长期稳定、经过审核并具有明确适用边界的可复用结论后，才评估是否提升到正式知识区。
 
 ## 1.5 当前状态
+
+- 2026-11-18：职业主线收敛为多模态推理与部署；同步最新实验记录的性能专题停止点和S02-C准备入口。硬件基础与实践顺序见主方案1.6，旧路线快照及替代依据见 [[02_Projects/AI-Career-Transition/Current Maintenance Records/职业定位与实践优先级调整-2026-11-18]]。以下日期条目保留当时进度。
 
 - 2026-10-18：同轮B1/B16/B32 trace已完成调用关联、矩阵形状、启动配置与活动/间隙复算；视觉单图attention、prefill大矩阵及decode摊销行为见实验记录1.4.5.2.2，数据见附录1.10。本条接续2026-10-16的时间线核验安排；云端源码/实际后端、硬件根因和DP仍待验证，S02-C及训练未执行，B16仍为候选。
 

@@ -4,6 +4,7 @@ status: planned
 project: AI-Career-Transition
 summary: 以五类工程能力连接AI Career综合实践、VLM部署专题和性能分析知识，按实验问题组织学习与能力证据。
 sources:
+  - 02_Projects/AI-Career-Transition/Current Maintenance Records/职业定位与实践优先级调整-2026-11-18.md
   - 2026-11-06 用户确认五类工程能力分类，并授权执行能力地图、入口互链与实验能力证据映射方案
   - 02_Projects/AI-Career-Transition/AI职业转型项目总览.md
   - 02_Projects/AI-Career-Transition/00_规划/学习文档维护规范.md
@@ -15,7 +16,7 @@ risks:
   - 本文是项目学习规划，不代表五类能力已掌握或相关实验已完成。
   - 不同模型与平台的案例共享方法，运行结果与部署可行性须分别验证。
 created_at: 2026-11-06
-updated_at: 2026-11-06
+updated_at: 2026-11-18
 ---
 
 # 1 VLM工程能力地图与实践路线
@@ -25,6 +26,8 @@ updated_at: 2026-11-06
 五类能力是贯穿实验的观察维度，实验阶段则决定执行顺序。一轮定位错误的分析可能同时涉及标签定义、模型诊断和训练策略；一次量化实验也可能涉及部署适配、质量诊断与性能测量。因此，学习按问题推进，无需先完整学完五门课。
 
 ## 1.1 如何使用这张地图
+
+职业主线为多模态推理与部署。五类能力用于支撑主交付，硬件范围与实践优先级统一见[[02_Projects/AI-Career-Transition/00_规划/AI职业转型整体学习方案#1.6 Phase 2：多模态推理与部署实践]]；路线依据见 [[02_Projects/AI-Career-Transition/Current Maintenance Records/职业定位与实践优先级调整-2026-11-18]]。
 
 恢复学习先读[[02_Projects/AI-Career-Transition/20_学习记录/当前阶段学习检查点]]，确认当前任务，再用本文查找相关能力和材料。本文不另存当前阶段、运行指标或下一步；实际配置、结果和决定仍由对应实验记录承载。
 
