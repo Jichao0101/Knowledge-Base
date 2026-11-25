@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="850" viewBox="0 0 900 850">
+<title>Tree Attention</title>
+<desc>绿色为可访问位置；突出显示 Query = Y。公共前缀 A B C 全部可见，未画出。。依据学习正文重绘；绿色为真实特征，蓝色为预测特征，灰色为模块或token。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs>
+<rect width="900" height="850" fill="white"/>
+<rect x="8" y="8" width="884" height="834" rx="20" fill="#fdfdfd" stroke="#dfe3e8"/>
+<text x="36" y="49" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="600" fill="#17202a">Tree Attention</text>
+<text x="36" y="83" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">绿色为可访问位置；突出显示 Query = Y。公共前缀 A B C 全部可见，未画出。</text>
+<text x="490" y="134" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="25" font-weight="400" fill="#17202a">Key Token</text>
+<text x="226.0" y="176" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">D</text>
+<text x="310.0" y="176" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">E</text>
+<text x="394.0" y="176" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">X</text>
+<text x="478.0" y="176" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">F</text>
+<text x="562.0" y="176" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">M</text>
+<text x="646.0" y="176" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">Y</text>
+<text x="730.0" y="176" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">N</text>
+<text x="149" y="243" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">D</text>
+<rect x="190" y="196" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#dce3e9" stroke-width="2"/>
+<text x="226.0" y="243" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="274" y="196" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="310.0" y="243" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="358" y="196" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="394.0" y="243" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="442" y="196" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="478.0" y="243" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="526" y="196" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="562.0" y="243" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="610" y="196" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="646.0" y="243" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="694" y="196" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="730.0" y="243" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<text x="149" y="327" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">E</text>
+<rect x="190" y="280" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#dce3e9" stroke-width="2"/>
+<text x="226.0" y="327" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="274" y="280" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#dce3e9" stroke-width="2"/>
+<text x="310.0" y="327" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="358" y="280" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="394.0" y="327" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="442" y="280" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="478.0" y="327" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="526" y="280" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="562.0" y="327" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="610" y="280" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="646.0" y="327" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="694" y="280" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="730.0" y="327" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<text x="149" y="411" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">X</text>
+<rect x="190" y="364" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#dce3e9" stroke-width="2"/>
+<text x="226.0" y="411" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="274" y="364" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="310.0" y="411" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="358" y="364" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#dce3e9" stroke-width="2"/>
+<text x="394.0" y="411" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="442" y="364" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="478.0" y="411" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="526" y="364" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="562.0" y="411" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="610" y="364" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="646.0" y="411" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="694" y="364" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="730.0" y="411" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<text x="149" y="495" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">F</text>
+<rect x="190" y="448" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#dce3e9" stroke-width="2"/>
+<text x="226.0" y="495" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="274" y="448" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#dce3e9" stroke-width="2"/>
+<text x="310.0" y="495" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="358" y="448" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="394.0" y="495" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="442" y="448" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#dce3e9" stroke-width="2"/>
+<text x="478.0" y="495" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="526" y="448" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="562.0" y="495" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="610" y="448" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="646.0" y="495" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="694" y="448" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="730.0" y="495" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<text x="149" y="579" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">M</text>
+<rect x="190" y="532" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#dce3e9" stroke-width="2"/>
+<text x="226.0" y="579" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="274" y="532" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#dce3e9" stroke-width="2"/>
+<text x="310.0" y="579" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="358" y="532" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="394.0" y="579" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="442" y="532" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="478.0" y="579" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="526" y="532" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#dce3e9" stroke-width="2"/>
+<text x="562.0" y="579" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="610" y="532" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="646.0" y="579" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="694" y="532" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="730.0" y="579" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<text x="149" y="663" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="600" fill="#16a34a">Y</text>
+<rect x="190" y="616" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#16a34a" stroke-width="2"/>
+<text x="226.0" y="663" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="274" y="616" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#16a34a" stroke-width="2"/>
+<text x="310.0" y="663" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="358" y="616" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#16a34a" stroke-width="2"/>
+<text x="394.0" y="663" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="442" y="616" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#16a34a" stroke-width="2"/>
+<text x="478.0" y="663" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="526" y="616" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#16a34a" stroke-width="2"/>
+<text x="562.0" y="663" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="610" y="616" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#16a34a" stroke-width="2"/>
+<text x="646.0" y="663" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="694" y="616" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#16a34a" stroke-width="2"/>
+<text x="730.0" y="663" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<text x="149" y="747" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">N</text>
+<rect x="190" y="700" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#dce3e9" stroke-width="2"/>
+<text x="226.0" y="747" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="274" y="700" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="310.0" y="747" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="358" y="700" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#dce3e9" stroke-width="2"/>
+<text x="394.0" y="747" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<rect x="442" y="700" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="478.0" y="747" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="526" y="700" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="562.0" y="747" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="610" y="700" width="72" height="72" rx="8" fill="#f7f8fa" stroke="#dce3e9" stroke-width="2"/>
+<text x="646.0" y="747" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">0</text>
+<rect x="694" y="700" width="72" height="72" rx="8" fill="#b8e1c8" stroke="#dce3e9" stroke-width="2"/>
+<text x="730.0" y="747" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">1</text>
+<text x="61" y="487" transform="rotate(-90 61 487)" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="25" fill="#17202a">Query Token</text>
+<text x="450" y="816" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="20" font-weight="400" fill="#168343">Y → D、X、Y；屏蔽其他分支 E、F、M、N。</text>
+</svg>

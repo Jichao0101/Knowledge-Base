@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1070" viewBox="0 0 1000 1070">
+<title>EAGLE-3：为什么训练时也要多步反馈</title>
+<desc>绿色：目标特征     蓝色：草稿内部状态     橙色：训练损失。依据学习正文重绘；绿色为真实特征，蓝色为预测特征，灰色为模块或token。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs>
+<rect width="1000" height="1070" fill="white"/>
+<rect x="8" y="8" width="984" height="1054" rx="20" fill="#fdfdfd" stroke="#dfe3e8"/>
+<text x="36" y="49" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="600" fill="#17202a">EAGLE-3：为什么训练时也要多步反馈</text>
+<text x="36" y="83" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">绿色：目标特征     蓝色：草稿内部状态     橙色：训练损失</text>
+<text x="35" y="125" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="600" fill="#17202a">① EAGLE-1 训练：从真实特征学习一步预测</text>
+<rect x="70" y="150" width="230" height="52" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="185.0" y="182.8" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="20" font-weight="400" fill="#17202a">h1（含训练噪声）</text>
+<polyline points="185,202 185,225" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="70" y="225" width="230" height="52" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="185.0" y="259.84" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="26" font-weight="400" fill="#17202a">ĥ2</text>
+<polyline points="185,277 185,300" fill="none" stroke="#d29c39" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="70" y="300" width="230" height="62" rx="11" fill="#fff5df" stroke="#d29c39" stroke-width="2"/>
+<text x="185.0" y="325.24" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#17202a">特征回归损失</text>
+<text x="185.0" y="347.64" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#17202a">＋经 LM Head 的 token 损失</text>
+<rect x="385" y="150" width="230" height="52" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="500.0" y="182.8" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="20" font-weight="400" fill="#17202a">h2（含训练噪声）</text>
+<polyline points="500,202 500,225" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="385" y="225" width="230" height="52" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="500.0" y="259.84" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="26" font-weight="400" fill="#17202a">ĥ3</text>
+<polyline points="500,277 500,300" fill="none" stroke="#d29c39" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="385" y="300" width="230" height="62" rx="11" fill="#fff5df" stroke="#d29c39" stroke-width="2"/>
+<text x="500.0" y="325.24" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#17202a">特征回归损失</text>
+<text x="500.0" y="347.64" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#17202a">＋经 LM Head 的 token 损失</text>
+<rect x="700" y="150" width="230" height="52" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="815.0" y="182.8" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="20" font-weight="400" fill="#17202a">h3（含训练噪声）</text>
+<polyline points="815,202 815,225" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="700" y="225" width="230" height="52" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="815.0" y="259.84" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="26" font-weight="400" fill="#17202a">ĥ4</text>
+<polyline points="815,277 815,300" fill="none" stroke="#d29c39" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="700" y="300" width="230" height="62" rx="11" fill="#fff5df" stroke="#d29c39" stroke-width="2"/>
+<text x="815.0" y="325.24" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#17202a">特征回归损失</text>
+<text x="815.0" y="347.64" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="16" font-weight="400" fill="#17202a">＋经 LM Head 的 token 损失</text>
+<text x="35" y="395" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="19" font-weight="400" fill="#617080">特征回归约束预测接近真实特征；每个位置也有 token 监督。</text>
+<polyline points="30,420 970,420" fill="none" stroke="#dfe3e8" stroke-width="2" stroke-linejoin="round"/>
+<text x="35" y="460" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="600" fill="#17202a">② EAGLE-1 推理：自身预测成为后续输入</text>
+<rect x="45" y="485" width="160" height="65" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="125.0" y="527.02" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">h₁</text>
+<polyline points="205,517 295,517" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="295" y="485" width="160" height="65" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="375.0" y="527.02" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">ĥ₂</text>
+<polyline points="455,517 545,517" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="545" y="485" width="160" height="65" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="625.0" y="527.02" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">ĥ₃</text>
+<polyline points="705,517 795,517" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="795" y="485" width="160" height="65" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="875.0" y="527.02" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">ĥ₄</text>
+<text x="35" y="590" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="19" font-weight="400" fill="#617080">后续输入包含预测特征，可能偏离训练输入并累积误差。</text>
+<polyline points="30,615 970,615" fill="none" stroke="#dfe3e8" stroke-width="2" stroke-linejoin="round"/>
+<text x="35" y="655" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="600" fill="#17202a">③ EAGLE-3 训练：展开反馈，在各步施加 token 监督</text>
+<rect x="45" y="685" width="160" height="65" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="125.0" y="727.02" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">g₁</text>
+<polyline points="205,717 295,717" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="295" y="685" width="160" height="65" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="375.0" y="727.02" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">a₂</text>
+<polyline points="455,717 545,717" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="375,750 375,780" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="295" y="780" width="160" height="50" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="375.0" y="812.48" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="22" font-weight="400" fill="#17202a">LM Head</text>
+<polyline points="375,830 375,860" fill="none" stroke="#d29c39" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="295" y="860" width="160" height="55" rx="11" fill="#fff5df" stroke="#d29c39" stroke-width="2"/>
+<text x="375.0" y="894.98" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="22" font-weight="400" fill="#17202a">Token Loss</text>
+<rect x="545" y="685" width="160" height="65" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="625.0" y="727.02" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">a₃</text>
+<polyline points="705,717 795,717" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="625,750 625,780" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="545" y="780" width="160" height="50" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="625.0" y="812.48" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="22" font-weight="400" fill="#17202a">LM Head</text>
+<polyline points="625,830 625,860" fill="none" stroke="#d29c39" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="545" y="860" width="160" height="55" rx="11" fill="#fff5df" stroke="#d29c39" stroke-width="2"/>
+<text x="625.0" y="894.98" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="22" font-weight="400" fill="#17202a">Token Loss</text>
+<rect x="795" y="685" width="160" height="65" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="875.0" y="727.02" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">a₄</text>
+<polyline points="875,750 875,780" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="795" y="780" width="160" height="50" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="875.0" y="812.48" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="22" font-weight="400" fill="#17202a">LM Head</text>
+<polyline points="875,830 875,860" fill="none" stroke="#d29c39" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="795" y="860" width="160" height="55" rx="11" fill="#fff5df" stroke="#d29c39" stroke-width="2"/>
+<text x="875.0" y="894.98" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="22" font-weight="400" fill="#17202a">Token Loss</text>
+<text x="125" y="780" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#168343">融合目标特征</text>
+<text x="35" y="955" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="19" font-weight="400" fill="#617080">a 是草稿内部向量；无需回归目标特征 h，损失作用于 token 分布。</text>
+<text x="35" y="1000" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">简化示意：箭头包含 Draft 计算；省略 token embedding、历史序列与 KV。</text>
+<text x="35" y="1032" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">Token Loss 使用目标模型分布监督；图中只展示三步，不限定训练展开步数。</text>
+</svg>

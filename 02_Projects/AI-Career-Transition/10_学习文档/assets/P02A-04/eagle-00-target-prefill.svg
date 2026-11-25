@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="620" viewBox="0 0 1000 620">
+<title>起点：Target 已处理 A、B、C</title>
+<desc>真实特征已就绪；D 已选出，但尚无真实 hD 或 D 的目标 KV。。依据学习正文重绘；绿色为真实特征，蓝色为预测特征，灰色为模块或token。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs>
+<rect width="1000" height="620" fill="white"/>
+<rect x="8" y="8" width="984" height="604" rx="20" fill="#fdfdfd" stroke="#dfe3e8"/>
+<text x="36" y="49" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="600" fill="#17202a">起点：Target 已处理 A、B、C</text>
+<text x="36" y="83" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">真实特征已就绪；D 已选出，但尚无真实 hD 或 D 的目标 KV。</text>
+<rect x="90" y="125" width="160" height="65" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="170.0" y="166.0" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="25" font-weight="400" fill="#17202a">A</text>
+<polyline points="170,190 170,240" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="340" y="125" width="160" height="65" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="420.0" y="166.0" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="25" font-weight="400" fill="#17202a">B</text>
+<polyline points="420,190 420,240" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="590" y="125" width="160" height="65" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="670.0" y="166.0" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="25" font-weight="400" fill="#17202a">C</text>
+<polyline points="670,190 670,240" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="64" y="240" width="740" height="96" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="434.0" y="296.5" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="25" font-weight="400" fill="#17202a">Target Model</text>
+<polyline points="170,336 170,390" fill="none" stroke="#16a34a" stroke-width="2" stroke-linejoin="round"/>
+<rect x="90" y="390" width="160" height="65" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="170.0" y="432.36" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="29" font-weight="400" fill="#17202a">hA</text>
+<polyline points="420,336 420,390" fill="none" stroke="#16a34a" stroke-width="2" stroke-linejoin="round"/>
+<rect x="340" y="390" width="160" height="65" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="420.0" y="432.36" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="29" font-weight="400" fill="#17202a">hB</text>
+<polyline points="670,336 670,390" fill="none" stroke="#16a34a" stroke-width="2" stroke-linejoin="round"/>
+<rect x="590" y="390" width="160" height="65" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="670.0" y="432.36" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="29" font-weight="400" fill="#17202a">hC</text>
+<polyline points="670,455 670,490" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="550" y="490" width="240" height="65" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="670.0" y="531.0" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="25" font-weight="400" fill="#17202a">LM Head</text>
+<polyline points="790,522 860,522" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="860" y="490" width="90" height="65" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="905.0" y="531.0" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="25" font-weight="400" fill="#17202a">D</text>
+<text x="500" y="590" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#617080">绿色：目标真实特征     灰色：token 与计算模块</text>
+</svg>

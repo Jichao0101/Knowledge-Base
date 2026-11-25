@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="650" viewBox="0 0 1100 650">
+<title>EAGLE-3：多层特征融合与内部状态反馈</title>
+<desc>a 是草稿内部向量；训练不要求它等于目标模型某一层的特征。。依据学习正文重绘；绿色为真实特征，蓝色为预测特征，灰色为模块或token。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs>
+<rect width="1100" height="650" fill="white"/>
+<rect x="8" y="8" width="1084" height="634" rx="20" fill="#fdfdfd" stroke="#dfe3e8"/>
+<text x="36" y="49" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="600" fill="#17202a">EAGLE-3：多层特征融合与内部状态反馈</text>
+<text x="36" y="83" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">a 是草稿内部向量；训练不要求它等于目标模型某一层的特征。</text>
+<rect x="100" y="133" width="220" height="66" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="210.0" y="174.16" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="24" font-weight="400" fill="#17202a">低层特征 · d</text>
+<polyline points="210,199 210,233 550,233" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="440" y="133" width="220" height="66" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="550.0" y="174.16" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="24" font-weight="400" fill="#17202a">中层特征 · d</text>
+<polyline points="550,199 550,233 550,233" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="780" y="133" width="220" height="66" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="890.0" y="174.16" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="24" font-weight="400" fill="#17202a">高层特征 · d</text>
+<polyline points="890,199 890,233 550,233" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<polyline points="550,233 550,271" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="325" y="271" width="450" height="70" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="550.0" y="314.16" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="24" font-weight="400" fill="#17202a">拼接 3d → FC → 融合特征 g</text>
+<polyline points="550,341 550,373 280,373 280,420" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="100" y="420" width="360" height="82" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="280.0" y="452.36" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="24" font-weight="400" fill="#17202a">首步 Draft</text>
+<text x="280.0" y="485.96000000000004" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="24" font-weight="400" fill="#17202a">g + 已选token的embedding</text>
+<rect x="640" y="420" width="360" height="82" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="820.0" y="452.36" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="24" font-weight="400" fill="#17202a">后续 Draft</text>
+<text x="820.0" y="485.96000000000004" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="24" font-weight="400" fill="#17202a">a + 新token的embedding</text>
+<polyline points="460,461 640,461" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="550" y="437" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#537fbc">内部向量 a</text>
+<text x="550" y="494" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#617080">+ 候选token</text>
+<rect x="100" y="551" width="900" height="61" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="550.0" y="589.32" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="400" fill="#17202a">Training-time test：训练时展开多步反馈，施加 token 监督</text>
+</svg>

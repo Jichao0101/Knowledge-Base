@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="640" viewBox="0 0 1100 640">
+<title>同一位置：拒绝后更新残差，再检查兄弟候选</title>
+<desc>前缀：我想养一只……；依次尝试“猫”和“狗”，仍是同一个生成位置。。依据学习正文重绘；绿色为接受路径，蓝色为候选检验，黄色为残差修正。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs>
+<rect width="1100" height="640" fill="white"/>
+<rect x="8" y="8" width="1084" height="624" rx="20" fill="#fdfdfd" stroke="#dfe3e8"/>
+<text x="36" y="49" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="600" fill="#17202a">同一位置：拒绝后更新残差，再检查兄弟候选</text>
+<text x="36" y="83" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">前缀：我想养一只……；依次尝试“猫”和“狗”，仍是同一个生成位置。</text>
+<rect x="50" y="120" width="1000" height="64" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="550.0" y="160.16" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="24" font-weight="400" fill="#17202a">初始 p：猫 0.30    狗 0.40    兔 0.20    鸟 0.10</text>
+<text x="180" y="233" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="600" fill="#17202a">① 检查“猫”</text>
+<text x="550" y="233" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="600" fill="#17202a">② 检查“狗”</text>
+<text x="920" y="233" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="600" fill="#17202a">③ 最终修正</text>
+<rect x="50" y="261" width="260" height="95" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="180.0" y="299.86" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="24" font-weight="400" fill="#17202a">p̂₁(猫) = 0.60</text>
+<text x="180.0" y="333.46000000000004" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="24" font-weight="400" fill="#17202a">接受率 = 0.50</text>
+<rect x="420" y="261" width="260" height="95" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="550.0" y="299.86" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="24" font-weight="400" fill="#17202a">p̂₂(狗) = 5/8</text>
+<text x="550.0" y="333.46000000000004" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="24" font-weight="400" fill="#17202a">接受率 = 4/5</text>
+<rect x="790" y="261" width="260" height="95" rx="11" fill="#fff5df" stroke="#d29c39" stroke-width="2"/>
+<text x="920.0" y="299.86" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="24" font-weight="400" fill="#17202a">从当前 p 采样</text>
+<text x="920.0" y="333.46000000000004" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="24" font-weight="400" fill="#17202a">兔：2/3   鸟：1/3</text>
+<polyline points="310,307 420,307" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="365" y="287" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#617080">拒绝</text>
+<polyline points="680,307 790,307" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="735" y="287" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#617080">拒绝</text>
+<text x="365" y="397" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#617080">拒绝“猫”后 p</text>
+<text x="365" y="425" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#617080">(0, 1/2, 1/3, 1/6)</text>
+<text x="735" y="397" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#617080">拒绝“狗”后 p</text>
+<text x="735" y="425" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#617080">(0, 0, 2/3, 1/3)</text>
+<polyline points="180,356 180,489" fill="none" stroke="#16a34a" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="50" y="489" width="260" height="78" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="180.0" y="519.72" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="400" fill="#17202a">接受“猫”</text>
+<text x="180.0" y="551.9200000000001" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="400" fill="#17202a">进入“猫”子树</text>
+<polyline points="550,356 550,489" fill="none" stroke="#16a34a" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="420" y="489" width="260" height="78" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="550.0" y="519.72" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="400" fill="#17202a">接受“狗”</text>
+<text x="550.0" y="551.9200000000001" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="400" fill="#17202a">进入“狗”子树</text>
+<polyline points="920,356 920,489" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<rect x="790" y="489" width="260" height="78" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="920.0" y="519.72" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="400" fill="#17202a">输出修正token</text>
+<text x="920.0" y="551.9200000000001" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="400" fill="#17202a">结束本轮</text>
+<text x="550" y="610" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">p 始终表示当前剩余分布；向量顺序：猫、狗、兔、鸟。</text>
+</svg>

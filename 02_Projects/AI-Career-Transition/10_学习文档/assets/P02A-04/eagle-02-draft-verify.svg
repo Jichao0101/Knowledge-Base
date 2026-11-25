@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="780" viewBox="0 0 1100 780">
+<title>多步 Draft → 一次 Target 验证 → 下一轮</title>
+<desc>以下展示 E、F、G 全部接受的情况；三次 Draft 调用共享参数。。依据学习正文重绘；绿色为真实特征，蓝色为预测特征，灰色为模块或token。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs>
+<rect width="1100" height="780" fill="white"/>
+<rect x="8" y="8" width="1084" height="764" rx="20" fill="#fdfdfd" stroke="#dfe3e8"/>
+<text x="36" y="49" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="600" fill="#17202a">多步 Draft → 一次 Target 验证 → 下一轮</text>
+<text x="36" y="83" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">以下展示 E、F、G 全部接受的情况；三次 Draft 调用共享参数。</text>
+<text x="40" y="129" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="600" fill="#17202a">Round 1 · Draft</text>
+<rect x="60" y="156" width="180" height="65" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="150.0" y="198.36" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="29" font-weight="400" fill="#17202a">hC</text>
+<polyline points="240,188 325,188" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="282" y="169" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">+ eD</text>
+<rect x="325" y="156" width="180" height="65" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="415.0" y="198.36" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="29" font-weight="400" fill="#17202a">ĥD</text>
+<polyline points="505,188 590,188" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="547" y="169" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">+ eE</text>
+<rect x="590" y="156" width="180" height="65" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="680.0" y="198.36" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="29" font-weight="400" fill="#17202a">ĥE</text>
+<polyline points="770,188 855,188" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="812" y="169" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">+ eF</text>
+<rect x="855" y="156" width="180" height="65" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="945.0" y="198.36" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="29" font-weight="400" fill="#17202a">ĥF</text>
+<text x="415" y="250" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="19" font-weight="400" fill="#537fbc">提出 E</text>
+<text x="680" y="250" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="19" font-weight="400" fill="#537fbc">提出 F</text>
+<text x="945" y="250" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="19" font-weight="400" fill="#537fbc">提出 G</text>
+<text x="40" y="299" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="19" font-weight="400" fill="#617080">候选输入</text>
+<rect x="60" y="318" width="180" height="48" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="150.0" y="349.82" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="400" fill="#17202a">D</text>
+<polyline points="150,366 150,398" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="325" y="318" width="180" height="48" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="415.0" y="349.82" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="400" fill="#17202a">E</text>
+<polyline points="415,366 415,398" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="590" y="318" width="180" height="48" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="680.0" y="349.82" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="400" fill="#17202a">F</text>
+<polyline points="680,366 680,398" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="855" y="318" width="180" height="48" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="945.0" y="349.82" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="400" fill="#17202a">G</text>
+<polyline points="945,366 945,398" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="60" y="398" width="975" height="76" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="547.5" y="445.18" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="400" fill="#17202a">Target Verification · 一次 Forward</text>
+<polyline points="150,474 150,504" fill="none" stroke="#16a34a" stroke-width="2" stroke-linejoin="round"/>
+<rect x="60" y="504" width="180" height="60" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="150.0" y="543.86" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="29" font-weight="400" fill="#17202a">hD</text>
+<polyline points="415,474 415,504" fill="none" stroke="#16a34a" stroke-width="2" stroke-linejoin="round"/>
+<rect x="325" y="504" width="180" height="60" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="415.0" y="543.86" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="29" font-weight="400" fill="#17202a">hE</text>
+<polyline points="680,474 680,504" fill="none" stroke="#16a34a" stroke-width="2" stroke-linejoin="round"/>
+<rect x="590" y="504" width="180" height="60" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="680.0" y="543.86" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="29" font-weight="400" fill="#17202a">hF</text>
+<polyline points="945,474 945,504" fill="none" stroke="#16a34a" stroke-width="2" stroke-linejoin="round"/>
+<rect x="855" y="504" width="180" height="60" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="945.0" y="543.86" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="29" font-weight="400" fill="#17202a">hG</text>
+<text x="40" y="609" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="600" fill="#17202a">Round 2 · Draft</text>
+<polyline points="945,564 945,585 25,585 25,630 150,630 150,646" fill="none" stroke="#16a34a" stroke-width="3" stroke-linejoin="round" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+<text x="590" y="624" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#168343">由 hG 的分布选出 H，再开始下一轮</text>
+<rect x="60" y="646" width="180" height="60" rx="11" fill="#e0f1e6" stroke="#16a34a" stroke-width="2"/>
+<text x="150.0" y="685.86" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="29" font-weight="400" fill="#17202a">hG</text>
+<polyline points="240,676 325,676" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="282" y="656" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">+ eH</text>
+<rect x="325" y="646" width="180" height="60" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="415.0" y="685.86" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="29" font-weight="400" fill="#17202a">ĥH</text>
+<polyline points="505,676 590,676" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="547" y="656" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">+ eI</text>
+<rect x="590" y="646" width="180" height="60" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="680.0" y="685.86" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="29" font-weight="400" fill="#17202a">ĥI</text>
+<polyline points="770,676 855,676" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="812" y="656" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">+ eJ</text>
+<rect x="855" y="646" width="180" height="60" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="945.0" y="685.86" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="29" font-weight="400" fill="#17202a">ĥJ</text>
+<text x="550" y="748" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="19" font-weight="400" fill="#617080">绿色：Target 真实特征     蓝色：Draft 预测特征</text>
+</svg>

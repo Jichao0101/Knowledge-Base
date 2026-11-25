@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="570" viewBox="0 0 1000 570">
+<title>Draft Tree：在同一位置准备多个候选</title>
+<desc>D 已确定；其余节点是候选。深度决定相对位置，数组下标不决定位置。。依据学习正文重绘；绿色为真实特征，蓝色为预测特征，灰色为模块或token。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs>
+<rect width="1000" height="570" fill="white"/>
+<rect x="8" y="8" width="984" height="554" rx="20" fill="#fdfdfd" stroke="#dfe3e8"/>
+<text x="36" y="49" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="27" font-weight="600" fill="#17202a">Draft Tree：在同一位置准备多个候选</text>
+<text x="36" y="83" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="17" font-weight="400" fill="#617080">D 已确定；其余节点是候选。深度决定相对位置，数组下标不决定位置。</text>
+<rect x="330" y="120" width="340" height="55" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="500.0" y="155.32" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="23" font-weight="400" fill="#17202a">公共前缀 A B C</text>
+<polyline points="500,175 500,210" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="420" y="210" width="160" height="60" rx="11" fill="#f4f5f7" stroke="#96a6bd" stroke-width="2"/>
+<text x="500.0" y="249.52" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">D</text>
+<polyline points="500,270 500,293 320,293 320,320" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="240" y="320" width="160" height="60" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="320.0" y="359.52" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">E</text>
+<polyline points="500,270 500,293 680,293 680,320" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="600" y="320" width="160" height="60" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="680.0" y="359.52" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">X</text>
+<polyline points="320,380 320,410 195,410 195,440" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="130" y="440" width="130" height="60" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="195.0" y="479.52" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">F</text>
+<polyline points="320,380 320,410 415,410 415,440" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="350" y="440" width="130" height="60" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="415.0" y="479.52" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">M</text>
+<polyline points="680,380 680,410 635,410 635,440" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="570" y="440" width="130" height="60" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="635.0" y="479.52" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">Y</text>
+<polyline points="680,380 680,410 855,410 855,440" fill="none" stroke="#27313e" stroke-width="2" stroke-linejoin="round"/>
+<rect x="790" y="440" width="130" height="60" rx="11" fill="#e6eefb" stroke="#6394d8" stroke-width="2"/>
+<text x="855.0" y="479.52" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="28" font-weight="400" fill="#17202a">N</text>
+<text x="48" y="246" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#617080">深度 0</text>
+<text x="48" y="356" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#617080">深度 1</text>
+<text x="48" y="476" text-anchor="start" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="18" font-weight="400" fill="#617080">深度 2</text>
+<text x="500" y="540" text-anchor="middle" font-family="Microsoft YaHei, DejaVu Sans, sans-serif" font-size="19" font-weight="400" fill="#617080">每个节点只看公共前缀、自己的祖先和自身。</text>
+</svg>
