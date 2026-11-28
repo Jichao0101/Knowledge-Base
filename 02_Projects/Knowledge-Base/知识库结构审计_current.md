@@ -525,3 +525,9 @@ supersedes:
 ## 2026-11-18 AI Career职业定位与恢复优先级同步
 
 按用户确认，将主方案及总览定位收敛为多模态推理部署 / ML Systems，明确硬件基础边界；检查点、学习与实践索引同步性能专题停止点及S02-C准备任务。README、项目区入口和能力地图同步导航，旧条款及替代依据见 [[02_Projects/AI-Career-Transition/Current Maintenance Records/职业定位与实践优先级调整-2026-11-18]]。全局检查点仍负责学习恢复，实验记录仍负责运行事实；既有Phase关闭、证据等级及single_pass_recoverable=false保持原边界，未创建current文档组或新增运行结果。
+
+## 2026-11-28 ai_cad流程对照与阶段证据迁入
+
+按用户明确要求，以 [[02_Projects/ai_cad/SOR流程与实现对照]] 作为后续流程审查入口：SOR为主，Part补充构造，顺序疑点再查视频；暂停两个偏置实现，先核对需求与实现缺口。它仅替代此前实施优先顺序，不改变SOR、澄清回复或历史实测结论。实施步骤和实践跟踪追加反向说明，项目入口同步。
+
+代码仓STEP34_RECONSTRUCTION、STEP5_REVIEW正文迁入ai_cad技术参考目录，按用户后续要求删除代码仓旧路径及相关导航；原文和验证边界保留，只修复迁移链接并加历史记录说明。未创建current文档组、提升正式知识或recoverability。原始需求仍由用户需求文档及签字版SOR负责，流程对照不替代它们。
